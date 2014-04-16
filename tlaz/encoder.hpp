@@ -1,0 +1,242 @@
+// encoder.hpp
+// Encoder stuffs
+//
+
+
+#ifndef __encoder_hpp__
+#define __encoder_hpp__
+
+namespace laszip {
+	namespace encoders {
+		template<
+			typename TOutStream
+		>
+		class arithmetic {
+			arithmetic() {
+				outstream = NULL;
+
+				outbuffer = new U8[2*AC_BUFFER_SIZE];
+				endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
+			}
+
+			~arithmetic() {
+				free(outbuffer);
+			}
+
+			bool init() {
+				if (outstream == 0) return FALSE;
+				this->outstream = outstream;
+
+				base   = 0;
+				length = AC__MaxLength;
+				outbyte = outbuffer;
+				endbyte = endbuffer;
+
+				return true;
+			}
+
+			void done() {
+				U32 init_base = base;                 // done encoding: set final data bytes
+				BOOL another_byte = TRUE;
+
+				if (length > 2 * AC__MinLength) {
+					base  += AC__MinLength;                                     // base offset
+					length = AC__MinLength >> 1;             // set new length for 1 more byte
+				}
+				else {
+					base  += AC__MinLength >> 1;                                // base offset
+					length = AC__MinLength >> 9;            // set new length for 2 more bytes
+					another_byte = FALSE;
+				}
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				renorm_enc_interval();                // renormalization = output last bytes
+
+				if (endbyte != endbuffer)
+				{
+					assert(outbyte < outbuffer + AC_BUFFER_SIZE);
+					outstream->putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
+				}
+
+				U32 buffer_size = outbyte - outbuffer;
+				if (buffer_size) outstream->putBytes(outbuffer, buffer_size);
+
+				// write two or three zero bytes to be in sync with the decoder's byte reads
+				outstream->putByte(0);
+				outstream->putByte(0);
+
+				if (another_byte) outstream->putByte(0);
+
+				outstream = 0;
+			}
+
+			/* Encode a bit with modelling                               */
+			template<typename EntropyModel>
+			void encodeBit(EntropyModel& m, U32 sym) {
+				assert(sym <= 1);
+
+				U32 x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
+				// update interval
+				if (sym == 0) {
+					length = x;
+					++m.bit_0_count;
+				}
+				else {
+					U32 init_base = base;
+					base += x;
+					length -= x;
+					if (init_base > base) propagate_carry();               // overflow = carry
+				}
+
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+				if (--m.bits_until_update == 0) m.update();       // periodic model update
+			}
+
+			/* Encode a symbol with modelling                            */
+			template <typename EntropyModel>
+			void encodeSymbol(EntropyModel& model, U32 sym) {
+				assert(sym <= m.last_symbol);
+
+				U32 x, init_base = base;
+
+				// compute products
+				if (sym == m.last_symbol) {
+					x = m.distribution[sym] * (length >> DM__LengthShift);
+					base   += x;                                            // update interval
+					length -= x;                                          // no product needed
+				}
+				else {
+					x = m.distribution[sym] * (length >>= DM__LengthShift);
+					base   += x;                                            // update interval
+					length  = m.distribution[sym+1] * length - x;
+				}
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+
+				++m.symbol_count[sym];
+				if (--m.symbols_until_update == 0) m.update();    // periodic model update
+			}
+
+			/* Encode a bit without modelling                            */
+			void writeBit(U32 sym) {
+				assert(sym < 2);
+
+				U32 init_base = base;
+				base += sym * (length >>= 1);                // new interval base and length
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+			}
+
+			void writeBits(U32 bits, U32 sym) {
+				assert(bits && (bits <= 32) && (sym < (1u<<bits)));
+
+				if (bits > 19)
+				{
+					writeShort(sym&U16_MAX);
+					sym = sym >> 16;
+					bits = bits - 16;
+				}
+
+				U32 init_base = base;
+				base += sym * (length >>= bits);             // new interval base and length
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+			}
+
+			void writeByte(U8 sym) {
+				U32 init_base = base;
+				base += (U32)(sym) * (length >>= 8);           // new interval base and length
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+			}
+
+			void writeShort(U16 sym) {
+				U32 init_base = base;
+				base += (U32)(sym) * (length >>= 16);          // new interval base and length
+
+				if (init_base > base) propagate_carry();                 // overflow = carry
+				if (length < AC__MinLength) renorm_enc_interval();        // renormalization
+			}
+
+			void writeInt(U32 sym) {
+				writeShort((U16)(sym & 0xFFFF)); // lower 16 bits
+				writeShort((U16)(sym >> 16));    // UPPER 16 bits
+			}
+
+			void writeFloat(F32 sym) /* danger in float reinterpretation */ {
+				U32I32F32 u32i32f32;
+				u32i32f32.f32 = sym;
+
+				writeInt(u32i32f32.u32);
+			}
+
+			void writeInt64(U64 sym) {
+				writeInt((U32)(sym & 0xFFFFFFFF)); // lower 32 bits
+				writeInt((U32)(sym >> 32));        // UPPER 32 bits
+			}
+
+			void writeDouble(F64 sym) /* danger in float reinterpretation */ {
+				U64I64F64 u64i64f64;
+				u64i64f64.f64 = sym;
+
+				writeInt64(u64i64f64.u64);
+			}
+
+		private:
+			void propagate_carry() {
+				U8 * p;
+				if (outbyte == outbuffer)
+					p = endbuffer - 1;
+				else
+					p = outbyte - 1;
+				while (*p == 0xFFU)
+				{
+					*p = 0;
+					if (p == outbuffer)
+						p = endbuffer - 1;
+					else
+						p--;
+					assert(outbuffer <= p);
+					assert(p < endbuffer);    
+					assert(outbyte < endbuffer);    
+				}
+				++*p;
+			}
+
+			void renorm_enc_interval() {
+				do {                                          // output and discard top byte
+					assert(outbuffer <= outbyte);
+					assert(outbyte < endbuffer);    
+					assert(outbyte < endbyte);    
+					*outbyte++ = (U8)(base >> 24);
+					if (outbyte == endbyte) manage_outbuffer();
+					base <<= 8;
+				} while ((length <<= 8) < AC__MinLength);        // length multiplied by 256
+			}
+
+			void manage_outbuffer() {
+				if (outbyte == endbuffer) outbyte = outbuffer;
+				outstream->putBytes(outbyte, AC_BUFFER_SIZE);
+				endbyte = outbyte + AC_BUFFER_SIZE;
+				assert(endbyte > outbyte);
+				assert(outbyte < endbuffer);    
+			}
+
+
+			private:
+				U8* outbuffer;
+				U8* endbuffer;
+				U8* outbyte;
+				U8* endbyte;
+				U32 base, value, length;
+
+				TOutStream *pstream;
+		};
+	}
+}
+
+#endif // __encoder_hpp__
