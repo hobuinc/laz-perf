@@ -5,10 +5,10 @@ TARGET=tlaz
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CXX) -o $(TARGET) $(CXX_FLAGS) $(LD_FLAGS) $<
+	$(CXX) -g -o $(TARGET) $(CXX_FLAGS) $(LD_FLAGS) $<
 
 %.o : %.cpp
-	$(CXX) -c -o $@ $(CXX_FLAGS) $<
+	$(CXX) -g -c -o $@ $(CXX_FLAGS) $<
 
 clean:
 	rm -rf $(OBJ)

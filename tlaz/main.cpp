@@ -4,29 +4,52 @@
 
 #include "../common/common.hpp"
 #include "compressor.hpp"
+#include "decompressor.hpp"
+
 #include "encoder.hpp"
+#include "decoder.hpp"
 
 #include <iostream>
 #include <memory>
 
+template<
+	typename TByte
+>
 struct SuchStream {
-	SuchStream() : length(0) {}
+	SuchStream() : buf() {}
 
-	template<
-		typename TByte
-	>
-	void putBytes(const TByte&, size_t len) {
-		length += len;
+	void putBytes(const TByte* b, size_t len) {
+		static_assert(std::is_same<TByte, unsigned char>::value,
+				"For now try to pass in unsigned char data");
+
+		while(len --) {
+			buf.push_back(*b++);
+		}
 	}
 
-	template<
-		typename TByte
-	>
-	void putByte(const TByte&) {
-		length ++;
+	void putByte(const TByte& b) {
+		buf.push_back(b);
 	}
 
-	size_t length;
+	std::vector<TByte> buf;	// cuz I'm ze faste
+};
+
+template<
+	typename TByte
+>
+struct WowStream {
+	template<typename TIn>
+	WowStream(const TIn& buf) : offset_(0) {
+		buf_.resize(buf.size());
+		std::copy(buf.begin(), buf.end(), buf_.begin());
+	}
+
+	TByte getByte() {
+		return buf_[offset_++];
+	}
+
+	std::vector<TByte> buf_;
+	size_t offset_;
 };
 
 int main() {
@@ -35,11 +58,14 @@ int main() {
 	auto start = common::tick();
 	std::cout << common::since(start) << std::endl;
 
-	typedef encoders::arithmetic<SuchStream> Encoder;
+	typedef SuchStream<U8> MuchInput;
+	typedef WowStream<U8> MuchOutput;
+
+	typedef encoders::arithmetic<MuchInput> Encoder;
 	typedef compressors::integer<Encoder> Compressor;
 
-
-	SuchStream s;
+	// Throw stuff down at the coder and capture the output
+	MuchInput s;
 
 	Encoder encoder(s);
 	Compressor compressor(encoder, 32);
@@ -47,16 +73,39 @@ int main() {
 	compressor.init();
 
 	int n = 1000000;
+	int step = 10;
 
-	std::cout << "Compressing " << n << " integers." << std::endl;
-	for (int i = 10 ; i < n ; i += 10) {
-		compressor.compress(i - 10, i, 0); //, 19);
+	std::cout << "Compressing " << n / step << " integers." << std::endl;
+	for (int i = step ; i < n ; i += step) {
+		compressor.compress(i - step, i, 0);
 	}
-
 	encoder.done();
 
-	std::cout << "Compressed to: " << s.length << " bytes." << std::endl;
-	std::cout << "Compressed to: " << 100 * (float)s.length / (sizeof(int) * n) << "%" << std::endl;
+	std::cout << "Compressed to: " << s.buf.size() << " bytes." << std::endl;
+	std::cout << "Compressed to: " << 100 * (float)s.buf.size() / (sizeof(int) * (n / step)) << "%" << std::endl;
+
+	std::cout << std::endl;
+	std::cout << "Running decoder..." << std::endl;
+
+
+	// Get stuff back from the encoded data
+	MuchOutput o(s.buf);
+
+	typedef decoders::arithmetic<MuchOutput> Decoder;
+	typedef decompressors::integer<Decoder> Decompressor;
+
+	Decoder decoder(o);
+	Decompressor decompressor(decoder, 32);
+
+	decompressor.init();
+
+	for (int i = step ; i < n ; i += step) {
+		auto v = decompressor.decompress(i - step, 0);
+		if (v != i)
+			throw std::runtime_error("Stoofs gown baed maen");
+	}
+
+	std::cout << "Decoded output matches!" << std::endl;
 
 	return 0;
 }
