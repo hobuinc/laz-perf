@@ -6,33 +6,27 @@
 #ifndef __encoder_hpp__
 #define __encoder_hpp__
 
+#include "../common/types.hpp"
+
 namespace laszip {
 	namespace encoders {
 		template<
 			typename TOutStream
 		>
-		class arithmetic {
-			arithmetic() {
-				outstream = NULL;
-
+		struct arithmetic {
+			arithmetic(TOutStream& out) :
+				outstream(out) {
 				outbuffer = new U8[2*AC_BUFFER_SIZE];
 				endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
-			}
-
-			~arithmetic() {
-				free(outbuffer);
-			}
-
-			bool init() {
-				if (outstream == 0) return FALSE;
-				this->outstream = outstream;
 
 				base   = 0;
 				length = AC__MaxLength;
 				outbyte = outbuffer;
 				endbyte = endbuffer;
+			}
 
-				return true;
+			~arithmetic() {
+				free(outbuffer);
 			}
 
 			void done() {
@@ -55,19 +49,17 @@ namespace laszip {
 				if (endbyte != endbuffer)
 				{
 					assert(outbyte < outbuffer + AC_BUFFER_SIZE);
-					outstream->putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
+					outstream.putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
 				}
 
 				U32 buffer_size = outbyte - outbuffer;
-				if (buffer_size) outstream->putBytes(outbuffer, buffer_size);
+				if (buffer_size) outstream.putBytes(outbuffer, buffer_size);
 
 				// write two or three zero bytes to be in sync with the decoder's byte reads
-				outstream->putByte(0);
-				outstream->putByte(0);
+				outstream.putByte(0);
+				outstream.putByte(0);
 
-				if (another_byte) outstream->putByte(0);
-
-				outstream = 0;
+				if (another_byte) outstream.putByte(0);
 			}
 
 			/* Encode a bit with modelling                               */
@@ -94,7 +86,7 @@ namespace laszip {
 
 			/* Encode a symbol with modelling                            */
 			template <typename EntropyModel>
-			void encodeSymbol(EntropyModel& model, U32 sym) {
+			void encodeSymbol(EntropyModel& m, U32 sym) {
 				assert(sym <= m.last_symbol);
 
 				U32 x, init_base = base;
@@ -220,7 +212,7 @@ namespace laszip {
 
 			void manage_outbuffer() {
 				if (outbyte == endbuffer) outbyte = outbuffer;
-				outstream->putBytes(outbyte, AC_BUFFER_SIZE);
+				outstream.putBytes(outbyte, AC_BUFFER_SIZE);
 				endbyte = outbyte + AC_BUFFER_SIZE;
 				assert(endbyte > outbyte);
 				assert(outbyte < endbuffer);    
@@ -234,7 +226,7 @@ namespace laszip {
 				U8* endbyte;
 				U32 base, value, length;
 
-				TOutStream *pstream;
+				TOutStream& outstream;
 		};
 	}
 }
