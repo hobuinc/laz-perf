@@ -5,16 +5,14 @@
 #ifndef __model_hpp__
 #define __model_hpp__
 
-#include "types.hpp"
+#include "../common/types.hpp"
 
 namespace laszip {
 	namespace models {
-		template<
-			size_t symbols,
-			bool compress = false
-		>
 		struct arithmetic {
-			arithmetic() : distribution(NULL), symbol_count(NULL), decoder_table(NULL) {
+			arithmetic(U32 syms, bool com = false) : 
+				symbols(syms), compress(com),
+				distribution(NULL), symbol_count(NULL), decoder_table(NULL) {
 			}
 
 			I32 init(U32* table=0) {
@@ -99,6 +97,9 @@ namespace laszip {
 				if (update_cycle > max_cycle) update_cycle = max_cycle;
 				symbols_until_update = update_cycle;
 			}
+
+			U32 symbols;
+			bool compress;
 
 			U32 * distribution, * symbol_count, * decoder_table;
 
