@@ -6,58 +6,86 @@
 #define __model_hpp__
 
 #include "../common/types.hpp"
+#include <stdexcept>
 
 namespace laszip {
 	namespace models {
 		struct arithmetic {
-			arithmetic(U32 syms, bool com = false) : 
+			arithmetic(U32 syms, bool com = false, U32 *initTable = nullptr) : 
 				symbols(syms), compress(com),
-				distribution(NULL), symbol_count(NULL), decoder_table(NULL) {
-			}
-
-			I32 init(U32* table=0) {
-				if (distribution == NULL) {
-					if ( (symbols < 2) || (symbols > (1 << 11)) ) {
-						return -1; // invalid number of symbols
-					}
-
-					last_symbol = symbols - 1;
-					if ((!compress) && (symbols > 16)) {
-						U32 table_bits = 3;
-						while (symbols > (1U << (table_bits + 2))) ++table_bits;
-						table_size  = 1 << table_bits;
-						table_shift = DM__LengthShift - table_bits;
-						distribution = new U32[2*symbols+table_size+2];
-						decoder_table = distribution + 2 * symbols;
-					}
-					else { // small alphabet: no table needed
-						decoder_table = 0;
-						table_size = table_shift = 0;
-						distribution = new U32[2*symbols];
-					}
-
-					if (distribution == NULL) {
-						return -1; // "cannot allocate model memory");
-					}
-
-					symbol_count = distribution + symbols;
+				distribution(nullptr), symbol_count(nullptr), decoder_table(nullptr) {
+				if ( (symbols < 2) || (symbols > (1 << 11)) ) {
+					throw std::runtime_error("Invalid number of symbols");
 				}
+
+				last_symbol = symbols - 1;
+				if ((!compress) && (symbols > 16)) {
+					U32 table_bits = 3;
+					while (symbols > (1U << (table_bits + 2))) ++table_bits;
+					table_size  = 1 << table_bits;
+					table_shift = DM__LengthShift - table_bits;
+					distribution = new U32[2*symbols+table_size+2];
+					decoder_table = distribution + 2 * symbols;
+				}
+				else { // small alphabet: no table needed
+					decoder_table = 0;
+					table_size = table_shift = 0;
+					distribution = new U32[2*symbols];
+				}
+
+				symbol_count = distribution + symbols;
 
 				total_count = 0;
 				update_cycle = symbols;
 
-				if (table)
-					for (U32 k = 0; k < symbols; k++) symbol_count[k] = table[k];
+				if (initTable)
+					for (U32 k = 0; k < symbols; k++) symbol_count[k] = initTable[k];
 				else
 					for (U32 k = 0; k < symbols; k++) symbol_count[k] = 1;
 
 				update();
 				symbols_until_update = update_cycle = (symbols + 6) >> 1;
-
-				return 0;
 			}
 
-			void update() {
+			arithmetic(arithmetic&& other)
+				: symbols(other.symbols), compress(other.compress),
+				  distribution(other.distribution), symbol_count(other.symbol_count),
+				  decoder_table(other.decoder_table),
+				  total_count(other.total_count), update_cycle(other.update_cycle),
+				  symbols_until_update(other.symbols_until_update), last_symbol(other.last_symbol),
+				  table_size(other.table_size), table_shift(other.table_shift) {
+					  other.distribution = other.decoder_table = other.symbol_count = NULL;
+					  other.symbol_count = 0;
+			}
+
+			arithmetic& operator = (arithmetic&& other) {
+				if (this != &other) {
+					if (distribution)
+						delete [] distribution;
+
+					symbols = other.symbols;
+					compress = other.compress;
+
+					distribution = other.distribution;
+					symbol_count = other.symbol_count;
+					decoder_table = other.decoder_table;
+
+					total_count = other.total_count;
+					update_cycle = other.update_cycle;
+					symbols_until_update = other.symbols_until_update;
+					last_symbol = other.last_symbol;
+					table_size = other.table_size;
+					table_shift = other.table_shift;
+
+					other.distribution = other.symbol_count = other.decoder_table = nullptr;
+					other.total_count = other.update_cycle = other.symbols_until_update =
+						other.last_symbol = other.table_size = other.table_shift = 0;
+				}
+
+				return *this;
+			}
+
+			inline void update() {
 				// halve counts when a threshold is reached
 				if ((total_count += update_cycle) > DM__MaxCount) {
 					total_count = 0;
@@ -108,13 +136,33 @@ namespace laszip {
 		};
 
 		struct arithmetic_bit {
-			void init() {
+			arithmetic_bit() {
 				// initialization to equiprobable model
 				bit_0_count = 1;
 				bit_count   = 2;
 				bit_0_prob  = 1U << (BM__LengthShift - 1);
 				// start with frequent updates
 				update_cycle = bits_until_update = 4;
+			}
+
+			arithmetic_bit(arithmetic_bit&& other):
+				update_cycle(other.update_cycle), bits_until_update(other.bits_until_update),
+				bit_0_prob(other.bit_0_prob), bit_0_count(other.bit_0_count), bit_count(other.bit_count) {
+			}
+
+			arithmetic_bit& operator = (arithmetic_bit&& other) {
+				if (this != &other) {
+					update_cycle = other.update_cycle;
+					bits_until_update = other.bits_until_update;
+					bit_0_prob = other.bit_0_prob;
+					bit_0_count = other.bit_0_count;
+					bit_count = other.bit_count;
+
+					other.update_cycle = other.bits_until_update =
+						other.bit_0_prob = other.bit_0_prob = other.bit_count = 0;
+				}
+
+				return *this;
 			}
 
 			void update() {

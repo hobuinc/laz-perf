@@ -62,32 +62,22 @@ namespace laszip {
 
 				// maybe create the models
 				if (mBits.empty()) {
-					for (i = 0; i < contexts; i++) {
-						mBits.push_back(
-								std::shared_ptr<arithmetic>(new arithmetic(corr_bits+1)));
-					}
+					for (i = 0; i < contexts; i++)
+						mBits.push_back(arithmetic(corr_bits+1));
 
 #ifndef COMPRESS_ONLY_K
-					mCorrector0.reset(new arithmetic_bit());
+					// mcorrector0 is already initialized
 					for (i = 1; i <= corr_bits; i++) {
 						U32 v = i <= bits_high ? 1 << i : 1 << bits_high;
-						mCorrector.push_back(std::shared_ptr<arithmetic>(
-									new arithmetic(v)));
+						mCorrector.push_back(arithmetic(v));
 					}
 #endif
 				}
-
-				for (auto p : mBits)
-					p->init();
-
-				mCorrector0->init();
-				for (auto p : mCorrector)
-					p->init();
 			}
 
 			I32 decompress(I32 pred, U32 context) {
 				//printf("pred: %d, context: %u, size: %i\n", pred, context, mBits.size());
-				I32 real = pred + readCorrector(*mBits[context]);
+				I32 real = pred + readCorrector(mBits[context]);
 				if (real < 0) real += corr_range;
 				else if ((U32)(real) >= corr_range) real -= corr_range;
 
@@ -141,14 +131,14 @@ namespace laszip {
 						if (k <= bits_high) // for small k we can do this in one step
 						{
 							// decompress c with the range coder
-							c = dec.decodeSymbol(*mCorrector[k-1]);
+							c = dec.decodeSymbol(mCorrector[k-1]);
 						}
 						else
 						{
 							// for larger k we need to do this in two steps
 							int k1 = k-bits_high;
 							// decompress higher bits with table
-							c = dec.decodeSymbol(*mCorrector[k]);
+							c = dec.decodeSymbol(mCorrector[k]);
 							// read lower bits raw
 							int c1 = dec.readBits(k1);
 							// put the corrector back together
@@ -173,7 +163,7 @@ namespace laszip {
 				}
 				else // then c is either 0 or 1
 				{
-					c = dec.decodeBit(*mCorrector0);
+					c = dec.decodeBit(mCorrector0);
 				}
 #endif // COMPRESS_ONLY_K
 
@@ -195,12 +185,10 @@ namespace laszip {
 			I32 corr_max;
 
 
-			std::vector<std::shared_ptr<laszip::models::arithmetic> > mBits;
+			std::vector<laszip::models::arithmetic> mBits;
 
-			std::shared_ptr<laszip::models::arithmetic_bit> mCorrector0;
-			std::vector<std::shared_ptr<laszip::models::arithmetic> >mCorrector;
-
-			int** corr_histogram;
+			laszip::models::arithmetic_bit mCorrector0;
+			std::vector<laszip::models::arithmetic> mCorrector;
 		};
 	}
 }

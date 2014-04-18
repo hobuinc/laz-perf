@@ -90,7 +90,6 @@ namespace laszip {
 				assert(sym <= m.last_symbol);
 
 				U32 x, init_base = base;
-
 				// compute products
 				if (sym == m.last_symbol) {
 					x = m.distribution[sym] * (length >> DM__LengthShift);

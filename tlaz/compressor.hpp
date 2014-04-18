@@ -20,6 +20,7 @@ namespace laszip {
 		struct integer {
 			integer(TEncoder& enc, U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
 				enc(enc), bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
+					
 				if (range) { // the corrector's significant bits and range
 					corr_bits = 0;
 					corr_range = range;
@@ -53,57 +54,11 @@ namespace laszip {
 				}
 
 				k = 0;
-
-#ifdef CREATE_HISTOGRAMS
-				corr_histogram = (int**)malloc(sizeof(int*) * (corr_bits+1));
-				for (int k = 0; k <= corr_bits; k++)
-				{
-					corr_histogram[k] = (int*)malloc(sizeof(int) * ((1<<k)+1));
-					for (int c = 0; c <= (1<<k); c++)
-					{
-						corr_histogram[k][c] = 0;
-					}
-				}  
-#endif
 			}
 
 			~integer() {
 				mBits.clear();
-				mCorrector0.reset();
 				mCorrector.clear();
-
-#ifdef CREATE_HISTOGRAMS
-				if (end)
-				{
-					int total_number = 0;
-					double total_entropy = 0.0f;
-					double total_raw = 0.0f;
-					for (int k = 0; k <= corr_bits; k++)
-					{
-						int number = 0;
-						int different = 0;
-						for (int c = 0; c <= (1<<k); c++)
-						{
-							number += corr_histogram[k][c];
-						}
-						double prob,entropy = 0.0f;
-						for (c = 0; c <= (1<<k); c++)
-						{
-							if (corr_histogram[k][c])
-							{
-								different++;
-								prob = (double)corr_histogram[k][c]/(double)number;
-								entropy -= log(prob)*prob/log(2.0);
-							}
-						}
-						fprintf(stderr, "k: %d number: %d different: %d entropy: %lg raw: %1.1f\n",k,number,different,entropy, (float)(k?k:1));
-						total_number += number;
-						total_entropy += (entropy*number);
-						total_raw += ((k?k:1)*number);
-					}  
-					fprintf(stderr, "TOTAL: number: %d entropy: %lg raw: %lg\n",total_number,total_entropy/total_number,total_raw/total_number);
-				}
-#endif
 			}
 
 			void init() {
@@ -114,32 +69,17 @@ namespace laszip {
 
 				// maybe create the models
 				if (mBits.empty()) {
-					for (i = 0; i < contexts; i++) {
-						mBits.push_back(
-								std::shared_ptr<arithmetic>(new arithmetic(corr_bits+1)));
-					}
+					for (i = 0; i < contexts; i++)
+						mBits.push_back(arithmetic(corr_bits+1));
 
 #ifndef COMPRESS_ONLY_K
-					mCorrector0.reset(new arithmetic_bit());
+					// mcorrector0 is already in init state
 					for (i = 1; i <= corr_bits; i++) {
 						U32 v = i <= bits_high ? 1 << i : 1 << bits_high;
-						mCorrector.push_back(
-								std::shared_ptr<arithmetic>(new arithmetic(v)));
+						mCorrector.push_back(arithmetic(v));
 					}
 #endif
 				}
-
-				// certainly init the models
-				for (auto p : mBits) {
-					p->init();
-				}
-
-#ifndef COMPRESS_ONLY_K
-				mCorrector0->init();
-				for(auto p : mCorrector) {
-					p->init();
-				}
-#endif
 			}
 
 			void compress(I32 pred, I32 real, U32 context) {
@@ -149,7 +89,7 @@ namespace laszip {
 				if (corr < corr_min) corr += corr_range;
 				else if (corr > corr_max) corr -= corr_range;
 
-				writeCorrector(corr, *mBits[context]);
+				writeCorrector(corr, mBits[context]);
 			}
 
 			template<
@@ -190,17 +130,11 @@ namespace laszip {
 						{
 							// so we translate c into the interval [ 0 ...  + 2^(k-1) - 1 ] by adding (2^k - 1)
 							enc.writeBits(k, c + ((1<<k) - 1));
-#ifdef CREATE_HISTOGRAMS
-							corr_histogram[k][c + ((1<<k) - 1)]++;
-#endif
 						}
 						else // then c is in the interval [ 2^(k-1) + 1  ...  2^k ]
 						{
 							// so we translate c into the interval [ 2^(k-1) ...  + 2^k - 1 ] by subtracting 1
 							enc.writeBits(k, c - 1);
-#ifdef CREATE_HISTOGRAMS
-							corr_histogram[k][c - 1]++;
-#endif
 						}
 					}
 				}
@@ -208,9 +142,6 @@ namespace laszip {
 				{
 					assert((c == 0) || (c == 1));
 					enc.writeBit(c);
-#ifdef CREATE_HISTOGRAMS
-					corr_histogram[0][c]++;
-#endif
 				}
 #else // COMPRESS_ONLY_K
 				if (k) // then c is either smaller than 0 or bigger than 1
@@ -232,7 +163,7 @@ namespace laszip {
 						if (k <= bits_high) // for small k we code the interval in one step
 						{
 							// compress c with the range coder
-							enc.encodeSymbol(*mCorrector[k-1], c);
+							enc.encodeSymbol(mCorrector[k-1], c);
 						}
 						else // for larger k we need to code the interval in two steps
 						{
@@ -243,7 +174,7 @@ namespace laszip {
 							// c represents the highest bits_high bits
 							c = c >> k1;
 							// compress the higher bits using a context table
-							enc.encodeSymbol(*mCorrector[k-1], c);
+							enc.encodeSymbol(mCorrector[k-1], c);
 							// store the lower k1 bits raw
 							enc.writeBits(k1, c1);
 						}
@@ -252,7 +183,7 @@ namespace laszip {
 				else // then c is 0 or 1
 				{
 					assert((c == 0) || (c == 1));
-					enc.encodeBit(*mCorrector0,c);
+					enc.encodeBit(mCorrector0,c);
 				}
 #endif // COMPRESS_ONLY_K
 			}
@@ -272,12 +203,10 @@ namespace laszip {
 			I32 corr_max;
 
 
-			std::vector<std::shared_ptr<laszip::models::arithmetic> > mBits;
+			std::vector<laszip::models::arithmetic> mBits;
 
-			std::shared_ptr<laszip::models::arithmetic_bit> mCorrector0;
-			std::vector<std::shared_ptr<laszip::models::arithmetic> >mCorrector;
-
-			int** corr_histogram;
+			laszip::models::arithmetic_bit mCorrector0;
+			std::vector<laszip::models::arithmetic> mCorrector;
 		};
 	}
 }
