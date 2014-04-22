@@ -128,6 +128,7 @@ void formatStuff() {
 		field<short> > r(etype);
 
 	r.encode(NULL);
+	r.decode(NULL);
 }
 
 int main() {

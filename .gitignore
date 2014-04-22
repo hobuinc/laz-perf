@@ -1,2 +1,7 @@
 tlaz/tlaz
 *.o
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+test/tlaz_tests

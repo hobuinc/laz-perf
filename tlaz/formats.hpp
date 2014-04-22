@@ -28,6 +28,10 @@ namespace laszip {
 			inline void encode(const char *buffer) {
 				printf("Ending! %p\n", buffer);
 			}
+
+			inline void decode(char *buffer) {
+				printf("Ending! %p\n", buffer);
+			}
 		};
 
 		template<typename TEncoder, typename T, typename... TS>
@@ -40,6 +44,14 @@ namespace laszip {
 				std::cout << "Reading " << sizeof(this_type) << " bytes and posting forward..."
 					<< std::endl;
 				next_.encode(buffer + sizeof(this_type));
+			}
+
+			inline void decode(char *buffer) {
+				typedef typename T::type this_type;
+
+				std::cout << "Writing " << sizeof(this_type) << " bytes and posting forward..."
+					<< std::endl;
+				next_.decode(buffer + sizeof(this_type));
 			}
 
 			laszip::compressors::integer<TEncoder> compressor_;
