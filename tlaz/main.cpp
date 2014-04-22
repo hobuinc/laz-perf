@@ -8,6 +8,7 @@
 
 #include "encoder.hpp"
 #include "decoder.hpp"
+#include "formats.hpp"
 
 #include <iostream>
 #include <memory>
@@ -52,7 +53,7 @@ struct WowStream {
 	size_t offset_;
 };
 
-int main() {
+void runEncoderDecoder() {
 	using namespace laszip;
 
 	auto start = common::tick();
@@ -106,6 +107,30 @@ int main() {
 	}
 
 	std::cout << "Decoded output matches!" << std::endl;
+}
 
-	return 0;
+void formatStuff() {
+	using namespace laszip::formats;
+	using namespace laszip::compressors;
+	using namespace laszip::encoders;
+
+	typedef arithmetic<SuchStream<char> > EncoderType;
+
+	SuchStream<char> s;
+
+	EncoderType etype(s);
+
+	record<
+		EncoderType,
+		field<int>,
+		field<int>,
+		field<short>,
+		field<short> > r(etype);
+
+	r.encode(NULL);
+}
+
+int main() {
+	//runEncoderDecoder();
+	formatStuff();
 }
