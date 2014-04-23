@@ -14,12 +14,9 @@
 
 namespace laszip {
 	namespace compressors {
-		template <
-			typename TEncoder
-		>
 		struct integer {
-			integer(TEncoder& enc, U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
-				enc(enc), bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
+			integer(U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
+				bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
 					
 				if (range) { // the corrector's significant bits and range
 					corr_bits = 0;
@@ -82,20 +79,24 @@ namespace laszip {
 				}
 			}
 
-			void compress(I32 pred, I32 real, U32 context) {
+			template<
+				typename TEncoder
+			>
+			void compress(TEncoder& enc, I32 pred, I32 real, U32 context) {
 				// the corrector will be within the interval [ - (corr_range - 1)  ...  + (corr_range - 1) ]
 				I32 corr = real - pred;
 				// we fold the corrector into the interval [ corr_min  ...  corr_max ]
 				if (corr < corr_min) corr += corr_range;
 				else if (corr > corr_max) corr -= corr_range;
 
-				writeCorrector(corr, mBits[context]);
+				writeCorrector(enc, corr, mBits[context]);
 			}
 
 			template<
+				typename TEncoder,
 				typename TEntropyModel
 			>
-			void writeCorrector(int c, TEntropyModel& mBits) {
+			void writeCorrector(TEncoder& enc, int c, TEntropyModel& mBits) {
 				U32 c1;
 
 				// find the tighest interval [ - (2^k - 1)  ...  + (2^k) ] that contains c
@@ -190,7 +191,6 @@ namespace laszip {
 
 			U32 k;
 
-			TEncoder& enc;
 			U32 bits;
 
 			U32 contexts;

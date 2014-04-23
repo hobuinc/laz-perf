@@ -13,125 +13,91 @@
 #include <iostream>
 #include <memory>
 
-template<
-	typename TByte
->
 struct SuchStream {
-	SuchStream() : buf() {}
+	SuchStream() : buf(), idx(0) {}
 
-	void putBytes(const TByte* b, size_t len) {
-		static_assert(std::is_same<TByte, unsigned char>::value,
-				"For now try to pass in unsigned char data");
-
+	void putBytes(const unsigned char* b, size_t len) {
 		while(len --) {
 			buf.push_back(*b++);
 		}
 	}
 
-	void putByte(const TByte& b) {
+	void putByte(const unsigned char b) {
 		buf.push_back(b);
 	}
 
-	std::vector<TByte> buf;	// cuz I'm ze faste
-};
-
-template<
-	typename TByte
->
-struct WowStream {
-	template<typename TIn>
-	WowStream(const TIn& buf) : offset_(0) {
-		buf_.resize(buf.size());
-		std::copy(buf.begin(), buf.end(), buf_.begin());
+	unsigned char getByte() {
+		return buf[idx++];
 	}
 
-	TByte getByte() {
-		return buf_[offset_++];
+	void getBytes(unsigned char *b, int len) {
+		for (int i = 0 ; i < len ; i ++) {
+			b[i] = getByte();
+		}
 	}
 
-	std::vector<TByte> buf_;
-	size_t offset_;
+	std::vector<unsigned char> buf;	// cuz I'm ze faste
+	size_t idx;
 };
 
 void runEncoderDecoder() {
 	using namespace laszip;
+	using namespace laszip::formats;
 
 	auto start = common::tick();
 	std::cout << common::since(start) << std::endl;
 
-	typedef SuchStream<U8> MuchInput;
-	typedef WowStream<U8> MuchOutput;
-
-	typedef encoders::arithmetic<MuchInput> Encoder;
-	typedef compressors::integer<Encoder> Compressor;
+	record_compressor<
+		field<int>,
+		field<short>,
+		field<unsigned short>,
+		field<unsigned int> > compressor;
 
 	// Throw stuff down at the coder and capture the output
-	MuchInput s;
+	SuchStream s;
 
-	Encoder encoder(s);
-	Compressor compressor(encoder, 32);
+	encoders::arithmetic<SuchStream> encoder(s);
+	struct {
+		int a;
+		short b;
+		unsigned short c;
+		unsigned int d;
+	} data;
 
-	compressor.init();
 
-	int n = 1000000;
-	int step = 10;
+	for (int i = 0 ; i < 10; i ++) {
+		data.a = i;
+		data.b = i + 10;
+		data.c = i + 40000;
+		data.d = i + (1 << 31);
 
-	std::cout << "Compressing " << n / step << " integers." << std::endl;
-	for (int i = step ; i < n ; i += step) {
-		compressor.compress(i - step, i, 0);
+		compressor.compressWith(encoder, (const char*)&data);
 	}
 	encoder.done();
 
-	std::cout << "Compressed to: " << s.buf.size() << " bytes." << std::endl;
-	std::cout << "Compressed to: " << 100 * (float)s.buf.size() / (sizeof(int) * (n / step)) << "%" << std::endl;
+	std::cout << "Points compressed to: " << s.buf.size() << " bytes" << std::endl;
 
-	std::cout << std::endl;
-	std::cout << "Running decoder..." << std::endl;
-
-
-	// Get stuff back from the encoded data
-	MuchOutput o(s.buf);
-
-	typedef decoders::arithmetic<MuchOutput> Decoder;
-	typedef decompressors::integer<Decoder> Decompressor;
-
-	Decoder decoder(o);
-	Decompressor decompressor(decoder, 32);
-
-	decompressor.init();
-
-	for (int i = step ; i < n ; i += step) {
-		auto v = decompressor.decompress(i - step, 0);
-		if (v != i)
-			throw std::runtime_error("Stoofs gown baed maen");
-	}
-
-	std::cout << "Decoded output matches!" << std::endl;
-}
-
-void formatStuff() {
-	using namespace laszip::formats;
-	using namespace laszip::compressors;
-	using namespace laszip::encoders;
-
-	typedef arithmetic<SuchStream<char> > EncoderType;
-
-	SuchStream<char> s;
-
-	EncoderType etype(s);
-
-	record<
-		EncoderType,
-		field<int>,
+	record_decompressor<
 		field<int>,
 		field<short>,
-		field<short> > r(etype);
+		field<unsigned short>,
+		field<unsigned int> > decompressor;
 
-	r.encode(NULL);
-	r.decode(NULL);
+	decoders::arithmetic<SuchStream> decoder(s);
+
+	for (int i = 0 ; i < 10 ; i ++) {
+		decompressor.decompressWith(decoder, (char *)&data);
+
+		if (data.a != i ||
+			data.b != i + 10 ||
+			data.c != i + 40000 ||
+			data.d != i + (1 << 31))
+			throw std::runtime_error("Failure!");
+	}
 }
 
 int main() {
-	//runEncoderDecoder();
-	formatStuff();
+	runEncoderDecoder();
+
+	return 0;
 }

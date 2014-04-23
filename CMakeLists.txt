@@ -184,6 +184,8 @@ endif()
 
 include_directories(${Boost_INCLUDE_DIRS})
 
+add_subdirectory(examples)
+
 if(WITH_TESTS)
 	add_subdirectory(test)
 endif()

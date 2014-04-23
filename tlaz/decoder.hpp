@@ -15,16 +15,19 @@ namespace laszip {
 		>
 		struct arithmetic {
 			arithmetic(TInputStream& in) :
-				instream(in) {
+				instream(in), value(0) {
 				length = AC__MaxLength;
-				value =
-					(in.getByte() << 24) |
-					(in.getByte() << 16) |
-					(in.getByte() << 8) |
-					in.getByte();
 			}
 
 			~arithmetic() {
+			}
+
+			void readInitBytes() {
+				value =
+					(instream.getByte() << 24) |
+					(instream.getByte() << 16) |
+					(instream.getByte() << 8) |
+					instream.getByte();
 			}
 
 			template<typename TEntropyModel>
@@ -168,7 +171,12 @@ namespace laszip {
 				return u64i64f64.f64;
 			}
 
+			TInputStream& getInStream() {
+				return instream;
+			}
 
+
+		private:
 			void renorm_dec_interval() {
 				do {                                          // read least-significant byte
 					value = (value << 8) | instream.getByte();

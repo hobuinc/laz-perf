@@ -7,55 +7,264 @@
 
 #include <iostream>
 #include "compressor.hpp"
+#include "decompressor.hpp"
 
 namespace laszip {
 	namespace formats {
 		template<typename T>
+		struct packers {
+			static_assert(sizeof(T) == 0,
+					"Only specialized instances of packers should be used");
+		};
+
+		template<>
+		struct packers<unsigned int> {
+			static unsigned int unpack(const char *in) {
+				unsigned int b1 = in[0],
+							 b2 = in[1],
+							 b3 = in[2],
+							 b4 = in[3];
+
+				return (b4 << 24) |
+					((b3 & 0xFF) << 16) |
+					((b2 & 0xFF) << 8) |
+					(b1 & 0xFF);
+			}
+
+			static void pack(const unsigned int& v, char *out) {
+				out[3] = (v >> 24) & 0xFF;
+				out[2] = (v >> 16) & 0xFF;
+				out[1] = (v >> 8) & 0xFF;
+				out[0] = v & 0xFF;
+			}
+		};
+
+		template<>
+		struct packers<unsigned short> {
+			static unsigned short unpack(const char *in) {
+				unsigned short b1 = in[0],
+							 b2 = in[1];
+
+				return (((b2 & 0xFF) << 8) | (b1 & 0xFF));
+			}
+
+			static void pack(const unsigned short& v, char *out) {
+				out[1] = (v >> 8) & 0xFF;
+				out[0] = v & 0xFF;
+			}
+		};
+
+		template<>
+		struct packers<unsigned char> {
+			static unsigned char unpack(const char *in) {
+				return static_cast<unsigned char>(in[0]);
+			}
+
+			static void pack(const unsigned char& c, char *out) {
+				out[0] = static_cast<char>(c);
+			}
+		};
+
+		template<>
+		struct packers<int> {
+			static int unpack(const char *in) {
+				return static_cast<int>(packers<unsigned int>::unpack(in));
+			}
+
+			static void pack(const int& t, char *out) {
+				packers<unsigned int>::pack(static_cast<unsigned int>(t), out);
+			}
+		};
+
+		template<>
+		struct packers<short> {
+			static short unpack(const char *in) {
+				return static_cast<short>(packers<unsigned short>::unpack(in));
+			}
+
+			static void pack(const short& t, char *out) {
+				packers<unsigned short>::pack(static_cast<unsigned short>(t), out);
+			}
+		};
+
+		template<>
+		struct packers<char> {
+			static char unpack(const char *in) {
+				return in[0];
+			}
+
+			static void pack(const char& t, char *out) {
+				out[0] = t;
+			}
+		};
+
+		/** A simple strategy which returns simple diffs */
+		template<typename T>
+		struct standard_diff_method {
+			standard_diff_method<T>()
+				: have_value_(false) {}
+
+			inline void push(const T& v) {
+				if (!have_value_)
+					have_value_ = true;
+
+				value = v;
+			}
+
+			inline bool have_value() const {
+				return have_value_;
+			}
+
+			T value;
+			bool have_value_;
+		};
+
+		template<typename T, typename TDiffMethod = standard_diff_method<T> >
 		struct field {
-			static_assert(std::is_arithmetic<T>::value,
-					"Fields can only be arithmetic types at this time");
+			static_assert(std::is_integral<T>::value,
+					"Default implementation for field only handles integral types");
 
 			typedef T type;
+
+			field() :
+				compressor_(sizeof(T) * 8),
+				decompressor_(sizeof(T) * 8),
+				compressor_inited_(false),
+				decompressor_inited_(false) { }
+
+			template<
+				typename TEncoder
+			>
+			inline void compressWith(TEncoder& encoder, const T& this_val) {
+				if (!compressor_inited_)
+					compressor_.init();
+
+				// Let the differ decide what values we're going to push
+				//
+				if (differ_.have_value()) {
+					compressor_.compress(encoder, differ_.value, this_val, 0);
+				}
+				else {
+					// differ is not ready for us to start encoding values for us, so we need to write raw into
+					// the outputstream
+					//
+					char buf[sizeof(T)];
+					packers<T>::pack(this_val, buf);
+
+					encoder.getOutStream().putBytes((unsigned char*)buf, sizeof(T));
+				}
+
+				differ_.push(this_val);
+			}
+
+			template<
+				typename TDecoder
+			>
+			inline T decompressWith(TDecoder& decoder) {
+				if (!decompressor_inited_)
+					decompressor_.init();
+
+				T r;
+				if (differ_.have_value()) {
+					r = decompressor_.decompress(decoder, differ_.value, 0);
+				}
+				else {
+					// this is probably the first time we're reading stuff, read the record as is
+					char buffer[sizeof(T)];
+					decoder.getInStream().getBytes((unsigned char*)buffer, sizeof(T));
+
+					r = packers<T>::unpack(buffer);
+				}
+
+				differ_.push(r);
+				return r;
+			}
+
+			laszip::compressors::integer compressor_;
+			laszip::decompressors::integer decompressor_;
+
+			bool compressor_inited_, decompressor_inited_;
+
+			TDiffMethod differ_;
 		};
 
-		template<typename TEncoder, typename... TS>
-		struct record;
+		template<typename... TS>
+		struct record_compressor;
 
-		template<typename TEncoder>
-		struct record<TEncoder> {
-			record(TEncoder&) {}
+		template<typename... TS>
+		struct record_decompressor;
 
-			inline void encode(const char *buffer) {
-				printf("Ending! %p\n", buffer);
-			}
-
-			inline void decode(char *buffer) {
-				printf("Ending! %p\n", buffer);
-			}
+		template<>
+		struct record_compressor<> {
+			record_compressor() {}
+			template<
+				typename T
+			>
+			inline void compressWith(T&, const char *) { }
 		};
 
-		template<typename TEncoder, typename T, typename... TS>
-		struct record<TEncoder, T, TS...> {
-			record(TEncoder& enc) : compressor_(enc, sizeof(typename T::type) * 8), next_(enc) { }
+		template<typename T, typename... TS>
+		struct record_compressor<T, TS...> {
+			record_compressor() {}
 
-			inline void encode(const char *buffer) {
-				typedef typename T::type this_type;
+			template<
+				typename TEncoder
+			>
+			inline void compressWith(TEncoder& encoder, const char *buffer) {
+				typedef typename T::type this_field_type;
 
-				std::cout << "Reading " << sizeof(this_type) << " bytes and posting forward..."
-					<< std::endl;
-				next_.encode(buffer + sizeof(this_type));
+				this_field_type v = packers<this_field_type>::unpack(buffer);
+				field_.compressWith(encoder, v);
+
+				// Move on to the next field
+				next_.compressWith(encoder, buffer + sizeof(typename T::type));
 			}
 
-			inline void decode(char *buffer) {
-				typedef typename T::type this_type;
+			// The field that we handle
+			T field_;
 
-				std::cout << "Writing " << sizeof(this_type) << " bytes and posting forward..."
-					<< std::endl;
-				next_.decode(buffer + sizeof(this_type));
+			// Our default strategy right now is to just encode diffs, but we would employ more advanced techniques soon
+			record_compressor<TS...> next_;
+		};
+
+		template<>
+		struct record_decompressor<> {
+			record_decompressor() : firstDecompress(true) {}
+			template<
+				typename TDecoder
+			>
+			inline void decompressWith(TDecoder& decoder, char *) {
+				if (firstDecompress) {
+					decoder.readInitBytes();
+					firstDecompress = false;
+				}
 			}
 
-			laszip::compressors::integer<TEncoder> compressor_;
-			record<TEncoder, TS...> next_;
+			bool firstDecompress;
+		};
+
+		template<typename T, typename... TS>
+		struct record_decompressor<T, TS...> {
+			record_decompressor() {}
+
+			template<
+				typename TDecoder
+			>
+			inline void decompressWith(TDecoder& decoder, char *buffer) {
+				typedef typename T::type this_field_type;
+
+				this_field_type v = field_.decompressWith(decoder);
+				packers<this_field_type>::pack(v, buffer);
+
+				// Move on to the next field
+				next_.decompressWith(decoder, buffer + sizeof(typename T::type));
+			}
+
+			// The field that we handle
+			T field_;
+
+			// Our default strategy right now is to just encode diffs, but we would employ more advanced techniques soon
+			record_decompressor<TS...> next_;
 		};
 	}
 }

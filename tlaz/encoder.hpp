@@ -177,6 +177,11 @@ namespace laszip {
 				writeInt64(u64i64f64.u64);
 			}
 
+			TOutStream& getOutStream() {
+				return outstream;
+			}
+
+
 		private:
 			void propagate_carry() {
 				U8 * p;
@@ -216,7 +221,6 @@ namespace laszip {
 				assert(endbyte > outbyte);
 				assert(outbyte < endbuffer);    
 			}
-
 
 			private:
 				U8* outbuffer;

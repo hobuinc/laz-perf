@@ -14,12 +14,9 @@
 
 namespace laszip {
 	namespace decompressors {
-		template <
-			typename TDecoder
-		>
 		struct integer {
-			integer(TDecoder& dec, U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
-				dec(dec), bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
+			integer(U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
+				bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
 				if (range) { // the corrector's significant bits and range
 					corr_bits = 0;
 					corr_range = range;
@@ -75,9 +72,12 @@ namespace laszip {
 				}
 			}
 
-			I32 decompress(I32 pred, U32 context) {
+			template<
+				typename TDecoder
+			>
+			I32 decompress(TDecoder& dec, I32 pred, U32 context) {
 				//printf("pred: %d, context: %u, size: %i\n", pred, context, mBits.size());
-				I32 real = pred + readCorrector(mBits[context]);
+				I32 real = pred + readCorrector(dec, mBits[context]);
 				if (real < 0) real += corr_range;
 				else if ((U32)(real) >= corr_range) real -= corr_range;
 
@@ -85,9 +85,10 @@ namespace laszip {
 			}
 
 			template<
+				typename TDecoder,
 				typename TEntroyModel
 			>
-			I32 readCorrector(TEntroyModel& mBits) {
+			I32 readCorrector(TDecoder& dec, TEntroyModel& mBits) {
 				I32 c;
 
 				// decode within which interval the corrector is falling
@@ -172,7 +173,6 @@ namespace laszip {
 
 			U32 k;
 
-			TDecoder& dec;
 			U32 bits;
 
 			U32 contexts;
