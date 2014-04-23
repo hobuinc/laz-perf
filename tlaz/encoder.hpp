@@ -26,7 +26,7 @@ namespace laszip {
 			}
 
 			~arithmetic() {
-				free(outbuffer);
+				delete [] outbuffer;
 			}
 
 			void done() {

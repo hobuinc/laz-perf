@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(works_with_one_field) {
 
 	decoders::arithmetic<SuchStream> decoder(s);
 
-	for (int i = 0 ; i < 10 ; i ++) {
+	for (int i = 0 ; i < 1000 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);
 		BOOST_CHECK_EQUAL(data.a, i);
 	}
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(works_with_all_kinds_of_fields) {
 
 	decoders::arithmetic<SuchStream> decoder(s);
 
-	for (int i = 0 ; i < 10 ; i ++) {
+	for (int i = 0 ; i < 1000 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);
 		BOOST_CHECK_EQUAL(data.a, i);
 		BOOST_CHECK_EQUAL(data.ua, (unsigned int)i + (1<<31));

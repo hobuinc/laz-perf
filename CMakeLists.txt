@@ -167,24 +167,20 @@ set(BOOST_USE_STATIC_LIBS OFF)
 set(BOOST_USE_MULTITHREADED ON)
 set(BOOST_USE_STATIC_RUNTIME OFF)
 
+set(TLAZ_DEPENDENT_LIBRARIES "")
+
 find_package(Boost "1.55.0" COMPONENTS unit_test_framework)
 if(NOT Boost_FOUND)
-	message(FATAL_ERROR "boost is required")
+	message(STATUS "Boost was not found, tests will not be available")
+	set(WITH_TESTS false)
+else()
+	set(TLAZ_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
+	include_directories(${Boost_INCLUDE_DIRS})
 endif(NOT Boost_FOUND)
 
-set(TLAZ_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
-
-# find opencl
-if(APPLE)
-	FIND_LIBRARY(OPENCL_LIBRARY OpenCL)
-	MARK_AS_ADVANCED(OPENCL_LIBRARY)
-
-	set(TLAZ_DEPENDENT_LIBRARIES ${TLAZ_DEPENDENT_LIBRARIES} ${OPENCL_LIBRARY})
-endif()
-
-include_directories(${Boost_INCLUDE_DIRS})
 
 add_subdirectory(examples)
+add_subdirectory(benchmarks)
 
 if(WITH_TESTS)
 	add_subdirectory(test)
