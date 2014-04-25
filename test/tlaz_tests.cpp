@@ -366,7 +366,6 @@ BOOST_AUTO_TEST_CASE(binary_matches_laszip) {
 	matchSets("test/raw-sets/point10-1.las.raw",
 			"test/raw-sets/point10-1.las.laz.raw");
 			*/
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
