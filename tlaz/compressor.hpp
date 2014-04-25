@@ -79,6 +79,8 @@ namespace laszip {
 				}
 			}
 
+			unsigned int getK() const { return k; }
+
 			template<
 				typename TEncoder
 			>

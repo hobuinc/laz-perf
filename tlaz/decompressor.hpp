@@ -76,13 +76,14 @@ namespace laszip {
 				typename TDecoder
 			>
 			I32 decompress(TDecoder& dec, I32 pred, U32 context) {
-				//printf("pred: %d, context: %u, size: %i\n", pred, context, mBits.size());
 				I32 real = pred + readCorrector(dec, mBits[context]);
 				if (real < 0) real += corr_range;
 				else if ((U32)(real) >= corr_range) real -= corr_range;
 
 				return real;
 			}
+
+			inline unsigned int getK() const { return k; }
 
 			template<
 				typename TDecoder,

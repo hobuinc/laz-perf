@@ -6,6 +6,7 @@ cmake_install.cmake
 Makefile
 test/tlaz_tests
 examples/simple
+examples/point10
 .DS_Store
 *.js
 *.js.map
