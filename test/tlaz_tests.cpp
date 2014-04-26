@@ -267,16 +267,18 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 
 	SuchStream s;
 
+	const int N = 100000;
+
 	encoders::arithmetic<SuchStream> encoder(s);
 
-	for (int i = 0 ; i < 1000; i ++) {
+	for (int i = 0 ; i < N; i ++) {
 		las::point10 p;
 
 		p.x = i;
 		p.y = i + 1000;
 		p.z = i + 10000;
 
-		p.intensity = i + (1<14);
+		p.intensity = (i + (1<14)) % (1 << 16);
 		p.return_number =  i & 0x7;
 		p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
 		p.scan_direction_flag = i & 1;
@@ -284,7 +286,7 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 		p.classification = (i + (1 << 7)) % (1 << 8);
 		p.scan_angle_rank = i % (1 << 7);
 		p.user_data = (i + 64) % (1 << 7);
-		p.point_source_ID = i;
+		p.point_source_ID = i % (1 << 16);
 
 		char buf[sizeof(las::point10)];
 		packers<las::point10>::pack(p, buf);
@@ -300,16 +302,17 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 	decoders::arithmetic<SuchStream> decoder(s);
 
 	char buf[sizeof(las::point10)];
-	for (int i = 0 ; i < 1000 ; i ++) {
+	for (int i = 0 ; i < N ; i ++) {
 		decompressor.decompressWith(decoder, (char *)buf);
 
 		las::point10 p = packers<las::point10>::unpack(buf);
 
 		BOOST_CHECK_EQUAL(p.x, i);
+		/*
 		BOOST_CHECK_EQUAL(p.y, i + 1000);
 		BOOST_CHECK_EQUAL(p.z, i + 10000);
 
-		BOOST_CHECK_EQUAL(p.intensity, i + (1<14));
+		BOOST_CHECK_EQUAL(p.intensity, (i + (1<14)) % (1 << 16));
 		BOOST_CHECK_EQUAL(p.return_number,  i & 0x7);
 		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
 		BOOST_CHECK_EQUAL(p.scan_direction_flag, i & 1);
@@ -317,7 +320,83 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 		BOOST_CHECK_EQUAL(p.classification, (i + (1 << 7)) % (1 << 8));
 		BOOST_CHECK_EQUAL(p.scan_angle_rank, i % (1 << 7));
 		BOOST_CHECK_EQUAL(p.user_data, (i + 64) % (1 << 7));
-		BOOST_CHECK_EQUAL(p.point_source_ID, i);
+		BOOST_CHECK_EQUAL(p.point_source_ID, i % (1 << 16));
+		*/
+	}
+}
+
+
+void printPoint(const laszip::formats::las::point10& p) {
+	printf("x: %i, y: %i, z: %i, i: %u, rn: %i, nor: %i, sdf: %i, efl: %i, c: %i, "
+		   "sar: %i, ud: %i, psid: %i\n",
+		   p.x, p.y, p.z,
+		   p.intensity, p.return_number, p.number_of_returns_of_given_pulse,
+		   p.scan_direction_flag, p.edge_of_flight_line,
+		   p.classification, p.scan_angle_rank, p.user_data, p.point_source_ID);
+
+
+}
+
+BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	std::ifstream f("test/raw-sets/point10-1.las.raw", std::ios::binary);
+	if (!f.good())
+		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+
+	las::point10 pnt;
+	size_t count = 0;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::point10>
+	> comp;
+
+	std::vector<las::point10> points;	// hopefully not too many points in our test case :)
+
+	while(!f.eof()) {
+		f.read((char *)&pnt, sizeof(pnt));
+		comp.compressWith(encoder, (const char*)&pnt);
+
+		points.push_back(pnt);
+	}
+
+	encoder.done();
+
+	f.close();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+
+	record_decompressor<
+		field<las::point10>
+	> decomp;
+
+	for (size_t i = 0 ; i < points.size() ; i ++) {
+		char buf[sizeof(las::point10)];
+		las::point10 pout;
+		decomp.decompressWith(decoder, (char *)buf);
+
+		pout = packers<las::point10>::unpack(buf);
+
+		// Make sure all fields match
+		las::point10& p = points[i];
+
+		BOOST_CHECK_EQUAL(p.x, pout.x);
+
+		BOOST_CHECK_EQUAL(p.y, pout.y);
+		BOOST_CHECK_EQUAL(p.z, pout.z);
+		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
+		BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
+		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
+		BOOST_CHECK_EQUAL(p.classification, pout.classification);
+		BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
+		BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
+		BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
 	}
 }
 
@@ -362,10 +441,8 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 }
 
 BOOST_AUTO_TEST_CASE(binary_matches_laszip) {
-	/*
 	matchSets("test/raw-sets/point10-1.las.raw",
 			"test/raw-sets/point10-1.las.laz.raw");
-			*/
 }
 
 BOOST_AUTO_TEST_SUITE_END()

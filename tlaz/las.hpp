@@ -31,17 +31,19 @@ namespace laszip {
 		}
 
 		namespace detail {
-			inline int changed_values(const las::point10& this_val, const las::point10& last) {
+			inline int changed_values(const las::point10& this_val, const las::point10& last, unsigned short last_intensity) {
 				// This logic here constructs a 5-bit changed value which is basically a bit map of what has changed
 				// since the last point, not considering the x, y and z values
 				int bitfields_changed = (
 					(last.return_number ^ this_val.return_number) |
 					(last.number_of_returns_of_given_pulse ^ this_val.number_of_returns_of_given_pulse) |
 					(last.scan_direction_flag ^ this_val.scan_direction_flag) |
-					(last.edge_of_flight_line ^ this_val.edge_of_flight_line)) > 0;
+					(last.edge_of_flight_line ^ this_val.edge_of_flight_line)) != 0;
 
+				// last intensity is not checked with last point, but the passed in
+				// last intensity value
 				int intensity_changed =
-					(last.intensity ^ this_val.intensity) != 0;
+					(last_intensity ^ this_val.intensity) != 0;
 
 				int classification_changed =
 					(last.classification ^ this_val.classification) != 0;
@@ -71,17 +73,17 @@ namespace laszip {
 							  d = p.edge_of_flight_line;
 
 				return
-					(a << 5) |
-					((b & 0x7) << 2) |
-					((c & 0x1) << 1) |
-					((d & 0x1));
+					((d & 0x1) << 7) |
+					((c & 0x1) << 6) |
+					((b & 0x7) << 3) |
+					(a & 0x7);
 			}
 
 			inline void char_to_bitfields(unsigned char d, las::point10& p) {
-				p.return_number = d >> 5;
-				p.number_of_returns_of_given_pulse = (d >> 2) & 0x7;
-				p.scan_direction_flag = (d >> 1) & 0x1;
-				p.edge_of_flight_line = d & 0x1;
+				p.return_number = d & 0x7;
+				p.number_of_returns_of_given_pulse = (d >> 3) & 0x7;
+				p.scan_direction_flag = (d >> 6) & 0x1;
+				p.edge_of_flight_line = (d >> 7) & 0x1;
 			}
 		}
 
@@ -179,14 +181,15 @@ namespace laszip {
 				int median, diff;
 
 				// compress which other values have changed
-				int changed_values = detail::changed_values(this_val, common_.last_);
+				int changed_values = detail::changed_values(this_val, common_.last_, common_.last_intensity[m]);
 
 				enc.encodeSymbol(common_.m_changed_values, changed_values);
 
 				// if any of the bit fields changed, compress them
 				if (changed_values & (1 << 5)) {
-					unsigned char b = detail::bitfields_to_char(this_val);
-					enc.encodeSymbol(*common_.m_bit_byte[b], b);
+					unsigned char b = detail::bitfields_to_char(this_val),
+								  last_b = detail::bitfields_to_char(common_.last_);
+					enc.encodeSymbol(*common_.m_bit_byte[last_b], b);
 				}
 
 				// if the intensity changed, compress it
@@ -208,7 +211,7 @@ namespace laszip {
 
 				// encode user data if changed
 				if (changed_values & (1 << 1)) {
-					enc.encodeSymbol(*common_.m_user_data[this_val.user_data], this_val.user_data);
+					enc.encodeSymbol(*common_.m_user_data[common_.last_.user_data], this_val.user_data);
 				}
 
 				// if the point source id was changed, compress it
