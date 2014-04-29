@@ -500,7 +500,7 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
 
 	// Make sure things match
-	for (size_t i = 0 ; i < s.buf.size() ; i ++) {
+	for (size_t i = 0 ; i < s.buf.size() && !fc.eof() ; i ++) {
 		BOOST_CHECK_EQUAL(s.buf[i], fc.get());
 	}
 
@@ -510,6 +510,122 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 BOOST_AUTO_TEST_CASE(binary_matches_laszip) {
 	matchSets("test/raw-sets/point10-1.las.raw",
 			"test/raw-sets/point10-1.las.laz.raw");
+}
+
+
+BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	const std::string lasRaw = "test/raw-sets/point10-1.las.raw";
+	const std::string lazRaw = "test/raw-sets/point10-1.las.laz.raw";
+
+	typedef encoders::arithmetic<SuchStream> Encoder;
+
+	SuchStream s;
+	Encoder encoder(s);
+
+	record_compressor<field<las::point10> > compressor;
+
+	dynamic_compressor::ptr pcompressor =
+		make_dynamic_compressor(encoder, compressor);
+
+	std::ifstream f(lasRaw, std::ios::binary);
+	if (!f.good())
+		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+
+	las::point10 pnt;
+	f.seekg(0, std::ios::end);
+	size_t count = f.tellg() / sizeof(las::point10);
+	f.seekg(0);
+
+	while(count --) {
+		f.read((char *)&pnt, sizeof(pnt));
+		pcompressor->compress((char *)&pnt);
+	}
+
+	// flush encoder
+	encoder.done();
+	f.close();
+
+
+	// now open compressed data file
+	std::ifstream fc(lazRaw, std::ios::binary);
+	if (!fc.good())
+		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+
+	// Make sure things match
+	for (size_t i = 0 ; i < s.buf.size() && !fc.eof() ; i ++) {
+		BOOST_CHECK_EQUAL(s.buf[i], fc.get());
+	}
+
+	fc.close();
+}
+
+
+BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	std::ifstream f("test/raw-sets/point10-1.las.laz.raw", std::ios::binary);
+	if (!f.good())
+		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+
+	f.seekg(0, std::ios::end);
+	size_t fileSize = f.tellg();
+	f.seekg(0);
+
+	SuchStream s;
+
+	// Read all of the file data in one go
+	s.buf.resize(fileSize);
+	f.read((char*)&s.buf[0], fileSize);
+
+	f.close();
+
+	// start decoding our data, while we do that open the raw las file for comparison
+
+	typedef decoders::arithmetic<SuchStream> Decoder;
+	record_decompressor<field<las::point10> > decomp;
+
+	Decoder dec(s);
+	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(dec, decomp);
+
+	// open raw las point stream
+	std::ifstream fin("test/raw-sets/point10-1.las.raw", std::ios::binary);
+	if (!fin.good())
+		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+
+	fin.seekg(0, std::ios::end);
+	size_t count = fin.tellg() / sizeof(las::point10);
+	fin.seekg(0);
+
+	size_t index = 0;
+	while(count --) {
+		las::point10 p, pout;
+
+		fin.read((char *)&p, sizeof(p));
+
+		// decompress record
+		//
+		pdecomp->decompress((char*)&pout);
+
+		// make sure they match
+		BOOST_CHECK_EQUAL(p.x, pout.x);
+		BOOST_CHECK_EQUAL(p.y, pout.y);
+		BOOST_CHECK_EQUAL(p.z, pout.z);
+		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
+		BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
+		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
+		BOOST_CHECK_EQUAL(p.classification, pout.classification);
+		BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
+		BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
+		BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+	}
+
+	fin.close();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
