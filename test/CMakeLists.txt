@@ -1,6 +1,6 @@
 include_directories(../tlaz)
 
-set(TLAZ_TEST_SOURCES test_main.cpp tlaz_tests.cpp)
+set(TLAZ_TEST_SOURCES test_main.cpp tlaz_tests.cpp io_tests.cpp)
 
 set(ALL_LIBRARIES ${TLAZ_DEPENDENT_LIBRARIES})
 
