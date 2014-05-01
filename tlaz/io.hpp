@@ -5,6 +5,7 @@
 #ifndef __io_hpp__
 #define __io_hpp__
 
+#include "formats.hpp"
 #include "excepts.hpp"
 
 #include <fstream>
@@ -146,6 +147,15 @@ namespace laszip {
 				return laz_;
 			}
 
+			void readPoint(char *out) {
+				// read the next point in
+				if (chunk_state.current == laz_.chunk_size) {
+					// its time to re-init the decoder for the next chunk
+				}
+
+				pdecomperssor_->decompress(out);
+			}
+
 		private:
 			void _fixMinMax(header& h) {
 				double mx, my, mz, nx, ny, nz;
@@ -264,7 +274,7 @@ namespace laszip {
 				// push in the first offset
 				chunk_table_offsets_.push_back(header_.point_offset + sizeof(uint64_t));
 
-				// TODO: Decode all other chunk here
+				// TODO: Decode all other chunks here
 			}
 
 
@@ -317,6 +327,17 @@ namespace laszip {
 			header header_;
 			laz_vlr laz_;
 			std::vector<uint64_t> chunk_table_offsets_;
+
+			// Our decompressor
+			formats::dynamic_decompressor::ptr pdecomperssor_;
+
+			// Establish our current state as we iterate through the file
+			struct __chunk_state{
+				size_t current;
+				size_t points_read;
+
+				__chunk_state() : current(0), points_read(0) {}
+			} chunk_state;
 		};
 	}
 }

@@ -23,6 +23,8 @@ namespace laszip {
 	__make_exception_class(chunk_table_read_error, "There was a problem reading the chunk table");
 	__make_exception_class(unknown_chunk_table_format, "The chunk table version number is unknown");
 
+	__make_exception_class(unknown_schema_type, "The LAZ schema is not recognized");
+
 
 	struct not_supported : public std::runtime_error {
 		not_supported(const char *msg) : std::runtime_error(msg) { }
