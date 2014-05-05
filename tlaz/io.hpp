@@ -7,6 +7,8 @@
 
 #include "formats.hpp"
 #include "excepts.hpp"
+#include "factory.hpp"
+#include "decoder.hpp"
 
 #include <fstream>
 
@@ -87,6 +89,16 @@ namespace laszip {
 		};
 #pragma pack(pop)
 
+		struct __ifstream_wrapper {
+			__ifstream_wrapper(std::ifstream& f) : f_(f) {
+			}
+
+			unsigned char getByte() { return static_cast<unsigned char>(f_.get()); }
+			void getBytes(unsigned char *buf, size_t len) { f_.read(reinterpret_cast<char *>(buf), len); }
+
+			std::ifstream& f_;
+		};
+
 		class file {
 			typedef std::function<void (header&)> validator_type;
 
@@ -134,6 +146,12 @@ namespace laszip {
 
 				// parse the chunk table offset
 				_parseChunkTable();
+
+				// Make the opened stream available to the wrapper
+				pwrapper_.reset(new __ifstream_wrapper(f_));
+
+				// set the file pointer to the beginning of data to start reading
+				f_.seekg(header_.point_offset + sizeof(int64_t));
 			}
 
 			const header& get_header() const {
@@ -149,11 +167,22 @@ namespace laszip {
 
 			void readPoint(char *out) {
 				// read the next point in
-				if (chunk_state.current == laz_.chunk_size) {
-					// its time to re-init the decoder for the next chunk
+				if (chunk_state_.current == laz_.chunk_size ||
+					!pdecomperssor_ || !pdecoder_) {
+					// Its time to (re)init the decoder
+					pdecomperssor_.reset();
+					pdecoder_.reset();
+
+					pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(*pwrapper_));
+					pdecomperssor_ = factory::build_decompressor(*pdecoder_, schema_);
+
+					// reset chunk state
+					chunk_state_.current = 0;
+					chunk_state_.current_index ++;
 				}
 
 				pdecomperssor_->decompress(out);
+				chunk_state_.points_read ++;
 			}
 
 		private:
@@ -211,6 +240,13 @@ namespace laszip {
 
 				if (!laszipFound)
 					throw no_laszip_vlr();
+
+
+				// convert the laszip items into record schema to be used by compressor/decompressor
+				// builder
+				for(auto item : laz_.items) {
+					schema_.push(factory::record_item(item.type, item.size, item.version));
+				}
 			}
 
 			void _parseLASZIPVLR(const char *buf) {
@@ -328,16 +364,22 @@ namespace laszip {
 			laz_vlr laz_;
 			std::vector<uint64_t> chunk_table_offsets_;
 
+			factory::record_schema schema_;	// the schema of this file, the LAZ items converted into factory recognizable description,
+
 			// Our decompressor
+			std::shared_ptr<decoders::arithmetic<__ifstream_wrapper> > pdecoder_;
 			formats::dynamic_decompressor::ptr pdecomperssor_;
+
+			std::shared_ptr<__ifstream_wrapper> pwrapper_;	// encapsulate a std::ifstream so that the decoder can use it
 
 			// Establish our current state as we iterate through the file
 			struct __chunk_state{
 				size_t current;
 				size_t points_read;
+				size_t current_index;
 
-				__chunk_state() : current(0), points_read(0) {}
-			} chunk_state;
+				__chunk_state() : current(0), points_read(0), current_index(-1) {}
+			} chunk_state_;
 		};
 	}
 }

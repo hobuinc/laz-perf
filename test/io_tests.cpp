@@ -127,5 +127,40 @@ BOOST_AUTO_TEST_CASE(parses_laszip_vlr_correctly) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(decodes_single_chunk_files_correctly) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	{
+		io::file f("test/raw-sets/point10.las.laz");
+		std::ifstream fin("test/raw-sets/point10-1.las.raw", std::ios::binary);
+
+		if (!fin.good())
+			BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+
+		size_t pointCount = f.get_header().point_count;
+
+		for (size_t i = 0 ; i < pointCount ; i ++) {
+
+			las::point10 p, pout;
+
+			fin.read((char*)&p, sizeof(p));
+			f.readPoint((char*)&pout);
+
+			BOOST_CHECK_EQUAL(p.x, pout.x);
+			BOOST_CHECK_EQUAL(p.y, pout.y);
+			BOOST_CHECK_EQUAL(p.z, pout.z);
+			BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
+			BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+			BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+			BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
+			BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
+			BOOST_CHECK_EQUAL(p.classification, pout.classification);
+			BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
+			BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
+			BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+		}
+	}
+}
 
 BOOST_AUTO_TEST_SUITE_END()

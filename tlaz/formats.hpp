@@ -286,22 +286,22 @@ namespace laszip {
 			typename TRecordCompressor
 		>
 		struct dynamic_compressor1 : public dynamic_compressor {
-			dynamic_compressor1(TEncoder& enc, TRecordCompressor& compressor) :
+			dynamic_compressor1(TEncoder& enc, TRecordCompressor* compressor) :
 				enc_(enc), compressor_(compressor) {}
 
 			virtual void compress(const char *in) {
-				compressor_.compressWith(enc_, in);
+				compressor_->compressWith(enc_, in);
 			}
 
 			TEncoder& enc_;
-			TRecordCompressor& compressor_;
+			TRecordCompressor* compressor_;
 		};
 
 		template<
 			typename TEncoder,
 			typename TRecordCompressor
 		>
-		static dynamic_compressor::ptr make_dynamic_compressor(TEncoder& encoder, TRecordCompressor& compressor) {
+		static dynamic_compressor::ptr make_dynamic_compressor(TEncoder& encoder, TRecordCompressor* compressor) {
 			return dynamic_compressor::ptr(
 					new dynamic_compressor1<TEncoder, TRecordCompressor>(encoder, compressor));
 		}
@@ -311,22 +311,26 @@ namespace laszip {
 			typename TRecordDecompressor
 		>
 		struct dynamic_decompressor1 : public dynamic_decompressor {
-			dynamic_decompressor1(TDecoder& dec, TRecordDecompressor& decompressor) :
+			dynamic_decompressor1(TDecoder& dec, TRecordDecompressor* decompressor) :
 				dec_(dec), decompressor_(decompressor) {}
 
 			virtual void decompress(char *in) {
-				decompressor_.decompressWith(dec_, in);
+				decompressor_->decompressWith(dec_, in);
+			}
+
+			~dynamic_decompressor1() {
+				delete decompressor_;
 			}
 
 			TDecoder& dec_;
-			TRecordDecompressor& decompressor_;
+			TRecordDecompressor* decompressor_;
 		};
 
 		template<
 			typename TDecoder,
 			typename TRecordDecompressor
 		>
-		static dynamic_decompressor::ptr make_dynamic_decompressor(TDecoder& decoder, TRecordDecompressor& decompressor) {
+		static dynamic_decompressor::ptr make_dynamic_decompressor(TDecoder& decoder, TRecordDecompressor* decompressor) {
 			return dynamic_decompressor::ptr(
 					new dynamic_decompressor1<TDecoder, TRecordDecompressor>(decoder, decompressor));
 		}

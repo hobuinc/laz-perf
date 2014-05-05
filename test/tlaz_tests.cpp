@@ -525,7 +525,7 @@ BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
 	SuchStream s;
 	Encoder encoder(s);
 
-	record_compressor<field<las::point10> > compressor;
+	auto compressor = new record_compressor<field<las::point10> >();
 
 	dynamic_compressor::ptr pcompressor =
 		make_dynamic_compressor(encoder, compressor);
@@ -586,7 +586,7 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 	// start decoding our data, while we do that open the raw las file for comparison
 
 	typedef decoders::arithmetic<SuchStream> Decoder;
-	record_decompressor<field<las::point10> > decomp;
+	auto decomp = new record_decompressor<field<las::point10> >();
 
 	Decoder dec(s);
 	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(dec, decomp);
