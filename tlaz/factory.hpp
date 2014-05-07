@@ -49,6 +49,8 @@ namespace laszip {
 						new formats::record_decompressor<field<las::point10> >());
 			}
 
+			std::cout << "Schema is " << hash << std::endl;
+
 
 			// we got a schema we don't know how to build
 			throw unknown_schema_type();

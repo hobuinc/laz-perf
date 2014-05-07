@@ -278,6 +278,9 @@ namespace laszip {
 				if (!f_.good())
 					throw chunk_table_read_error();
 
+				if (chunkoffset == -1)
+					throw not_supported("Chunk table offset == -1 is not supported at this time");
+
 				// Go to the chunk offset and read in the table
 				//
 				f_.seekg(chunkoffset);
@@ -297,20 +300,37 @@ namespace laszip {
 				if (chunk_table_header.version != 0)
 					throw unknown_chunk_table_format();
 
-
 				// start pushing in chunk table offsets
 				chunk_table_offsets_.clear();
 
 				if (laz_.chunk_size == std::numeric_limits<unsigned int>::max())
 					throw not_supported("chunk_size == uint.max is not supported at this time, call 1-800-DAFUQ for support.");
 
-				if (chunk_table_header.chunk_count > 1)
-					throw not_supported("chunk_count > 1 is not supported at this time");
+				// Allocate enough room for our chunk
+				chunk_table_offsets_.resize(chunk_table_header.chunk_count);
 
-				// push in the first offset
-				chunk_table_offsets_.push_back(header_.point_offset + sizeof(uint64_t));
+				// Add The first one
+				chunk_table_offsets_[0] = header_.point_offset + sizeof(uint64_t);
 
-				// TODO: Decode all other chunks here
+				if (chunk_table_header.chunk_count > 1) {
+					// decode the index out
+					//
+					__ifstream_wrapper f(f_); // create a wrapper to help read in things
+					decoders::arithmetic<__ifstream_wrapper> decoder(f);
+					decompressors::integer decomp(32, 2);
+
+					// start decoder
+					decoder.readInitBytes();
+					decomp.init();
+
+					int last = 0;
+					for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++) {
+						last = decomp.decompress(decoder, last, 1);
+						chunk_table_offsets_[i] = last + chunk_table_offsets_[i-1];
+
+						//std::cout << "chunk: " << chunk_table_offsets_[i-1] << " --> " << chunk_table_offsets_[i] << std::endl;
+					}
+				}
 			}
 
 

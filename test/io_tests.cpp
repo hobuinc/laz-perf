@@ -163,4 +163,48 @@ BOOST_AUTO_TEST_CASE(decodes_single_chunk_files_correctly) {
 	}
 }
 
+void checkExists(const std::string& filename) {
+	std::ifstream f(filename, std::ios::binary);
+	if (!f.good()) {
+		std::stringstream sstr;
+		sstr << "Could not open test file: " << filename << ", did you run the download-test-sets.sh script yet?";
+		BOOST_FAIL(sstr.str());
+	}
+
+	f.close();
+}
+
+
+BOOST_AUTO_TEST_CASE(can_open_large_files) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	checkExists("test/raw-sets/autzen.laz");
+
+	{
+		io::file f;
+
+		BOOST_CHECK_NO_THROW(f.open("test/raw-sets/autzen.laz"));
+	}
+}
+
+BOOST_AUTO_TEST_CASE(can_decode_large_files) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	checkExists("test/raw-sets/autzen.laz");
+
+	{
+		io::file f("test/raw-sets/autzen.laz");
+
+		size_t pointCount = f.get_header().point_count;
+
+		for (size_t i = 0 ; i < pointCount ; i ++) {
+			las::point10 p;
+
+			f.readPoint((char*)&p);
+		}
+	}
+}
+
 BOOST_AUTO_TEST_SUITE_END()
