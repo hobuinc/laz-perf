@@ -2,9 +2,6 @@
 # Builds and tests laz-perf
 #
 
-mkdir -p _build || exit 1
-cd _build || exit 1
-
 # g++4.8.1
 if [ "$CXX" = "g++" ]; then 
 	export CXX="g++-4.8";
@@ -17,8 +14,9 @@ fi
 
 cmake \
 	-DCMAKE_BUILD_TYPE=Release \
-	..
+	.
 
 make VERBOSE=1
 
+sh download-test-sets.sh
 ./test/tlaz_tests
