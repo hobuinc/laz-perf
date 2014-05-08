@@ -70,6 +70,51 @@ BOOST_AUTO_TEST_CASE(packers_are_symmetric) {
 	BOOST_CHECK_EQUAL(0x7, v);
 }
 
+
+BOOST_AUTO_TEST_CASE(packers_canpack_gpstime) {
+	using namespace laszip::formats;
+
+	{
+		las::gpstime v(std::numeric_limits<int64_t>::max());
+		char buf[8];
+
+		packers<las::gpstime>::pack(v, buf);
+		las::gpstime out = packers<las::gpstime>::unpack(buf);
+
+		BOOST_CHECK_EQUAL(v.value, out.value);
+		BOOST_CHECK_EQUAL(std::equal(buf, buf + 8, (char *)&v.value), true);
+	}
+
+	{
+		las::gpstime v(std::numeric_limits<int64_t>::min());
+		char buf[8];
+
+		packers<las::gpstime>::pack(v, buf);
+		las::gpstime out = packers<las::gpstime>::unpack(buf);
+
+		BOOST_CHECK_EQUAL(v.value, out.value);
+		BOOST_CHECK_EQUAL(std::equal(buf, buf + 8, (char *)&v.value), true);
+	}
+}
+
+BOOST_AUTO_TEST_CASE(packers_canpack_rgb) {
+	using namespace laszip::formats;
+
+	las::rgb c(1<<15, 1<<14, 1<<13);
+	char buf[6];
+
+	packers<las::rgb>::pack(c, buf);
+	las::rgb out = packers<las::rgb>::unpack(buf);
+
+	BOOST_CHECK_EQUAL(c.r, out.r);
+	BOOST_CHECK_EQUAL(c.g, out.g);
+	BOOST_CHECK_EQUAL(c.b, out.b);
+
+	BOOST_CHECK_EQUAL(std::equal(buf, buf+2, (char*)&c.r), true);
+	BOOST_CHECK_EQUAL(std::equal(buf+2, buf+4, (char*)&c.g), true);
+	BOOST_CHECK_EQUAL(std::equal(buf+4, buf+6, (char*)&c.b), true);
+}
+
 BOOST_AUTO_TEST_CASE(works_with_fields) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -627,5 +672,41 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 
 	fin.close();
 }
+
+BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::gpstime>
+	> comp;
+
+	for (size_t i = 0 ; i < 10 ; i ++) {
+		for (size_t j = 0 ; j < 1000 ; j ++) {
+			las::gpstime t((1 << (32 + i)) + ((1 << 16) + j) + j);
+			comp.compressWith(encoder, (const char*)&t);
+		}
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::gpstime>
+	> decomp;
+
+	for (size_t i = 0 ; i < 10 ; i ++) {
+		for (size_t j = 0 ; j < 1000 ; j ++) {
+			int64_t t((1 << (32 + i)) + ((1 << 16) + j) + j);
+			las::gpstime out;
+			decomp.decompressWith(decoder, (char *)&out);
+
+			BOOST_CHECK_EQUAL(out.value, t);
+		}
+	}
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

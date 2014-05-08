@@ -1,0 +1,12 @@
+# .travis.yml
+#
+
+language: cpp
+
+compiler:
+    - g++
+    - clang++
+
+before_install: ./scripts/ci/pre.sh
+
+script: ./script/ci/run.sh

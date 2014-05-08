@@ -188,6 +188,7 @@ BOOST_AUTO_TEST_CASE(can_open_large_files) {
 	}
 }
 
+/*
 BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -206,5 +207,6 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 		}
 	}
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()
