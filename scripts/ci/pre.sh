@@ -10,6 +10,6 @@ sudo add-apt-repository ppa:boost-latest/ppa -y
 sudo apt-get update -qq
 sudo apt-get install \
 	cmake \
-	boost1.55
+	libboost-test1.55-dev
 
 cd $TRAVIS_BUILD_DIR

@@ -9,4 +9,4 @@ compiler:
 
 before_install: ./scripts/ci/pre.sh
 
-script: ./script/ci/run.sh
+script: ./scripts/ci/run.sh
