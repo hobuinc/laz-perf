@@ -382,6 +382,16 @@ void printPoint(const laszip::formats::las::point10& p) {
 
 }
 
+void printBytes(const unsigned char *bytes, size_t len) {
+	for (size_t i = 0 ; i < len ; i ++) {
+		printf("%02X ", bytes[i]);
+		if ((i+1) % 16 == 0)
+			printf("\n");
+	}
+
+	printf("\n");
+}
+
 BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -673,6 +683,12 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 	fin.close();
 }
 
+int64_t makegps(unsigned int upper, unsigned int lower) {
+	int64_t u = upper,
+			l = lower;
+	return (u << 32) | l;
+}
+
 BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -684,9 +700,11 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 		field<las::gpstime>
 	> comp;
 
-	for (size_t i = 0 ; i < 10 ; i ++) {
-		for (size_t j = 0 ; j < 1000 ; j ++) {
-			las::gpstime t((1 << (32 + i)) + ((1 << 16) + j) + j);
+	const int il = 31, jl = (1 << 16) - 1;
+
+	for (size_t i = 0 ; i < il ; i ++) {
+		for (size_t j = 0 ; j < jl ; j ++) {
+			las::gpstime t(makegps((i > 0 ? 1ll << i : 0), (j << 16) + j));
 			comp.compressWith(encoder, (const char*)&t);
 		}
 	}
@@ -697,13 +715,13 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 		field<las::gpstime>
 	> decomp;
 
-	for (size_t i = 0 ; i < 10 ; i ++) {
-		for (size_t j = 0 ; j < 1000 ; j ++) {
-			int64_t t((1 << (32 + i)) + ((1 << 16) + j) + j);
+	for (size_t i = 0 ; i < il ; i ++) {
+		for (size_t j = 0 ; j < jl ; j ++) {
+			las::gpstime t(makegps((i > 0 ? 1ll << i : 0), (j << 16) + j));
 			las::gpstime out;
 			decomp.decompressWith(decoder, (char *)&out);
 
-			BOOST_CHECK_EQUAL(out.value, t);
+			BOOST_CHECK_EQUAL(out.value, t.value);
 		}
 	}
 }

@@ -263,15 +263,16 @@ namespace laszip {
 					common_.last_gpstime[0] = packers<las::gpstime>::unpack(buf);
 
 					// we are done here
-					return common_.last;
+					return common_.last_gpstime[0];
 				}
 
 				int multi;
 				if (common_.last_gpstime_diff[common_.last] == 0) { // if the last integer difference was zero
 					multi = dec.decodeSymbol(common_.m_gpstime_0diff);
+
 					if (multi == 1) { // the difference can be represented with 32 bits
 						common_.last_gpstime_diff[common_.last] = decompressors_.ic_gpstime.decompress(dec, 0, 0);
-						common_.last_gpstime[common_.last].value = common_.last_gpstime_diff[common_.last];
+						common_.last_gpstime[common_.last].value += common_.last_gpstime_diff[common_.last];
 						common_.multi_extreme_counter[common_.last] = 0; 
 					}
 					else if (multi == 2) { // the difference is huge
