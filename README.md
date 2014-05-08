@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/verma/laz-perf.svg?branch=master)](https://travis-ci.org/verma/laz-perf)
+
 # What is this?
 Exploration into compiling LASzip into faster javascript.
 

@@ -7,9 +7,28 @@ sudo apt-get update -y
 sudo apt-get install software-properties-common -y
 sudo apt-get install python-software-properties -y
 sudo add-apt-repository ppa:boost-latest/ppa -y
+
+# g++4.8.1
+if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
+
+# clang 3.4
+if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
+
 sudo apt-get update -qq
 sudo apt-get install \
 	cmake \
 	libboost-test1.55-dev
+
+# g++4.8.1
+if [ "$CXX" = "g++" ]; then 
+	sudo apt-get install -qq g++-4.8;
+	export CXX="g++-4.8";
+fi
+
+# clang 3.4
+if [ "$CXX" == "clang++" ]; then 
+	sudo apt-get install --allow-unauthenticated -qq clang-3.4;
+	export CXX="clang++-3.4";
+fi
 
 cd $TRAVIS_BUILD_DIR
