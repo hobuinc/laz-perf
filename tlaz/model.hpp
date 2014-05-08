@@ -159,7 +159,7 @@ namespace laszip {
 					bit_count = other.bit_count;
 
 					other.update_cycle = other.bits_until_update =
-						other.bit_0_prob = other.bit_0_prob = other.bit_count = 0;
+						other.bit_0_prob = other.bit_0_count = other.bit_count = 0;
 				}
 
 				return *this;

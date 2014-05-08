@@ -11,6 +11,7 @@
 #include "decoder.hpp"
 
 #include <fstream>
+#include <mutex>
 
 namespace laszip {
 	namespace io {
