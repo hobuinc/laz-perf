@@ -19,6 +19,6 @@ cmake \
 	-DCMAKE_BUILD_TYPE=Release \
 	..
 
-make
+make VERBOSE=1
 
 ./test/tlaz_tests
