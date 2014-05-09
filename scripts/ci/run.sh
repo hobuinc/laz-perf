@@ -19,4 +19,4 @@ cmake \
 make VERBOSE=1
 
 sh download-test-sets.sh
-./test/tlaz_tests
+ctest
