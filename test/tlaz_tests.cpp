@@ -773,5 +773,47 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::rgb>
+	> comp;
+
+	const int S = 10000;
+	std::vector<unsigned short> cols(S);
+
+	srand(time(NULL));
+	for (size_t i = 0 ; i < S ; i++) {
+		unsigned short col = rand() % (1 << 16);
+		cols[i] = col;
+
+		las::rgb c(col, col, col);
+		comp.compressWith(encoder, (char*)&c);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::rgb>
+	> decomp;
+
+	for (size_t i = 0 ; i < S ; i++) {
+		unsigned short col = cols[i];
+
+		las::rgb c(col, col, col);
+		las::rgb out;
+
+		decomp.decompressWith(decoder, (char *)&out);
+
+		BOOST_CHECK_EQUAL(out.r, c.r);
+		BOOST_CHECK_EQUAL(out.g, c.g);
+		BOOST_CHECK_EQUAL(out.b, c.b);
+	}
+}
 
 BOOST_AUTO_TEST_SUITE_END()
