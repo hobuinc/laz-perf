@@ -44,26 +44,11 @@ namespace laszip {
 					r(_r), g(_g), b(_b) {}
 			};
 		}
-
-		template<>
-		struct packers<las::rgb> {
-			inline static las::rgb unpack(const char *in) {
-				return las::rgb(packers<unsigned int>::unpack(in),
-								packers<unsigned int>::unpack(in+2),
-								packers<unsigned int>::unpack(in+4));
-
-			}
-
-			inline static void pack(const las::rgb& c, char *buffer) {
-				packers<unsigned short>::pack(c.r, buffer);
-				packers<unsigned short>::pack(c.g, buffer+2);
-				packers<unsigned short>::pack(c.b, buffer+4);
-			}
-		};
 	}
 }
 
 #include "detail/field_point10.hpp"
 #include "detail/field_gpstime.hpp"
+#include "detail/field_rgb.hpp"
 
 #endif // __las_hpp__

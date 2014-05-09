@@ -726,5 +726,52 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::rgb>
+	> comp;
+
+	const size_t rs = 1, gs = 1, bs = 1;
+	const size_t rl = 1 << 16, gl = 1 << 16, bl = 1 << 16;
+
+	for (size_t r = rs ; r < rl ; r <<= 1) {
+		for (size_t g = gs ; g < gl ; g <<= 1) {
+			for (size_t b = bs ; b < bl ; b <<= 1) {
+				las::rgb c(r, g, b);
+				comp.compressWith(encoder, (char*)&c);
+			}
+		}
+	}
+
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::rgb>
+	> decomp;
+
+	for (size_t r = rs ; r < rl ; r <<= 1) {
+		for (size_t g = gs ; g < gl ; g <<= 1) {
+			for (size_t b = bs ; b < bl ; b <<= 1) {
+				las::rgb c(r, g, b);
+
+				las::rgb out;
+
+				decomp.decompressWith(decoder, (char *)&out);
+
+				BOOST_CHECK_EQUAL(out.r, c.r);
+				BOOST_CHECK_EQUAL(out.g, c.g);
+				BOOST_CHECK_EQUAL(out.b, c.b);
+			}
+		}
+	}
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
