@@ -74,7 +74,7 @@ namespace laszip {
 						int64_t curr_gpstime_diff_64 = this_val.value - common_.last_gpstime[common_.last].value;
 						int curr_gpstime_diff = static_cast<int>(curr_gpstime_diff_64);
 
-						if ((curr_gpstime_diff_64 >> 32) == 0) {
+						if (curr_gpstime_diff_64 == static_cast<int64_t>(curr_gpstime_diff)) {
 							// this difference is small enough to be represented with 32 bits
 							enc.encodeSymbol(common_.m_gpstime_0diff, 1);
 							compressors_.ic_gpstime.compress(enc, 0, curr_gpstime_diff, 0);
@@ -89,8 +89,9 @@ namespace laszip {
 							for (i = 1; i < 4; i++) {
 								int64_t other_gpstime_diff_64 = this_val.value -
 									common_.last_gpstime[(common_.last+i)&3].value;
+								int other_gpstime_diff = static_cast<int>(other_gpstime_diff_64);
 
-								if ((other_gpstime_diff_64 >> 32) == 0) {
+								if (other_gpstime_diff_64 == static_cast<int64_t>(other_gpstime_diff)) {
 									enc.encodeSymbol(common_.m_gpstime_0diff, i+2); // it belongs to another sequence 
 									common_.last = (common_.last+i)&3;
 
@@ -132,7 +133,7 @@ namespace laszip {
 						int curr_gpstime_diff = static_cast<int>(curr_gpstime_diff_64);
 
 						// if the current gpstime difference can be represented with 32 bits
-						if ((curr_gpstime_diff_64 >> 32) == 0) {
+						if (curr_gpstime_diff_64 == static_cast<int64_t>(curr_gpstime_diff)) {
 							// compute multiplier between current and last integer difference
 							float multi_f = (float)curr_gpstime_diff /
 								(float)(common_.last_gpstime_diff[common_.last]);
@@ -211,8 +212,9 @@ namespace laszip {
 							for (i = 1; i < 4; i++)
 							{
 								int64_t other_gpstime_diff_64 = this_val.value - common_.last_gpstime[(common_.last+i)&3].value;
-								int other_gpstime_diff = other_gpstime_diff_64;
-								if ((other_gpstime_diff_64 >> 32) == 0) {
+								int other_gpstime_diff = static_cast<int>(other_gpstime_diff_64);
+
+								if (other_gpstime_diff_64 == static_cast<int64_t>(other_gpstime_diff)) {
 									// it belongs to this sequence 
 									enc.encodeSymbol(common_.m_gpstime_multi, LASZIP_GPSTIME_MULTI_CODE_FULL+i);
 									common_.last = (common_.last+i)&3;

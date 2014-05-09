@@ -12,6 +12,9 @@ benchmarks/brute_point10
 .DS_Store
 *.js
 *.js.map
+.vagrant/
+CTestTestfile.cmake
+Testing/
 
 # test files we don't need to version control
 /test/raw-sets/autzen.laz

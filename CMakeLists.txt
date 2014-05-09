@@ -183,5 +183,6 @@ add_subdirectory(examples)
 add_subdirectory(benchmarks)
 
 if(WITH_TESTS)
+	enable_testing()
 	add_subdirectory(test)
 endif()

@@ -726,6 +726,47 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(can_compress_decompress_random_gpstime) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::gpstime>
+	> comp;
+
+	const size_t S = 1000;
+
+	srand(time(NULL));
+	std::vector<int64_t> vs(S);
+	for (size_t i = 0 ; i < S ; i ++) {
+		int64_t a = rand() & 0xFFFF,
+				b = rand() & 0xFFFF,
+				c = rand() & 0xFFFF,
+				d = rand() & 0xFFFF;
+
+		las::gpstime t((a << 48) | (b << 32) | (c << 16) | d);
+		vs[i] = t.value;
+
+		comp.compressWith(encoder, (const char*)&t);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::gpstime>
+	> decomp;
+
+	for (size_t i = 0 ; i < S ; i ++) {
+		las::gpstime out;
+		decomp.decompressWith(decoder, (char *)&out);
+
+		BOOST_CHECK_EQUAL(out.value, vs[i]);
+	}
+}
+
 BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -815,5 +856,130 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
 		BOOST_CHECK_EQUAL(out.b, c.b);
 	}
 }
+
+
+// A simple classes that offsets to the data for us
+struct reader {
+	reader(const std::string& f) :
+		f_(f, std::ios::binary) {
+#define good_or_bail(msg) if(!f_.good()) { f_.close(); throw std::runtime_error(f + std::string(" : ") + msg);}
+
+			good_or_bail("Could not open file");
+
+			// read data offset and jump to it
+			f_.seekg(32*3); good_or_bail("Could not read data offset");
+
+			unsigned int data = 0;
+			f_.read((char*)&data, 4); good_or_bail("Could not read data offset");
+
+			size_ = 0;
+			f_.seekg(32*3+8+1); good_or_bail("Could not read record size");
+			f_.read((char *)&size_, sizeof(size_)); good_or_bail("Could not read record size");
+			f_.read((char *)&count_, sizeof(count_)); good_or_bail("Could not read points count");
+
+			f_.seekg(data); good_or_bail("Could not offset to data offset");
+		}
+
+	~reader() {
+		f_.close();
+	}
+
+
+	void skip(size_t n) {
+		f_.seekg(n, std::ios::cur);
+	}
+
+	unsigned char byte() {
+		return static_cast<unsigned char>(f_.get());
+	}
+
+	void record(char *b) { // make sure you pass enough memory
+		f_.read(b, size_);
+	}
+
+	std::ifstream f_;
+	unsigned short size_;
+	unsigned int count_;
+};
+
+BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
+	reader las("test/raw-sets/point-time.las");
+	
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::gpstime>
+	> comp;
+
+	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
+
+	struct {
+		las::point10 p;
+		las::gpstime t;
+	} p;
+
+	unsigned int l = las.count_;
+	std::vector<int64_t> ts;
+	for (unsigned int i = 0 ; i < l ; i ++) {
+		las.record((char*)&p);
+		ts.push_back(p.t.value);
+		comp.compressWith(encoder, (char*)&p.t.value);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::gpstime>
+	> decomp;
+
+	for (size_t i = 0 ; i < l ; i ++) {
+		las::gpstime t;
+		decomp.decompressWith(decoder, (char*)&t);
+		BOOST_CHECK_EQUAL(ts[i], t.value);
+	}
+};
+
+/*
+BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
+	reader laz("test/raw-sets/point-time.las.laz"),
+		   las("test/raw-sets/point-time.las");
+	
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::point10>,
+		field<las::gpstime>
+	> comp;
+
+	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
+
+	struct {
+		las::point10 p;
+		las::gpstime t;
+	} p;
+
+	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
+		las.record((char*)&p);
+		std::cout << "i = " << i << ", " << p.t.value << std::endl;
+		comp.compressWith(encoder, (char*)&p);
+	}
+	encoder.done();
+
+	std::cout << "buffer size: " << s.buf.size() << std::endl;
+
+	laz.skip(8); // jump past the chunk table offset
+	for (size_t i = 0 ; i < std::min(1015ul, s.buf.size()); i ++) {
+		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+	}
+}
+*/
 
 BOOST_AUTO_TEST_SUITE_END()
