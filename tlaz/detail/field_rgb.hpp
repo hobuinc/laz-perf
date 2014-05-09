@@ -164,7 +164,7 @@ namespace laszip {
 
 				if (sym & (1 << 0)) {
 					corr = dec.decodeSymbol(m_rgb_diff_0);
-					this_val.r = static_cast<unsigned short>(U8_FOLD(corr + last.r & 0xFF));
+					this_val.r = static_cast<unsigned short>(U8_FOLD(corr + (last.r & 0xFF)));
 				}
 				else {
 					this_val.r = last.r & 0xFF;
