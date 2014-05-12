@@ -42,4 +42,7 @@ if [ "$CXX" == "clang++" ]; then
 	sudo ln -sf libc++.so.1.0 libc++.so.1 && cd $cwd;
 fi
 
+sh laszip.sh
+sh liblas.sh
+
 cd $TRAVIS_BUILD_DIR
