@@ -45,8 +45,17 @@ namespace laszip {
 
 			std::string hash = tokensstr.str();
 			if (hash == "v2t6s20") {
+				// just point 10
 				return make_dynamic_decompressor(enc,
 						new formats::record_decompressor<field<las::point10> >());
+			}
+			else if (hash == "v2t6s20v2t7s8v2t8s6") {
+				// point10, gpstime, color
+				return make_dynamic_decompressor(enc,
+						new formats::record_decompressor<
+							field<las::point10>,
+							field<las::gpstime>,
+							field<las::rgb> >());
 			}
 
 			std::cout << "Schema is " << hash << std::endl;
