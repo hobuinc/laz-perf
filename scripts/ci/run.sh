@@ -19,4 +19,4 @@ cmake \
 make VERBOSE=1
 
 sh download-test-sets.sh
-ctest
+ctest -V
