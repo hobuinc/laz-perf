@@ -4,6 +4,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "io.hpp"
+#include "reader.hpp"
 
 BOOST_AUTO_TEST_SUITE(tlaz_io_tests)
 
@@ -193,11 +194,15 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 	using namespace laszip::formats;
 
 	checkExists("test/raw-sets/autzen.laz");
+	checkExists("test/raw-sets/autzen.las");
 
 	{
 		io::file f("test/raw-sets/autzen.laz");
+		reader fin("test/raw-sets/autzen.las");
 
 		size_t pointCount = f.get_header().point_count;
+
+		BOOST_CHECK_EQUAL(pointCount, fin.count_);
 
 		struct p {
 			las::point10 p;
@@ -206,8 +211,37 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 		};
 
 		for (size_t i = 0 ; i < pointCount ; i ++) {
-			p p;
-			f.readPoint((char*)&p);
+			p p1, p2;
+
+			f.readPoint((char*)&p1);
+			fin.record((char*)&p2);
+
+			// Make sure the points match
+			{
+				const las::point10& p = p2.p;
+				const las::point10& pout = p1.p;
+
+				BOOST_CHECK_EQUAL(p.x, pout.x);
+				BOOST_CHECK_EQUAL(p.y, pout.y);
+				BOOST_CHECK_EQUAL(p.z, pout.z);
+				BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
+				BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+				BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+				BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
+				BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
+				BOOST_CHECK_EQUAL(p.classification, pout.classification);
+				BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
+				BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
+				BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+			}
+
+			// Make sure the gps time match
+			BOOST_CHECK_EQUAL(p1.t.value, p2.t.value);
+
+			// Make sure the colors match
+			BOOST_CHECK_EQUAL(p1.c.r, p2.c.r);
+			BOOST_CHECK_EQUAL(p1.c.g, p2.c.g);
+			BOOST_CHECK_EQUAL(p1.c.b, p2.c.b);
 		}
 	}
 }

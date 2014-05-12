@@ -17,4 +17,4 @@ CTestTestfile.cmake
 Testing/
 
 # test files we don't need to version control
-/test/raw-sets/autzen.laz
+/test/raw-sets/autzen.la?
