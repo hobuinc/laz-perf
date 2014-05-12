@@ -12,6 +12,9 @@ if [ "$CXX" == "clang++" ]; then
 	export CXX="clang++-3.4";
 fi
 
+sh ./scripts/ci/laszip.sh
+sh ./scripts/ci/liblas.sh
+
 cmake \
 	-DCMAKE_BUILD_TYPE=Release \
 	.

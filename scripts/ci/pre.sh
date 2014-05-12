@@ -17,7 +17,7 @@ if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm;
 sudo apt-get update -qq
 sudo apt-get install \
 	cmake \
-	libboost-test1.55-dev
+	libboost1.55-all-dev
 
 # g++4.8.1
 if [ "$CXX" = "g++" ]; then 
@@ -41,5 +41,7 @@ if [ "$CXX" == "clang++" ]; then
 	cd /usr/lib && sudo ln -sf libc++.so.1.0 libc++.so;
 	sudo ln -sf libc++.so.1.0 libc++.so.1 && cd $cwd;
 fi
+
+
 
 cd $TRAVIS_BUILD_DIR
