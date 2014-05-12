@@ -55,7 +55,21 @@ add_test(NAME can_compress_decompress_rgb_single_channel
 add_test(NAME can_compress_decompress_real_gpstime
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_tests/can_compress_decompress_real_gpstime)
-
+add_test(NAME can_compress_decompress_real_color
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/can_compress_decompress_real_color)
+add_test(NAME las_structs_are_of_correct_size
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/las_structs_are_of_correct_size)
+add_test(NAME can_encode_match_laszip_point10time
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/can_encode_match_laszip_point10time)
+add_test(NAME can_encode_match_laszip_point10color
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/can_encode_match_laszip_point10color)
+add_test(NAME can_encode_match_laszip_point10timecolor
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/can_encode_match_laszip_point10timecolor)
 
 add_test(NAME can_report_invalid_files
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

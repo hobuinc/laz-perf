@@ -199,8 +199,14 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 
 		size_t pointCount = f.get_header().point_count;
 
-		for (size_t i = 0 ; i < pointCount ; i ++) {
+		struct p {
 			las::point10 p;
+			las::gpstime t;
+			las::rgb c;
+		};
+
+		for (size_t i = 0 ; i < pointCount ; i ++) {
+			p p;
 			f.readPoint((char*)&p);
 		}
 	}

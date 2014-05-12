@@ -115,6 +115,14 @@ BOOST_AUTO_TEST_CASE(packers_canpack_rgb) {
 	BOOST_CHECK_EQUAL(std::equal(buf+4, buf+6, (char*)&c.b), true);
 }
 
+BOOST_AUTO_TEST_CASE(las_structs_are_of_correct_size) {
+	using namespace laszip::formats;
+
+	BOOST_CHECK_EQUAL(sizeof(las::point10), 20);
+	BOOST_CHECK_EQUAL(sizeof(las::gpstime), 8);
+	BOOST_CHECK_EQUAL(sizeof(las::rgb), 6);
+}
+
 BOOST_AUTO_TEST_CASE(works_with_fields) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -353,7 +361,6 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 		las::point10 p = packers<las::point10>::unpack(buf);
 
 		BOOST_CHECK_EQUAL(p.x, i);
-		/*
 		BOOST_CHECK_EQUAL(p.y, i + 1000);
 		BOOST_CHECK_EQUAL(p.z, i + 10000);
 
@@ -366,7 +373,6 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 		BOOST_CHECK_EQUAL(p.scan_angle_rank, i % (1 << 7));
 		BOOST_CHECK_EQUAL(p.user_data, (i + 64) % (1 << 7));
 		BOOST_CHECK_EQUAL(p.point_source_ID, i % (1 << 16));
-		*/
 	}
 }
 
@@ -943,7 +949,49 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
 	}
 };
 
-/*
+BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
+	reader las("test/raw-sets/point-color.las");
+	
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::rgb>
+	> comp;
+
+	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
+
+	struct {
+		las::point10 p;
+		las::rgb c;
+	} p;
+
+	unsigned int l = std::min(10u, las.count_);
+	std::vector<las::rgb> ts;
+	for (unsigned int i = 0 ; i < l ; i ++) {
+		las.record((char*)&p);
+		ts.push_back(p.c);
+		comp.compressWith(encoder, (char*)&p.c);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+	record_decompressor<
+		field<las::rgb>
+	> decomp;
+
+	for (size_t i = 0 ; i < l ; i ++) {
+		las::rgb t;
+		decomp.decompressWith(decoder, (char*)&t);
+		BOOST_CHECK_EQUAL(ts[i].r, t.r);
+		BOOST_CHECK_EQUAL(ts[i].g, t.g);
+		BOOST_CHECK_EQUAL(ts[i].b, t.b);
+	}
+};
+
 BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 	reader laz("test/raw-sets/point-time.las.laz"),
 		   las("test/raw-sets/point-time.las");
@@ -959,8 +1007,6 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 		field<las::gpstime>
 	> comp;
 
-	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
-
 	struct {
 		las::point10 p;
 		las::gpstime t;
@@ -968,7 +1014,6 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
-		std::cout << "i = " << i << ", " << p.t.value << std::endl;
 		comp.compressWith(encoder, (char*)&p);
 	}
 	encoder.done();
@@ -976,10 +1021,84 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
 	laz.skip(8); // jump past the chunk table offset
-	for (size_t i = 0 ; i < std::min(1015ul, s.buf.size()); i ++) {
+	for (size_t i = 0 ; i < s.buf.size(); i ++) {
 		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
 	}
 }
-*/
+
+BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
+	reader laz("test/raw-sets/point-color.las.laz"),
+		   las("test/raw-sets/point-color.las");
+	
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::point10>,
+		field<las::rgb>
+	> comp;
+
+#pragma pack(push, 1)
+	struct {
+		las::point10 p;
+		las::rgb c;
+	} p;
+#pragma pack(pop)
+
+	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
+		las.record((char*)&p);
+		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
+		comp.compressWith(encoder, (char*)&p);
+	}
+	encoder.done();
+
+	std::cout << "buffer size: " << s.buf.size() << std::endl;
+
+	laz.skip(8); // jump past the chunk table offset
+	for (size_t i = 0 ; i < std::min(30ul, s.buf.size()); i ++) {
+		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+	}
+}
+
+BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
+	reader laz("test/raw-sets/point-color-time.las.laz"),
+		   las("test/raw-sets/point-color-time.las");
+	
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic<SuchStream> encoder(s);
+
+	record_compressor<
+		field<las::point10>,
+		field<las::gpstime>,
+		field<las::rgb>
+	> comp;
+
+#pragma pack(push, 1)
+	struct {
+		las::point10 p;
+		las::gpstime t;
+		las::rgb c;
+	} p;
+#pragma pack(pop)
+
+	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
+		las.record((char*)&p);
+
+		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
+		comp.compressWith(encoder, (char*)&p);
+	}
+	encoder.done();
+
+	laz.skip(8); // jump past the chunk table offset
+	for (size_t i = 0 ; i < std::min(30ul, s.buf.size()); i ++) {
+		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+	}
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -14,6 +14,7 @@
 namespace laszip {
 	namespace formats {
 		namespace las {
+#pragma pack(push, 1)
 			struct point10 {
 				int x;
 				int y;
@@ -43,6 +44,7 @@ namespace laszip {
 				rgb(unsigned short _r, unsigned short _g, unsigned short _b) :
 					r(_r), g(_g), b(_b) {}
 			};
+#pragma pack(pop)
 		}
 	}
 }

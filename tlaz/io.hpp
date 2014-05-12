@@ -5,13 +5,13 @@
 #ifndef __io_hpp__
 #define __io_hpp__
 
+#include <fstream>
+#include <mutex>
+
 #include "formats.hpp"
 #include "excepts.hpp"
 #include "factory.hpp"
 #include "decoder.hpp"
-
-#include <fstream>
-#include <mutex>
 
 namespace laszip {
 	namespace io {
@@ -94,8 +94,12 @@ namespace laszip {
 			__ifstream_wrapper(std::ifstream& f) : f_(f) {
 			}
 
-			unsigned char getByte() { return static_cast<unsigned char>(f_.get()); }
-			void getBytes(unsigned char *buf, size_t len) { f_.read(reinterpret_cast<char *>(buf), len); }
+			unsigned char getByte() { 
+				return static_cast<unsigned char>(f_.get()); }
+
+			void getBytes(unsigned char *buf, size_t len) {
+				f_.read(reinterpret_cast<char *>(buf), len);
+			}
 
 			std::ifstream& f_;
 		};
@@ -104,14 +108,14 @@ namespace laszip {
 			typedef std::function<void (header&)> validator_type;
 
 		public:
-			file() : f_() {
+			file() : f_(), wrapper_(f_) {
 			}
 			~file() {
 				if (f_.good())
 					f_.close();
 			}
 
-			explicit file(const std::string& name) : f_() {
+			explicit file(const std::string& name) : f_(), wrapper_(f_) {
 				open(name);
 			}
 
@@ -148,9 +152,6 @@ namespace laszip {
 				// parse the chunk table offset
 				_parseChunkTable();
 
-				// Make the opened stream available to the wrapper
-				pwrapper_.reset(new __ifstream_wrapper(f_));
-
 				// set the file pointer to the beginning of data to start reading
 				f_.seekg(header_.point_offset + sizeof(int64_t));
 			}
@@ -168,18 +169,19 @@ namespace laszip {
 
 			void readPoint(char *out) {
 				// read the next point in
-				if (chunk_state_.current == laz_.chunk_size ||
+				if (chunk_state_.points_read == laz_.chunk_size ||
 					!pdecomperssor_ || !pdecoder_) {
 					// Its time to (re)init the decoder
+					//
 					pdecomperssor_.reset();
 					pdecoder_.reset();
 
-					pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(*pwrapper_));
+					pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(wrapper_));
 					pdecomperssor_ = factory::build_decompressor(*pdecoder_, schema_);
 
 					// reset chunk state
-					chunk_state_.current = 0;
-					chunk_state_.current_index ++;
+					chunk_state_.current++;
+					chunk_state_.points_read = 0;
 				}
 
 				pdecomperssor_->decompress(out);
@@ -316,8 +318,7 @@ namespace laszip {
 				if (chunk_table_header.chunk_count > 1) {
 					// decode the index out
 					//
-					__ifstream_wrapper f(f_); // create a wrapper to help read in things
-					decoders::arithmetic<__ifstream_wrapper> decoder(f);
+					decoders::arithmetic<__ifstream_wrapper> decoder(wrapper_);
 					decompressors::integer decomp(32, 2);
 
 					// start decoder
@@ -377,10 +378,12 @@ namespace laszip {
 			}
 
 			// The file object is not copyable or copy constructible
-			file(const file&) {}
+			file(const file&) : f_(), wrapper_(f_) {}
 			file& operator = (const file&) { return *this;}
 
 			std::ifstream f_;
+			__ifstream_wrapper wrapper_;
+
 			header header_;
 			laz_vlr laz_;
 			std::vector<uint64_t> chunk_table_offsets_;
@@ -390,8 +393,6 @@ namespace laszip {
 			// Our decompressor
 			std::shared_ptr<decoders::arithmetic<__ifstream_wrapper> > pdecoder_;
 			formats::dynamic_decompressor::ptr pdecomperssor_;
-
-			std::shared_ptr<__ifstream_wrapper> pwrapper_;	// encapsulate a std::ifstream so that the decoder can use it
 
 			// Establish our current state as we iterate through the file
 			struct __chunk_state{
