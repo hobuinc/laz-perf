@@ -7,6 +7,7 @@ Makefile
 test/tlaz_tests
 examples/simple
 examples/point10
+examples/readlaz
 benchmarks/brute
 benchmarks/brute_point10
 benchmarks/laszip

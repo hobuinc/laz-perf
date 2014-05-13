@@ -25,6 +25,8 @@ namespace laszip {
 
 	__make_exception_class(unknown_schema_type, "The LAZ schema is not recognized");
 
+	__make_exception_class(end_of_file, "Reached End of file");
+
 
 	struct not_supported : public std::runtime_error {
 		not_supported(const char *msg) : std::runtime_error(msg) { }

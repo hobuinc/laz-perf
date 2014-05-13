@@ -90,18 +90,59 @@ namespace laszip {
 		};
 #pragma pack(pop)
 
+		// cache line
+#define ALIGN 64
+#define BUF_SIZE (1 << 20)
+
+		void *aligned_malloc(int size) {
+			void *mem = malloc(size+ALIGN+sizeof(void*));
+			void **ptr = (void**)((long)(((char*)mem)+ALIGN+sizeof(void*)) & ~(ALIGN-1));
+			ptr[-1] = mem;
+			return ptr;
+		}
+
+		void aligned_free(void *ptr) {
+			free(((void**)ptr)[-1]);
+		}
+
 		struct __ifstream_wrapper {
-			__ifstream_wrapper(std::ifstream& f) : f_(f) {
+			__ifstream_wrapper(std::ifstream& f) : f_(f), offset(0), have(0), 
+				buf_((char*)aligned_malloc(BUF_SIZE)) {
 			}
 
-			unsigned char getByte() { 
-				return static_cast<unsigned char>(f_.get()); }
+			~__ifstream_wrapper() {
+				aligned_free(buf_);
+			}
 
-			void getBytes(unsigned char *buf, size_t len) {
-				f_.read(reinterpret_cast<char *>(buf), len);
+			inline void fillit_() {
+				if (offset >= have) {
+					offset = 0;
+					f_.read(buf_, BUF_SIZE);
+					have = f_.gcount();
+					if (have == 0)
+						throw end_of_file(); // this is an exception since we shouldn't be hitting eof
+				}
+			}
+
+			inline void reset() {
+				offset = have = 0; // when a file is seeked, reset this
+			}
+
+			inline unsigned char getByte() { 
+				fillit_();
+				return static_cast<unsigned char>(buf_[offset++]);
+			}
+
+			inline void getBytes(unsigned char *buf, size_t len) {
+				fillit_();
+
+				std::copy(buf_ + offset, buf_ + offset + len, buf);
+				offset += len;
 			}
 
 			std::ifstream& f_;
+			size_t offset, have;
+			char *buf_;
 		};
 
 		class file {
@@ -153,7 +194,10 @@ namespace laszip {
 				_parseChunkTable();
 
 				// set the file pointer to the beginning of data to start reading
+				f_.clear(); // may have treaded past the EOL, so reset everything before we start reading:w
 				f_.seekg(header_.point_offset + sizeof(int64_t));
+
+				wrapper_.reset();
 			}
 
 			const header& get_header() const {
@@ -318,7 +362,9 @@ namespace laszip {
 				if (chunk_table_header.chunk_count > 1) {
 					// decode the index out
 					//
-					decoders::arithmetic<__ifstream_wrapper> decoder(wrapper_);
+					__ifstream_wrapper w(f_);
+
+					decoders::arithmetic<__ifstream_wrapper> decoder(w);
 					decompressors::integer decomp(32, 2);
 
 					// start decoder
