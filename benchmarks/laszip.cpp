@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <string>
+#include <string.h>
 #include <sstream>
 #include <stdio.h>
 #include <vector>
@@ -328,7 +329,7 @@ class LASzipInstance {
             return false;            
         }
 
-        header.point_format_id = header.point_format_id &= 0x3f;
+        header.point_format_id = header.point_format_id & 0x3f;
 
         fseek(fp_, 32*3 + 8+1, SEEK_SET);
         result = fread(&header.point_record_length, 2, 1, fp_);
