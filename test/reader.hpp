@@ -1,6 +1,31 @@
-// reader.hpp
-// Utility reader for LAS/LAZ files
-//
+/*
+===============================================================================
+
+  FILE:  reader.hpp
+  
+  CONTENTS:
+    Utility reader for LAS/LAZ files
+
+  PROGRAMMERS:
+
+    martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
+    uday.karan@gmail.com - Hobu, Inc.
+  
+  COPYRIGHT:
+
+    (c) 2014, Uday Verma, Hobu, Inc.
+
+    This is free software; you can redistribute and/or modify it under the
+    terms of the GNU Lesser General Licence as published by the Free Software
+    Foundation. See the COPYING file for more information.
+
+    This software is distributed WITHOUT ANY WARRANTY and without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+  CHANGE HISTORY:
+  
+===============================================================================
+*/
 
 #ifndef __reader_hpp__
 #define __reader_hpp__
