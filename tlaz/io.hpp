@@ -140,6 +140,9 @@ namespace laszip {
 				aligned_free(buf_);
 			}
 
+			__ifstream_wrapper(const __ifstream_wrapper&) = delete;
+			__ifstream_wrapper& operator = (const __ifstream_wrapper&) = delete;
+
 			inline void fillit_() {
 				if (offset >= have) {
 					offset = 0;
@@ -167,7 +170,7 @@ namespace laszip {
 			}
 
 			std::ifstream& f_;
-			size_t offset, have;
+			std::streamsize offset, have;
 			char *buf_;
 		};
 
@@ -468,11 +471,11 @@ namespace laszip {
 
 			// Establish our current state as we iterate through the file
 			struct __chunk_state{
-				size_t current;
-				size_t points_read;
-				size_t current_index;
+				int64_t current;
+				int64_t points_read;
+				int64_t current_index;
 
-				__chunk_state() : current(0), points_read(0), current_index(-1) {}
+				__chunk_state() : current(0u), points_read(0u), current_index(-1) {}
 			} chunk_state_;
 		};
 	}

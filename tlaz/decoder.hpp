@@ -201,6 +201,9 @@ namespace laszip {
 			}
 
 
+			arithmetic<TInputStream>(const arithmetic<TInputStream>&) = delete;
+			arithmetic<TInputStream>& operator = (const arithmetic<TInputStream>&) = delete;
+
 		private:
 			void renorm_dec_interval() {
 				do {                                          // read least-significant byte

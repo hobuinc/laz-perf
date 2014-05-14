@@ -191,7 +191,7 @@ namespace laszip {
 
 				T r;
 				if (differ_.have_value()) {
-					r = decompressor_.decompress(decoder, differ_.value, 0);
+					r = static_cast<T>(decompressor_.decompress(decoder, differ_.value, 0));
 				}
 				else {
 					// this is probably the first time we're reading stuff, read the record as is
@@ -278,7 +278,7 @@ namespace laszip {
 			inline void decompressWith(TDecoder& decoder, char *buffer) {
 				typedef typename T::type this_field_type;
 
-				this_field_type v = field_.decompressWith(decoder);
+				this_field_type v = static_cast<this_field_type>(field_.decompressWith(decoder));
 				packers<this_field_type>::pack(v, buffer);
 
 				// Move on to the next field
@@ -346,6 +346,9 @@ namespace laszip {
 			~dynamic_decompressor1() {
 				delete decompressor_;
 			}
+
+			dynamic_decompressor1(const dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
+			dynamic_decompressor1<TDecoder, TRecordDecompressor>& operator=(dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
 
 			TDecoder& dec_;
 			TRecordDecompressor* decompressor_;

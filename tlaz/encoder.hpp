@@ -247,6 +247,9 @@ namespace laszip {
 				assert(outbyte < endbuffer);    
 			}
 
+			arithmetic<TOutStream>(const arithmetic<TOutStream>&) = delete;
+			arithmetic<TOutStream>& operator = (const arithmetic<TOutStream>&) = delete;
+
 			private:
 				U8* outbuffer;
 				U8* endbuffer;
