@@ -20,3 +20,16 @@ Testing/
 
 # test files we don't need to version control
 /test/raw-sets/autzen.la?
+*.vcxproj
+*.filters
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.log
+*.lastbuildstate
+*.tlog
+*.exe
+*.ilk
+*.pdb
+*.obj

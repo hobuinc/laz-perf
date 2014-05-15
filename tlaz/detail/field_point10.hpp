@@ -1,6 +1,32 @@
-// field_point10.hpp
-// point10 specific stuff
-//
+/*
+===============================================================================
+
+  FILE:  field_point10.hpp
+  
+  CONTENTS:
+    
+
+  PROGRAMMERS:
+
+    martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
+    uday.karan@gmail.com - Hobu, Inc.
+  
+  COPYRIGHT:
+  
+    (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
+    (c) 2014, Uday Verma, Hobu, Inc.
+
+    This is free software; you can redistribute and/or modify it under the
+    terms of the GNU Lesser General Licence as published by the Free Software
+    Foundation. See the COPYING file for more information.
+
+    This software is distributed WITHOUT ANY WARRANTY and without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+  CHANGE HISTORY:
+  
+===============================================================================
+*/
 
 #ifndef __las_hpp__
 #error Cannot directly include this file, this is a part of las.hpp
@@ -263,7 +289,7 @@ namespace laszip {
 
 					// decompress the intensity if it has changed
 					if (changed_values & (1 << 4)) {
-						common_.last_.intensity = decompressors_.ic_intensity.decompress(dec, common_.last_intensity[m], (m < 3 ? m : 3));
+						common_.last_.intensity = static_cast<unsigned short>(decompressors_.ic_intensity.decompress(dec, common_.last_intensity[m], (m < 3 ? m : 3)));
 						common_.last_intensity[m] = common_.last_.intensity;
 					}
 					else {
@@ -279,7 +305,7 @@ namespace laszip {
 					// decompress the scan angle rank if needed
 					if (changed_values & (1 << 2)) {
 						int val = dec.decodeSymbol(*common_.m_scan_angle_rank[common_.last_.scan_direction_flag]);
-						common_.last_.scan_angle_rank = U8_FOLD(val + common_.last_.scan_angle_rank);
+						common_.last_.scan_angle_rank = static_cast<unsigned char>(U8_FOLD(val + common_.last_.scan_angle_rank));
 					}
 
 					// decompress the user data

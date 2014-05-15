@@ -85,14 +85,16 @@ set(PROJCL_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
 if(WIN32)
   if (MSVC)
-    if (MSVC80 OR MSVC90 OR MSVC10 OR MSVC11)
+    if (MSVC80 OR MSVC90 OR MSVC10 OR MSVC11 OR MSVC12)
       add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
       add_definitions(-D_CRT_SECURE_NO_WARNINGS)
       add_definitions(-D_CRT_NONSTDC_NO_WARNING)
       add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 
       set(TLAZ_COMPILER_MSVC 1)
-      if (MSVC11)
+      if (MSVC12)
+        set(TLAZ_COMPILER_VC12 1)
+      elseif (MSVC11)
         set(TLAZ_COMPILER_VC11 1)
       elseif (MSVC10)
         set(TLAZ_COMPILER_VC10 1)
@@ -168,6 +170,11 @@ set(BOOST_USE_MULTITHREADED ON)
 set(BOOST_USE_STATIC_RUNTIME OFF)
 
 set(TLAZ_DEPENDENT_LIBRARIES "")
+
+if(WIN32)
+	# On windows platform specify where to find boost
+	set(BOOST_ROOT "C:/local/")
+endif()
 
 find_package(Boost "1.55.0" COMPONENTS unit_test_framework)
 if(NOT Boost_FOUND)

@@ -1,7 +1,32 @@
-// formats.hpp
-// Format support
-//
+/*
+===============================================================================
 
+  FILE:  formats.hpp
+  
+  CONTENTS:
+    Format support
+
+  PROGRAMMERS:
+
+    martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
+    uday.karan@gmail.com - Hobu, Inc.
+  
+  COPYRIGHT:
+  
+    (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
+    (c) 2014, Uday Verma, Hobu, Inc.
+
+    This is free software; you can redistribute and/or modify it under the
+    terms of the GNU Lesser General Licence as published by the Free Software
+    Foundation. See the COPYING file for more information.
+
+    This software is distributed WITHOUT ANY WARRANTY and without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+  CHANGE HISTORY:
+  
+===============================================================================
+*/
 #ifndef __formats_hpp__
 #define __formats_hpp__
 
@@ -166,7 +191,7 @@ namespace laszip {
 
 				T r;
 				if (differ_.have_value()) {
-					r = decompressor_.decompress(decoder, differ_.value, 0);
+					r = static_cast<T>(decompressor_.decompress(decoder, differ_.value, 0));
 				}
 				else {
 					// this is probably the first time we're reading stuff, read the record as is
@@ -253,7 +278,7 @@ namespace laszip {
 			inline void decompressWith(TDecoder& decoder, char *buffer) {
 				typedef typename T::type this_field_type;
 
-				this_field_type v = field_.decompressWith(decoder);
+				this_field_type v = static_cast<this_field_type>(field_.decompressWith(decoder));
 				packers<this_field_type>::pack(v, buffer);
 
 				// Move on to the next field
@@ -321,6 +346,9 @@ namespace laszip {
 			~dynamic_decompressor1() {
 				delete decompressor_;
 			}
+
+			dynamic_decompressor1(const dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
+			dynamic_decompressor1<TDecoder, TRecordDecompressor>& operator=(dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
 
 			TDecoder& dec_;
 			TRecordDecompressor* decompressor_;

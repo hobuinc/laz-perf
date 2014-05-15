@@ -1,6 +1,31 @@
-// io_tests.cpp
-// IO Tests
-//
+/*
+===============================================================================
+
+  FILE:  io_tests.cpp
+  
+  CONTENTS:
+    Factory to create dynamic compressors and decompressors
+
+  PROGRAMMERS:
+
+    uday.karan@gmail.com - Hobu, Inc.
+  
+  COPYRIGHT:
+
+    (c) 2014, Uday Verma, Hobu, Inc.
+
+    This is free software; you can redistribute and/or modify it under the
+    terms of the GNU Lesser General Licence as published by the Free Software
+    Foundation. See the COPYING file for more information.
+
+    This software is distributed WITHOUT ANY WARRANTY and without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+  CHANGE HISTORY:
+  
+===============================================================================
+*/
+
 #include <boost/test/unit_test.hpp>
 
 #include "io.hpp"

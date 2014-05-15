@@ -1,6 +1,32 @@
-// field_rgb.hpp
-// RGB related stuff
-//
+/*
+===============================================================================
+
+  FILE:  field_rgb.hpp
+  
+  CONTENTS:
+    
+
+  PROGRAMMERS:
+
+    martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
+    uday.karan@gmail.com - Hobu, Inc.
+  
+  COPYRIGHT:
+  
+    (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
+    (c) 2014, Uday Verma, Hobu, Inc.
+
+    This is free software; you can redistribute and/or modify it under the
+    terms of the GNU Lesser General Licence as published by the Free Software
+    Foundation. See the COPYING file for more information.
+
+    This software is distributed WITHOUT ANY WARRANTY and without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+  CHANGE HISTORY:
+  
+===============================================================================
+*/
 
 #ifndef __las_hpp__
 #error Cannot directly include this file, this is a part of las.hpp
@@ -20,9 +46,9 @@ namespace laszip {
 		template<>
 		struct packers<las::rgb> {
 			inline static las::rgb unpack(const char *in) {
-				return las::rgb(packers<unsigned int>::unpack(in),
-								packers<unsigned int>::unpack(in+2),
-								packers<unsigned int>::unpack(in+4));
+				return las::rgb(packers<unsigned short>::unpack(in),
+								packers<unsigned short>::unpack(in+2),
+								packers<unsigned short>::unpack(in+4));
 
 			}
 
@@ -163,7 +189,7 @@ namespace laszip {
 				las::rgb this_val;
 
 				if (sym & (1 << 0)) {
-					corr = dec.decodeSymbol(m_rgb_diff_0);
+					corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_0));
 					this_val.r = static_cast<unsigned short>(U8_FOLD(corr + (last.r & 0xFF)));
 				}
 				else {
@@ -171,7 +197,7 @@ namespace laszip {
 				}
 
 				if (sym & (1 << 1)) {
-					corr = dec.decodeSymbol(m_rgb_diff_1);
+					corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_1));
 					this_val.r |= (static_cast<unsigned short>(U8_FOLD(corr + (last.r >> 8))) << 8);
 				}
 				else {
@@ -182,7 +208,7 @@ namespace laszip {
 					diff = (this_val.r & 0xFF) - (last.r & 0xFF);
 
 					if (sym & (1 << 2)) {
-						corr = dec.decodeSymbol(m_rgb_diff_2);
+						corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_2));
 						this_val.g = static_cast<unsigned short>(U8_FOLD(corr + U8_CLAMP(diff + (last.g & 0xFF))));
 					}
 					else {
@@ -190,7 +216,7 @@ namespace laszip {
 					}
 
 					if (sym & (1 << 4)) {
-						corr = dec.decodeSymbol(m_rgb_diff_4);
+						corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_4));
 						diff = (diff + (this_val.g & 0xFF) - (last.g & 0xFF)) / 2;
 						this_val.b = static_cast<unsigned short>(U8_FOLD(corr + U8_CLAMP(diff+(last.b & 0xFF))));
 					}
@@ -201,7 +227,7 @@ namespace laszip {
 
 					diff = (this_val.r >> 8) - (last.r >> 8);
 					if (sym & (1 << 3)) {
-						corr = dec.decodeSymbol(m_rgb_diff_3);
+						corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_3));
 						this_val.g |= static_cast<unsigned short>(U8_FOLD(corr + U8_CLAMP(diff + (last.g >> 8)))) << 8;
 					}
 					else {
@@ -210,7 +236,7 @@ namespace laszip {
 
 
 					if (sym & (1 << 5)) {
-						corr = dec.decodeSymbol(m_rgb_diff_5);
+						corr = static_cast<unsigned char>(dec.decodeSymbol(m_rgb_diff_5));
 						diff = (diff + (this_val.g >> 8) - (last.g >> 8)) / 2;
 
 						this_val.b |= static_cast<unsigned short>(U8_FOLD(corr + U8_CLAMP(diff + (last.b >> 8)))) << 8;

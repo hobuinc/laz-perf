@@ -82,8 +82,8 @@ int main() {
 	//
 	for (int i = 0 ; i < 1000; i ++) {
 		data.a = i;
-		data.b = i + 10;
-		data.c = i + 40000;
+		data.b = static_cast<unsigned short>(i + 10);
+		data.c = static_cast<unsigned short>(i + 40000);
 		data.d = i + (1 << 31);
 
 		// All compressor cares about is your data as a pointer, it will unpack data
