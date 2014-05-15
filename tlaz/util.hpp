@@ -32,6 +32,7 @@
 #define __util_hpp__
 
 #include <array>
+#include <stdlib.h>
 
 namespace laszip {
 	namespace utils {
