@@ -6,6 +6,8 @@
 #define __model_hpp__
 
 #include "../common/types.hpp"
+#include "util.hpp"
+
 #include <stdexcept>
 
 namespace laszip {
@@ -24,16 +26,15 @@ namespace laszip {
 					while (symbols > (1U << (table_bits + 2))) ++table_bits;
 					table_size  = 1 << table_bits;
 					table_shift = DM__LengthShift - table_bits;
-					distribution = new U32[2*symbols+table_size+2];
-					decoder_table = distribution + 2 * symbols;
+					decoder_table = reinterpret_cast<U32*>(utils::aligned_malloc(sizeof(U32) * (table_size + 2)));
 				}
 				else { // small alphabet: no table needed
 					decoder_table = 0;
 					table_size = table_shift = 0;
-					distribution = new U32[2*symbols];
 				}
 
-				symbol_count = distribution + symbols;
+				distribution = reinterpret_cast<U32*>(utils::aligned_malloc(symbols * sizeof(U32)));
+				symbol_count = reinterpret_cast<U32*>(utils::aligned_malloc(symbols * sizeof(U32)));
 
 				total_count = 0;
 				update_cycle = symbols;
@@ -45,6 +46,15 @@ namespace laszip {
 
 				update();
 				symbols_until_update = update_cycle = (symbols + 6) >> 1;
+			}
+
+			~arithmetic() {
+				/*
+				utils::aligned_free(distribution);
+				utils::aligned_free(symbol_count);
+				if (decoder_table != nullptr)
+					utils::aligned_free(decoder_table);
+					*/
 			}
 
 			arithmetic(arithmetic&& other)

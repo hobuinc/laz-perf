@@ -9,6 +9,19 @@
 
 namespace laszip {
 	namespace utils {
+#define ALIGN 64
+
+		static inline void *aligned_malloc(int size) {
+			void *mem = malloc(size+ALIGN+sizeof(void*));
+			void **ptr = (void**)((long)(((char*)mem)+ALIGN+sizeof(void*)) & ~(ALIGN-1));
+			ptr[-1] = mem;
+			return ptr;
+		}
+
+		static inline void aligned_free(void *ptr) {
+			free(((void**)ptr)[-1]);
+		}
+
 		template<
 			typename T
 		>

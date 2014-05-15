@@ -12,6 +12,7 @@
 #include "excepts.hpp"
 #include "factory.hpp"
 #include "decoder.hpp"
+#include "util.hpp"
 
 namespace laszip {
 	namespace io {
@@ -91,27 +92,15 @@ namespace laszip {
 #pragma pack(pop)
 
 		// cache line
-#define ALIGN 64
 #define BUF_SIZE (1 << 20)
-
-		void *aligned_malloc(int size) {
-			void *mem = malloc(size+ALIGN+sizeof(void*));
-			void **ptr = (void**)((long)(((char*)mem)+ALIGN+sizeof(void*)) & ~(ALIGN-1));
-			ptr[-1] = mem;
-			return ptr;
-		}
-
-		void aligned_free(void *ptr) {
-			free(((void**)ptr)[-1]);
-		}
 
 		struct __ifstream_wrapper {
 			__ifstream_wrapper(std::ifstream& f) : f_(f), offset(0), have(0), 
-				buf_((char*)aligned_malloc(BUF_SIZE)) {
+				buf_((char*)utils::aligned_malloc(BUF_SIZE)) {
 			}
 
 			~__ifstream_wrapper() {
-				aligned_free(buf_);
+				utils::aligned_free(buf_);
 			}
 
 			inline void fillit_() {
