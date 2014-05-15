@@ -390,7 +390,7 @@ namespace laszip {
 					decomp.init();
 
 					int last = 0;
-					for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++) {
+					for (size_t i = 1 ; i <= chunk_table_header.chunk_count - 1 ; i ++) {
 						last = decomp.decompress(decoder, last, 1);
 						chunk_table_offsets_[i] = last + chunk_table_offsets_[i-1];
 

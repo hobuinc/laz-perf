@@ -458,7 +458,7 @@ class LASzipInstance {
     }
 
 	void close() {
-		int res = fclose(fp_);
+		fclose(fp_);
 		header_ = LASHeader();
 
 		zip_ = LASzip();
@@ -476,11 +476,10 @@ class LASzipInstance {
 
   void readPoint() 
   {
-	  bool ok = unzipper_.read(point_);
+	  unzipper_.read(point_);
 	  pointIndex_++;
   }
 
-  pthread_t message_thread_;
   bool bCreatedFS_;
   LASzip zip_;
   LASunzipper unzipper_;

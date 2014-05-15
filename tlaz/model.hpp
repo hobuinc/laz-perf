@@ -75,12 +75,9 @@ namespace laszip {
 			}
 
 			~arithmetic() {
-				/*
-				utils::aligned_free(distribution);
-				utils::aligned_free(symbol_count);
-				if (decoder_table != nullptr)
-					utils::aligned_free(decoder_table);
-					*/
+				if (distribution) utils::aligned_free(distribution);
+				if (symbol_count) utils::aligned_free(symbol_count);
+				if (decoder_table) utils::aligned_free(decoder_table);
 			}
 
 			arithmetic(arithmetic&& other)
@@ -96,8 +93,9 @@ namespace laszip {
 
 			arithmetic& operator = (arithmetic&& other) {
 				if (this != &other) {
-					if (distribution)
-						delete [] distribution;
+					if (distribution) utils::aligned_free(distribution);
+					if (symbol_count) utils::aligned_free(symbol_count);
+					if (decoder_table) utils::aligned_free(decoder_table);
 
 					symbols = other.symbols;
 					compress = other.compress;
