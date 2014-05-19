@@ -512,7 +512,7 @@ float bench_laszip() {
 
 
 float bench_tlaz() {
-	laszip::io::file f("test/raw-sets/autzen.laz");
+	laszip::io::reader::file f("test/raw-sets/autzen.laz");
 	float t;
 
 	size_t limit = f.get_header().point_count;

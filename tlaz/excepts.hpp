@@ -50,6 +50,7 @@ namespace laszip {
 	__make_exception_class(unknown_chunk_table_format, "The chunk table version number is unknown");
 
 	__make_exception_class(unknown_schema_type, "The LAZ schema is not recognized");
+	__make_exception_class(unknown_record_item_type, "The record item type is not supported");
 
 	__make_exception_class(end_of_file, "Reached End of file");
 

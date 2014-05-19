@@ -37,6 +37,7 @@
 #include "decoder.hpp"
 #include "formats.hpp"
 #include "las.hpp"
+#include "factory.hpp"
 
 #include "reader.hpp"
 
@@ -1082,6 +1083,71 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < std::min(30ul, s.buf.size()); i ++) {
 		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+	}
+}
+
+BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
+	using namespace laszip;
+	using namespace laszip::factory;
+
+	{
+		record_schema s;
+		s(record_item(record_item::POINT10));
+
+		BOOST_CHECK_EQUAL(schema_to_point_format(s), 0);
+	}
+
+	{
+		record_schema s;
+		s(record_item(record_item::POINT10))
+			(record_item(record_item::GPSTIME));
+
+		BOOST_CHECK_EQUAL(schema_to_point_format(s), 1);
+	}
+
+	{
+		record_schema s;
+		s(record_item(record_item::POINT10))
+			(record_item(record_item::RGB12));
+
+		BOOST_CHECK_EQUAL(schema_to_point_format(s), 2);
+	}
+
+	{
+		record_schema s;
+		s(record_item(record_item::POINT10))
+			(record_item(record_item::GPSTIME))
+			(record_item(record_item::RGB12));
+
+		BOOST_CHECK_EQUAL(schema_to_point_format(s), 3);
+	}
+
+	// Make sure we bail if something is not supported
+	{
+		auto f1 = []() {
+			record_schema s;
+			s(record_item(record_item::GPSTIME));
+
+			schema_to_point_format(s);
+		};
+
+		auto f2 = []() {
+			record_schema s;
+			s(record_item(record_item::GPSTIME))
+				(record_item(record_item::POINT10))
+				(record_item(record_item::RGB12));
+
+			schema_to_point_format(s);
+		};
+
+		auto f3 = []() {
+			record_schema s;
+			schema_to_point_format(s);
+		};
+
+		BOOST_CHECK_THROW(f1(), unknown_schema_type);
+		BOOST_CHECK_THROW(f2(), unknown_schema_type);
+		BOOST_CHECK_THROW(f3(), unknown_schema_type);
 	}
 }
 
