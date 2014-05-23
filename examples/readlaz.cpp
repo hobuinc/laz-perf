@@ -7,13 +7,14 @@
 #include "../common/common.hpp"
 
 int main() {
-	laszip::io::reader::file f("test/raw-sets/autzen.laz");
+	laszip::io::reader::file f("/tmp/autzen.laz");
 
 	size_t count = f.get_header().point_count;
 	char buf[256]; // a buffer large enough to hold our point
 
 	auto start = common::tick();
 	for(size_t i = 0 ; i < count ; i ++) {
+		std::cout << "Reading point: " << i << std::endl;
 		f.readPoint(buf); // read the point out
 	}
 

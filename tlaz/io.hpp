@@ -32,15 +32,31 @@
 #define __io_hpp__
 
 #include <fstream>
+#include <string.h>
 #include <mutex>
 
 #include "formats.hpp"
 #include "excepts.hpp"
 #include "factory.hpp"
 #include "decoder.hpp"
+#include "encoder.hpp"
 #include "util.hpp"
 
 namespace laszip {
+	// A simple datastructure to get input from the user
+	template<
+		typename T
+	>
+	struct vector3 {
+		T x, y, z;
+
+		vector3() : x(0), y(0), z(0) {}
+		vector3(const T& _x, const T& _y, const T& _z) :
+			x(_x), y(_y), z(_z) {
+		}
+
+	};
+
 	namespace io {
 		// LAZ file header
 #pragma pack(push, 1)
@@ -114,6 +130,35 @@ namespace laszip {
 					num_bytes;
 
 			std::vector<laz_item> items;
+
+			static laz_vlr from_schema(const factory::record_schema& s) {
+				laz_vlr r;
+
+				r.compressor = 0;
+				r.coder = 0;
+
+				// the version we're compatible with
+				r.version.major = 2;
+				r.version.minor = 2;
+				r.version.revision = 0;
+
+				r.options = 0;
+				r.chunk_size = 0;
+
+				r.num_points = -1;
+				r.num_bytes = -1;
+
+				for (auto rec : s.records) {
+					laz_item i;
+					i.type = rec.type;
+					i.size = rec.size;
+					i.version = rec.version;
+
+					r.items.push_back(i);
+				}
+
+				return r;
+			}
 		};
 #pragma pack(pop)
 
@@ -161,6 +206,20 @@ namespace laszip {
 			std::ifstream& f_;
 			std::streamsize offset, have;
 			char *buf_;
+		};
+
+		struct __ofstream_wrapper {
+			__ofstream_wrapper(std::ofstream& f) : f_(f) {}
+
+			void putBytes(const unsigned char *b, size_t len) {
+				f_.write(reinterpret_cast<const char*>(b), len);
+			}
+
+			void putByte(unsigned char b) {
+				f_.put((char)b);
+			}
+
+			std::ofstream& f_;
 		};
 
 		namespace reader {
@@ -475,27 +534,272 @@ namespace laszip {
 		}
 
 		namespace writer {
+			constexpr unsigned int DefaultChunkSize = 50000;
+
+			// An object to encapsulate what gets passed to 
+			struct config {
+				vector3<double> scale, offset;
+				unsigned int chunk_size;
+
+				explicit config() : scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0), chunk_size(DefaultChunkSize) {}
+				explicit config(const vector3<double>& s, const vector3<double>& o, unsigned int cs = DefaultChunkSize) :
+					scale(s), offset(o), chunk_size(cs) {}
+
+				header to_header() const {
+					header h; memset(&h, 0, sizeof(h)); // clear out header
+
+					h.offset.x = offset.x;
+					h.offset.y = offset.y;
+					h.offset.z = offset.z;
+
+					h.scale.x = scale.x;
+					h.scale.y = scale.y;
+					h.scale.z = scale.z;
+
+					return h;
+				}
+			};
+
 			class file {
 			public:
-				file() {};
+				file() :
+					wrapper_(f_) {}
 
-				file(const std::string& filename, const factory::record_schema& s) {
-					open(filename, s);
+				file(const std::string& filename,
+						const factory::record_schema& s,
+						const config& config) :
+					wrapper_(f_),
+					schema_(s),
+					header_(config.to_header()),
+					chunk_size_(config.chunk_size) {
+						open(filename, s, config);
 				}
 
-				void open(const std::string& filename, const factory::record_schema& s) {
+				void open(const std::string& filename, const factory::record_schema& s, const config& c) {
+					// open the file and move to offset of data, we'll write
+					// headers and all other things on file close
+					f_.open(filename, std::ios::binary);
+					if (!f_.good())
+						throw write_open_failed();
+
+					schema_ = s;
+					header_ = c.to_header();
+					chunk_size_ = c.chunk_size;
+
+					// write junk to our prelude, we'll overwrite this with
+					// awesome data later
+					//
+					size_t preludeSize = 
+						sizeof(header) +	// the LAS header
+						(34 + s.records.size() * 6) + // the LAZ vlr size 
+						sizeof(int64_t); // chunk table offset
+
+					char *junk = new char[preludeSize];
+					std::fill(junk, junk + preludeSize, 0);
+					f_.write(junk, preludeSize);
+					delete [] junk;
 				}
 
 				void writePoint(const char *p) {
+					if (chunk_state_.points_in_chunk == chunk_size_ ||
+							!pcompressor_ || !pencoder_) {
+						// Time to (re)init the encoder
+						//
+						pcompressor_.reset();
+						if (pencoder_) { 
+							pencoder_->done(); // make sure we flush it out
+							pencoder_.reset();
+						}
+
+						// take note of the current offset
+						chunk_offsets_.push_back(f_.tellp());
+
+						// reinit stuff
+						pencoder_.reset(new encoders::arithmetic<__ofstream_wrapper>(wrapper_));
+						pcompressor_ = factory::build_compressor(*pencoder_, schema_);
+
+						// reset chunk state
+						//
+						chunk_state_.current_chunk_index ++;
+						chunk_state_.points_in_chunk = 0;
+					}
+
+					// now write the point
+					pcompressor_->compress(p);
+					chunk_state_.total_written ++;
+					chunk_state_.points_in_chunk ++;
+
+
+					_update_min_max(*(reinterpret_cast<const formats::las::point10*>(p)));
 				}
 
 				void close() {
+					_flush();
+
 					if (f_.is_open())
 						f_.close();
 				}
 
 			private:
+				void _update_min_max(const formats::las::point10& p) {
+					double x = p.x * header_.scale.x + header_.offset.x,
+						   y = p.y * header_.scale.y + header_.offset.y,
+						   z = p.z * header_.scale.z + header_.offset.z;
+
+					header_.min.x = std::min(x, header_.min.x);
+					header_.min.y = std::min(y, header_.min.y);
+					header_.min.z = std::min(z, header_.min.z);
+
+					header_.max.x = std::max(x, header_.max.x);
+					header_.max.y = std::max(y, header_.max.y);
+					header_.max.z = std::max(z, header_.max.z);
+				}
+
+				void _flush() {
+					// flush out the encoder
+					pencoder_->done();
+
+					// note down the end of file marker, this is where we'll be writing our
+					// chunk table
+					std::streamsize chunk_table_offset = f_.tellp();
+
+					// Time to write our header
+					// Fill up things not filled up by our header
+					//
+					header_.magic[0] = 'L'; header_.magic[1] = 'A';
+					header_.magic[2] = 'S'; header_.magic[3] = 'F'; 
+
+					header_.version.major = 1;
+					header_.version.minor = 2;
+
+					header_.header_size = sizeof(header_);
+					header_.point_offset = sizeof(header) + (34 + schema_.records.size() * 6);
+					header_.vlr_count = 1;
+
+					header_.point_format_id = factory::schema_to_point_format(schema_);
+					header_.point_format_id |= (1 << 7);
+					header_.point_record_length = schema_.size_in_bytes();
+					header_.point_count = chunk_state_.total_written;
+
+					// make sure we re-arrange mins and maxs for writing
+					//
+					double mx, my, mz, nx, ny, nz;
+					nx = header_.min.x; mx = header_.max.x;
+					ny = header_.min.y; my = header_.max.y;
+					nz = header_.min.z; mz = header_.max.z;
+
+					header_.min.x = mx; header_.min.y = nx;
+					header_.min.z = my; header_.max.x = ny;
+					header_.max.y = mz; header_.max.z = nz;
+
+					f_.seekp(0);
+					f_.write(reinterpret_cast<char*>(&header_), sizeof(header_));
+
+					// before we can write the VLR, we need to write the LAS VLR definition
+					// for it
+					//
+#pragma pack(push, 1)
+					struct {
+						unsigned short reserved;
+						char user_id[16];
+						unsigned short record_id;
+						unsigned short record_length_after_header;
+						char description[32];
+					} las_vlr_header;
+#pragma pack(pop)
+
+					las_vlr_header.reserved = 0;
+					las_vlr_header.record_id = 22204;
+					las_vlr_header.record_length_after_header = 34 + (schema_.records.size() * 6);
+
+					strcpy(las_vlr_header.user_id, "laszip encoded");
+					strcpy(las_vlr_header.description, "tlaz variant");
+
+					// write the las vlr header
+					f_.write(reinterpret_cast<char*>(&las_vlr_header), sizeof(las_vlr_header));
+
+
+					// prep our VLR so we can write it
+					//
+					laz_vlr vlr = laz_vlr::from_schema(schema_);
+
+					// write the base header
+					f_.write(reinterpret_cast<char*>(&vlr), 32); // don't write the std::vector at the end of the class
+
+					// write the count of items
+					unsigned short length = static_cast<unsigned short>(vlr.items.size());
+					f_.write(reinterpret_cast<char*>(&length), sizeof(unsigned short));
+
+					// write items
+					for (auto i : vlr.items) {
+						f_.write(reinterpret_cast<char*>(&i), sizeof(laz_item));
+					}
+
+					// TODO: Write chunk table
+					//
+					_writeChunks();
+				}
+
+				void _writeChunks() {
+					// move to the end of the file to start emitting our compresed table
+					f_.seekp(0, std::ios::end);
+					
+					// take note of where we're writing the chunk table, we need this later
+					int64_t chunk_table_offset = static_cast<int64_t>(f_.tellp());
+
+					// write out the chunk table header (version and total chunks)
+#pragma pack(push, 1)
+					struct {
+						unsigned int version,
+									 chunks_count;
+					} chunk_table_header = { 0, static_cast<unsigned int>(chunk_offsets_.size()) };
+#pragma pack(pop)
+
+					f_.write(reinterpret_cast<char*>(&chunk_table_header),
+							 sizeof(chunk_table_header));
+
+
+					// Now compress and write the chunk table
+					//
+					__ofstream_wrapper w(f_);
+
+					encoders::arithmetic<__ofstream_wrapper> encoder(w);
+					compressors::integer comp(32, 2);
+
+					comp.init();
+
+					for (size_t i = 0 ; i < chunk_offsets_.size() ; i ++) {
+						comp.compress(encoder,
+								i ? chunk_offsets_[i-1] : 0,
+								chunk_offsets_[i], 1);
+					}
+
+					encoder.done();
+
+					// go back to where we're supposed to write chunk table offset
+					f_.seekp(header_.point_offset);
+					f_.write(reinterpret_cast<char*>(&chunk_table_offset), sizeof(chunk_table_offset));
+				}
+
 				std::ofstream f_;
+				__ofstream_wrapper wrapper_;
+
+				formats::dynamic_compressor::ptr pcompressor_;
+				std::shared_ptr<encoders::arithmetic<__ofstream_wrapper> > pencoder_;
+
+				factory::record_schema schema_;
+
+				header header_;
+				unsigned int chunk_size_;
+
+				struct __chunk_state {
+					int64_t total_written; // total points written
+					int64_t current_chunk_index; //  the current chunk index we're compressing
+					unsigned int points_in_chunk;
+					__chunk_state() : total_written(0), current_chunk_index(-1), points_in_chunk(0) {}
+				} chunk_state_;
+
+				std::vector<int64_t> chunk_offsets_; // all the places where chunks begin
 			};
 		}
 	}

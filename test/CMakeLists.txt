@@ -104,3 +104,6 @@ add_test(NAME can_open_large_files
 add_test(NAME can_decode_large_files
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/can_decode_large_files)
+add_test(NAME can_encode_large_files
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_io_tests/can_encode_large_files)

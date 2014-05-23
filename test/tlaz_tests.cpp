@@ -932,7 +932,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
 		decomp.decompressWith(decoder, (char*)&t);
 		BOOST_CHECK_EQUAL(ts[i], t.value);
 	}
-};
+}
 
 BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
 	reader las("test/raw-sets/point-color.las");
@@ -975,7 +975,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
 		BOOST_CHECK_EQUAL(ts[i].g, t.g);
 		BOOST_CHECK_EQUAL(ts[i].b, t.b);
 	}
-};
+}
 
 BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 	reader laz("test/raw-sets/point-time.las.laz"),

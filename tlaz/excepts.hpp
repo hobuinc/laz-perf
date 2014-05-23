@@ -35,7 +35,7 @@
 
 namespace laszip {
 #define __make_exception_class(name,msg) \
-	struct name : public std::runtime_error {  name() : std::runtime_error(msg) {} };
+	struct name : public std::runtime_error {  name() : std::runtime_error(msg) {} }
 
 	__make_exception_class(file_not_found, "The specified file was not found");
 	__make_exception_class(invalid_magic, "File magic is not valid");
@@ -51,6 +51,8 @@ namespace laszip {
 
 	__make_exception_class(unknown_schema_type, "The LAZ schema is not recognized");
 	__make_exception_class(unknown_record_item_type, "The record item type is not supported");
+
+	__make_exception_class(write_open_failed, "Could not open file for writing");
 
 	__make_exception_class(end_of_file, "Reached End of file");
 

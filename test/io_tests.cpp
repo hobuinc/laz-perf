@@ -271,4 +271,46 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(can_encode_large_files) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	checkExists("test/raw-sets/autzen.laz");
+	checkExists("test/raw-sets/autzen.las");
+
+	// write stuff to a temp file
+
+	{
+		// this is the format the autzen has points in
+		struct point {
+			las::point10 p;
+			las::gpstime t;
+			las::rgb c;
+		};
+
+		factory::record_schema schema;
+
+		// make schema
+		schema
+			(factory::record_item::POINT10)
+			(factory::record_item::GPSTIME)
+			(factory::record_item::RGB12);
+
+		io::writer::file f("/tmp/autzen.laz", schema,
+				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
+								   vector3<double>(0.0, 0.0, 0.0)));
+
+		reader fin("test/raw-sets/autzen.las");
+
+		size_t pointCount = fin.count_;
+		point p;
+		for (size_t i = 0 ; i < pointCount ; i ++) {
+			fin.record((char*)&p);
+			f.writePoint((char*)&p);
+		}
+
+		f.close();
+	}
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -73,6 +73,15 @@ namespace laszip {
 				return *this;
 			}
 
+			int size_in_bytes() const {
+				int sum = 0;
+				for (auto i : records) {
+					sum += i.size;
+				}
+
+				return sum;
+			}
+
 			std::vector<record_item> records;
 		};
 
@@ -144,7 +153,7 @@ namespace laszip {
 			return dynamic_compressor::ptr(); // avoid warning
 		}
 
-		static inline unsigned short schema_to_point_format(const record_schema& schema) {
+		static inline unsigned char schema_to_point_format(const record_schema& schema) {
 			// get a point format identifier from the given schema
 			std::string hash = make_token(schema);
 
@@ -157,9 +166,9 @@ namespace laszip {
 #undef __c
 
 			throw unknown_schema_type();
-			return static_cast<unsigned short>(-1); // avoid warning
+			return static_cast<unsigned char>(-1); // avoid warning
 		}
 	}
-};
+}
 
 #endif // __factory_hpp__
