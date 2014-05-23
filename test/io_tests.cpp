@@ -99,9 +99,9 @@ BOOST_AUTO_TEST_CASE(parses_header_correctly) {
 		BOOST_CHECK_EQUAL(header.creation.year, 2014);
 
 		BOOST_CHECK_EQUAL(header.header_size, 227);
-		BOOST_CHECK_EQUAL(header.point_offset, 1301);
+		BOOST_CHECK_EQUAL(header.point_offset, 1301u);
 
-		BOOST_CHECK_EQUAL(header.vlr_count, 5);
+		BOOST_CHECK_EQUAL(header.vlr_count, 5u);
 
 		BOOST_CHECK_EQUAL(header.point_format_id, 0);
 		BOOST_CHECK_EQUAL(header.point_record_length, 20);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(parses_header_correctly) {
 		BOOST_CHECK_CLOSE(header.max.y, 4878817.02, 0.0001);
 		BOOST_CHECK_CLOSE(header.max.z, 178.73, 0.0001);
 
-		BOOST_CHECK_EQUAL(header.point_count, 1065);
+		BOOST_CHECK_EQUAL(header.point_count, 1065u);
 	}
 }
 
@@ -140,13 +140,13 @@ BOOST_AUTO_TEST_CASE(parses_laszip_vlr_correctly) {
 		BOOST_CHECK_EQUAL(vlr.version.minor, 2);
 		BOOST_CHECK_EQUAL(vlr.version.revision, 0);
 
-		BOOST_CHECK_EQUAL(vlr.options, 0);
-		BOOST_CHECK_EQUAL(vlr.chunk_size, 50000);
+		BOOST_CHECK_EQUAL(vlr.options, 0u);
+		BOOST_CHECK_EQUAL(vlr.chunk_size, 50000u);
 
 		BOOST_CHECK_EQUAL(vlr.num_points, -1);
 		BOOST_CHECK_EQUAL(vlr.num_bytes, -1);
 
-		BOOST_CHECK_EQUAL(vlr.items.size(), 1);
+		BOOST_CHECK_EQUAL(vlr.items.size(), 1u);
 		BOOST_CHECK_EQUAL(vlr.items[0].type, 6);
 		BOOST_CHECK_EQUAL(vlr.items[0].size, 20);
 		BOOST_CHECK_EQUAL(vlr.items[0].version, 2);
@@ -229,14 +229,14 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 
 		BOOST_CHECK_EQUAL(pointCount, fin.count_);
 
-		struct p {
+		struct pnt {
 			las::point10 p;
 			las::gpstime t;
 			las::rgb c;
 		};
 
 		for (size_t i = 0 ; i < pointCount ; i ++) {
-			p p1, p2;
+			pnt p1, p2;
 
 			f.readPoint((char*)&p1);
 			fin.record((char*)&p2);

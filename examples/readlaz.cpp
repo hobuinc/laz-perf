@@ -6,15 +6,21 @@
 #include "io.hpp"
 #include "../common/common.hpp"
 
-int main() {
-	laszip::io::reader::file f("/tmp/autzen.laz");
+int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		std::cerr << "Usage: readlaz <file.laz>" << std::endl;
+		return -1;
+	}
+
+	std::string filename = argv[1];
+
+	laszip::io::reader::file f(filename);
 
 	size_t count = f.get_header().point_count;
 	char buf[256]; // a buffer large enough to hold our point
 
 	auto start = common::tick();
 	for(size_t i = 0 ; i < count ; i ++) {
-		std::cout << "Reading point: " << i << std::endl;
 		f.readPoint(buf); // read the point out
 	}
 

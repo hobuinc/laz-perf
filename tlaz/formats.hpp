@@ -318,6 +318,10 @@ namespace laszip {
 				compressor_->compressWith(enc_, in);
 			}
 
+			dynamic_compressor1(const dynamic_compressor1<TEncoder , TRecordCompressor>&) = delete;
+			dynamic_compressor1<TEncoder, TRecordCompressor>& operator=(dynamic_compressor1<TEncoder, TRecordCompressor>&) = delete;
+
+
 			TEncoder& enc_;
 			TRecordCompressor* compressor_;
 		};

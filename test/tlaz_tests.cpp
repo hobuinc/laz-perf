@@ -29,6 +29,7 @@
 
 
 #include <boost/test/unit_test.hpp>
+#include <ctime>
 
 
 #include <fstream>
@@ -81,23 +82,23 @@ BOOST_AUTO_TEST_CASE(packers_are_symmetric) {
 
 	packers<int>::pack(0xeadbeef, buf);
 	v = packers<int>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xeadbeef, v);
+	BOOST_CHECK_EQUAL(0xeadbeefu, v);
 
 	packers<unsigned short>::pack(0xbeef, buf);
 	v = packers<unsigned short>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xbeef, v);
+	BOOST_CHECK_EQUAL(0xbeefu, v);
 
 	packers<short>::pack(0xeef, buf);
 	v = packers<short>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xeef, v);
+	BOOST_CHECK_EQUAL(0xeefu, v);
 
 	packers<unsigned char>::pack(0xf, buf);
 	v = packers<unsigned char>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xf, v);
+	BOOST_CHECK_EQUAL(0xfu, v);
 
 	packers<char>::pack(0x7, buf);
 	v = packers<char>::unpack(buf);
-	BOOST_CHECK_EQUAL(0x7, v);
+	BOOST_CHECK_EQUAL(0x7u, v);
 }
 
 
@@ -148,9 +149,9 @@ BOOST_AUTO_TEST_CASE(packers_canpack_rgb) {
 BOOST_AUTO_TEST_CASE(las_structs_are_of_correct_size) {
 	using namespace laszip::formats;
 
-	BOOST_CHECK_EQUAL(sizeof(las::point10), 20);
-	BOOST_CHECK_EQUAL(sizeof(las::gpstime), 8);
-	BOOST_CHECK_EQUAL(sizeof(las::rgb), 6);
+	BOOST_CHECK_EQUAL(sizeof(las::point10), 20u);
+	BOOST_CHECK_EQUAL(sizeof(las::gpstime), 8u);
+	BOOST_CHECK_EQUAL(sizeof(las::rgb), 6u);
 }
 
 BOOST_AUTO_TEST_CASE(works_with_fields) {
@@ -176,8 +177,8 @@ BOOST_AUTO_TEST_CASE(works_with_fields) {
 
 	for (int i = 0 ; i < 1000; i ++) {
 		data.a = i;
-		data.b = i + 10;
-		data.c = i + 40000;
+		data.b = (short)i + 10;
+		data.c = (short)i + 40000;
 		data.d = (unsigned int)i + (1 << 31);
 
 		compressor.compressWith(encoder, (const char*)&data);
@@ -263,7 +264,7 @@ BOOST_AUTO_TEST_CASE(works_with_all_kinds_of_fields) {
 	for (int i = 0 ; i < 1000; i ++) {
 		data.a = i;
 		data.ua = (unsigned int)i + (1<<31);
-		data.b = i;
+		data.b = (short)i;
 		data.ub = (unsigned short)i + (1<<15);
 		data.c = i % 128;
 		data.uc = (unsigned char)(i % 128) + (1<<7);
@@ -306,7 +307,7 @@ BOOST_AUTO_TEST_CASE(correctly_packs_unpacks_point10) {
 		p.y = i + 1000;
 		p.z = i + 10000;
 
-		p.intensity = i + (1<14);
+		p.intensity = (short)i + (1<14);
 		p.return_number =  i & 0x7;
 		p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
 		p.scan_angle_rank = i & 1;
@@ -314,7 +315,7 @@ BOOST_AUTO_TEST_CASE(correctly_packs_unpacks_point10) {
 		p.classification = (i + (1 << 7)) % (1 << 8);
 		p.scan_angle_rank = i % (1 << 7);
 		p.user_data = (i + 64) % (1 << 7);
-		p.point_source_ID = i;
+		p.point_source_ID = (short)i;
 
 		char buf[sizeof(las::point10)];
 		packers<las::point10>::pack(p, buf);
@@ -437,7 +438,6 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
 		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
 
 	las::point10 pnt;
-	size_t count = 0;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -501,7 +501,7 @@ BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
 		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
 
 	f.seekg(0, std::ios::end);
-	size_t fileSize = f.tellg();
+	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
 	SuchStream s;
@@ -525,10 +525,9 @@ BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
 		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
 
 	fin.seekg(0, std::ios::end);
-	size_t count = fin.tellg() / sizeof(las::point10);
+	size_t count = (size_t)fin.tellg() / sizeof(las::point10);
 	fin.seekg(0);
 
-	size_t index = 0;
 	while(count --) {
 		las::point10 p, pout;
 
@@ -566,7 +565,7 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 
 	las::point10 pnt;
 	f.seekg(0, std::ios::end);
-	size_t count = f.tellg() / sizeof(las::point10);
+	size_t count = (size_t)f.tellg() / sizeof(las::point10);
 	f.seekg(0);
 
 	SuchStream s;
@@ -627,7 +626,7 @@ BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
 
 	las::point10 pnt;
 	f.seekg(0, std::ios::end);
-	size_t count = f.tellg() / sizeof(las::point10);
+	size_t count = (size_t)f.tellg() / sizeof(las::point10);
 	f.seekg(0);
 
 	while(count --) {
@@ -663,7 +662,7 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
 
 	f.seekg(0, std::ios::end);
-	size_t fileSize = f.tellg();
+	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
 	SuchStream s;
@@ -688,10 +687,9 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
 
 	fin.seekg(0, std::ios::end);
-	size_t count = fin.tellg() / sizeof(las::point10);
+	size_t count = (size_t)fin.tellg() / sizeof(las::point10);
 	fin.seekg(0);
 
-	size_t index = 0;
 	while(count --) {
 		las::point10 p, pout;
 
@@ -775,7 +773,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_random_gpstime) {
 
 	const size_t S = 1000;
 
-	srand(time(NULL));
+	srand((unsigned int)std::time(NULL));
 	std::vector<int64_t> vs(S);
 	for (size_t i = 0 ; i < S ; i ++) {
 		int64_t a = rand() & 0xFFFF,
@@ -820,7 +818,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
 	for (size_t r = rs ; r < rl ; r <<= 1) {
 		for (size_t g = gs ; g < gl ; g <<= 1) {
 			for (size_t b = bs ; b < bl ; b <<= 1) {
-				las::rgb c(r, g, b);
+				las::rgb c((unsigned short)r, (unsigned short)g, (unsigned short)b);
 				comp.compressWith(encoder, (char*)&c);
 			}
 		}
@@ -836,7 +834,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
 	for (size_t r = rs ; r < rl ; r <<= 1) {
 		for (size_t g = gs ; g < gl ; g <<= 1) {
 			for (size_t b = bs ; b < bl ; b <<= 1) {
-				las::rgb c(r, g, b);
+				las::rgb c((unsigned short)r, (unsigned short)g, (unsigned short)b);
 
 				las::rgb out;
 
@@ -864,7 +862,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
 	const int S = 10000;
 	std::vector<unsigned short> cols(S);
 
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 	for (size_t i = 0 ; i < S ; i++) {
 		unsigned short col = rand() % (1 << 16);
 		cols[i] = col;
@@ -1043,7 +1041,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
 	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
 	laz.skip(8); // jump past the chunk table offset
-	for (size_t i = 0 ; i < std::min(30ul, s.buf.size()); i ++) {
+	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
 		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
 	}
 }
@@ -1081,7 +1079,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
 	encoder.done();
 
 	laz.skip(8); // jump past the chunk table offset
-	for (size_t i = 0 ; i < std::min(30ul, s.buf.size()); i ++) {
+	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
 		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
 	}
 }

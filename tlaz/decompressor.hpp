@@ -166,7 +166,7 @@ namespace laszip {
 							// for larger k we need to do this in two steps
 							int k1 = k-bits_high;
 							// decompress higher bits with table
-							c = dec.decodeSymbol(mCorrector[k]);
+							c = dec.decodeSymbol(mCorrector[k-1]);
 							// read lower bits raw
 							int c1 = dec.readBits(k1);
 							// put the corrector back together

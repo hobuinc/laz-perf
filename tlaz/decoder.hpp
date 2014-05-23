@@ -100,8 +100,6 @@ namespace laszip {
 					length >>= DM__LengthShift;
 					U32 k = (n = m.symbols) >> 1;
 					// decode via bisection search
-					printf("here k: %i, distribution: %p\n", k, (void*)m.distribution);
-					//std::cout << "here k: " << k << ", distribution: " << m.distribution << std::endl;
 					do {
 						U32 z = length * m.distribution[k];
 						if (z > value) {

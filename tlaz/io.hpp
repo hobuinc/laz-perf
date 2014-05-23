@@ -150,9 +150,9 @@ namespace laszip {
 
 				for (auto rec : s.records) {
 					laz_item i;
-					i.type = rec.type;
-					i.size = rec.size;
-					i.version = rec.version;
+					i.type = static_cast<unsigned short>(rec.type);
+					i.size = static_cast<unsigned short>(rec.size);
+					i.version = static_cast<unsigned short>(rec.version);
 
 					r.items.push_back(i);
 				}
@@ -218,6 +218,9 @@ namespace laszip {
 			void putByte(unsigned char b) {
 				f_.put((char)b);
 			}
+
+			__ofstream_wrapper(const __ofstream_wrapper&) = delete;
+			__ofstream_wrapper& operator = (const __ofstream_wrapper&) = delete;
 
 			std::ofstream& f_;
 		};
@@ -534,7 +537,7 @@ namespace laszip {
 		}
 
 		namespace writer {
-			constexpr unsigned int DefaultChunkSize = 50000;
+#define DefaultChunkSize 50000
 
 			// An object to encapsulate what gets passed to 
 			struct config {
@@ -659,10 +662,6 @@ namespace laszip {
 					// flush out the encoder
 					pencoder_->done();
 
-					// note down the end of file marker, this is where we'll be writing our
-					// chunk table
-					std::streamsize chunk_table_offset = f_.tellp();
-
 					// Time to write our header
 					// Fill up things not filled up by our header
 					//
@@ -678,8 +677,8 @@ namespace laszip {
 
 					header_.point_format_id = factory::schema_to_point_format(schema_);
 					header_.point_format_id |= (1 << 7);
-					header_.point_record_length = schema_.size_in_bytes();
-					header_.point_count = chunk_state_.total_written;
+					header_.point_record_length = static_cast<unsigned short>(schema_.size_in_bytes());
+					header_.point_count = static_cast<unsigned int>(chunk_state_.total_written);
 
 					// make sure we re-arrange mins and maxs for writing
 					//
@@ -710,7 +709,7 @@ namespace laszip {
 
 					las_vlr_header.reserved = 0;
 					las_vlr_header.record_id = 22204;
-					las_vlr_header.record_length_after_header = 34 + (schema_.records.size() * 6);
+					las_vlr_header.record_length_after_header = static_cast<unsigned short>(34 + (schema_.records.size() * 6));
 
 					strcpy(las_vlr_header.user_id, "laszip encoded");
 					strcpy(las_vlr_header.description, "tlaz variant");
@@ -770,8 +769,8 @@ namespace laszip {
 
 					for (size_t i = 0 ; i < chunk_offsets_.size() ; i ++) {
 						comp.compress(encoder,
-								i ? chunk_offsets_[i-1] : 0,
-								chunk_offsets_[i], 1);
+								i ? static_cast<unsigned int>(chunk_offsets_[i-1]) : 0,
+								static_cast<unsigned int>(chunk_offsets_[i]), 1);
 					}
 
 					encoder.done();

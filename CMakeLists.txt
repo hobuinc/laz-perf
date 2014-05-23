@@ -161,28 +161,34 @@ else()
 endif(APPLE)
 
 # setup dependent libraries
-if(WIN32 AND MSVC11)
-	set(BOOST_ROOT "C:/local")
-endif(WIN32 AND MSVC11)
-
-set(BOOST_USE_STATIC_LIBS OFF)
-set(BOOST_USE_MULTITHREADED ON)
-set(BOOST_USE_STATIC_RUNTIME OFF)
+if(WIN32 AND MSVC)
+	message(STATUS "Setting windows specific Boost options.")
+	set(BOOST_ROOT "C:/local/")
+	set(BOOST_USE_STATIC_LIBS ON)
+	set(BOOST_USE_MULTITHREADED ON)
+else(WIN32 AND MSVC)
+	set(BOOST_USE_STATIC_LIBS OFF)
+	set(BOOST_USE_MULTITHREADED ON)
+	set(BOOST_USE_STATIC_RUNTIME OFF)
+endif(WIN32 AND MSVC)
 
 set(TLAZ_DEPENDENT_LIBRARIES "")
-
-if(WIN32)
-	# On windows platform specify where to find boost
-	set(BOOST_ROOT "C:/local/")
-endif()
 
 find_package(Boost "1.55.0" COMPONENTS unit_test_framework)
 if(NOT Boost_FOUND)
 	message(STATUS "Boost was not found, tests will not be available")
 	set(WITH_TESTS false)
 else()
-	set(TLAZ_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
+
 	include_directories(${Boost_INCLUDE_DIRS})
+	
+	# Make sure compilers can find other variants of the libraries (libxxx), also don't explicitly add libraries, just the
+	# path should suffice and auto-linking should take over
+	if(WIN32 AND MSVC)
+		link_directories(${Boost_LIBRARY_DIRS})
+	else()
+		set(TLAZ_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
+	endif()
 endif(NOT Boost_FOUND)
 
 
