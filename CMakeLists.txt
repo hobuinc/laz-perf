@@ -121,7 +121,7 @@ else()
   # Recommended C++ compilation flags
   # -Weffc++
   set(TLAZ_COMMON_CXX_FLAGS
-          "-std=c++11 -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
+	  "-std=c++11 -Wextra -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
 
   if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
@@ -133,7 +133,7 @@ else()
     set(TLAZ_COMPILER_GCC 1)
     
   elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER}" MATCHES "clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TLAZ_COMMON_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TLAZ_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
     set(TLAZ_COMPILER_CLANG 1)
   endif()
 

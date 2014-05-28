@@ -386,6 +386,9 @@ namespace laszip {
 					//
 					std::copy(buf, buf + 32, (char*)&laz_); // don't write to std::vector
 
+					if (laz_.compressor != 2)
+						throw laszip_format_unsupported();
+
 					unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
 
 					// parse and build laz items
@@ -456,12 +459,16 @@ namespace laszip {
 						decoder.readInitBytes();
 						decomp.init();
 
-						int last = 0;
-						for (size_t i = 1 ; i <= chunk_table_header.chunk_count - 1 ; i ++) {
-							last = decomp.decompress(decoder, last, 1);
-							chunk_table_offsets_[i] = last + chunk_table_offsets_[i-1];
-
+						std::cout << "chunk table count is: " << chunk_table_header.chunk_count << std::endl;
+						for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++) {
+							chunk_table_offsets_[i] = decomp.decompress(decoder, (i > 1) ? chunk_table_offsets_[i-1] : 0, 1);
+							std::cout << "cto[" << i << "]: " << chunk_table_offsets_[i] << std::endl;
 							//std::cout << "chunk: " << chunk_table_offsets_[i-1] << " --> " << chunk_table_offsets_[i] << std::endl;
+						}
+
+						for (size_t i = 1 ; i < chunk_table_offsets_.size() ; i ++) {
+							chunk_table_offsets_[i] += chunk_table_offsets_[i-1];
+							std::cout << "cto[" << i << "]: " << chunk_table_offsets_[i] << std::endl;
 						}
 					}
 				}
@@ -488,18 +495,18 @@ namespace laszip {
 									// Make sure that the header indicates that file is compressed
 									//
 									[](header& h) {
-									int bit_7 = (h.point_format_id >> 7) & 1,
-									bit_6 = (h.point_format_id >> 6) & 1;
+										int bit_7 = (h.point_format_id >> 7) & 1,
+											bit_6 = (h.point_format_id >> 6) & 1;
 
-									if (bit_7 == 1 && bit_6 == 1)
-									throw old_style_compression();
+										if (bit_7 == 1 && bit_6 == 1)
+											throw old_style_compression();
 
-									if ((bit_7 ^ bit_6) == 0)
-									throw not_compressed();
+										if ((bit_7 ^ bit_6) == 0)
+											throw not_compressed();
 
-									h.point_format_id &= 0x3f;
+										h.point_format_id &= 0x3f;
 									}
-									);
+							);
 						}
 
 						lock.unlock();
@@ -594,6 +601,7 @@ namespace laszip {
 					//
 					size_t preludeSize = 
 						sizeof(header) +	// the LAS header
+						54 + // size of one vlr header
 						(34 + s.records.size() * 6) + // the LAZ vlr size 
 						sizeof(int64_t); // chunk table offset
 
@@ -601,6 +609,8 @@ namespace laszip {
 					std::fill(junk, junk + preludeSize, 0);
 					f_.write(junk, preludeSize);
 					delete [] junk;
+
+					// the first chunk begins at the end of prelude
 				}
 
 				void writePoint(const char *p) {
@@ -614,17 +624,26 @@ namespace laszip {
 							pencoder_.reset();
 						}
 
-						// take note of the current offset
-						chunk_offsets_.push_back(f_.tellp());
-
-						// reinit stuff
-						pencoder_.reset(new encoders::arithmetic<__ofstream_wrapper>(wrapper_));
-						pcompressor_ = factory::build_compressor(*pencoder_, schema_);
-
 						// reset chunk state
 						//
 						chunk_state_.current_chunk_index ++;
 						chunk_state_.points_in_chunk = 0;
+
+						// take note of the current offset
+						std::streamsize offset = f_.tellp();
+						if (chunk_state_.current_chunk_index > 0) {
+							// When we hit this point the first time around, we don't do anything since we are just
+							// starting to write out our first chunk.
+							chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
+							std::cout << "pushed chunke: offset: " << offset << ", last offset: " << chunk_state_.last_chunk_write_offset <<
+								", diff: " << offset - chunk_state_.last_chunk_write_offset << std::endl;
+						}
+
+						chunk_state_.last_chunk_write_offset = offset;
+
+						// reinit stuff
+						pencoder_.reset(new encoders::arithmetic<__ofstream_wrapper>(wrapper_));
+						pcompressor_ = factory::build_compressor(*pencoder_, schema_);
 					}
 
 					// now write the point
@@ -662,6 +681,9 @@ namespace laszip {
 					// flush out the encoder
 					pencoder_->done();
 
+					// Note down the size of the offset of this last chunk
+					chunk_sizes_.push_back((std::streamsize)f_.tellp() - chunk_state_.last_chunk_write_offset);
+
 					// Time to write our header
 					// Fill up things not filled up by our header
 					//
@@ -672,7 +694,7 @@ namespace laszip {
 					header_.version.minor = 2;
 
 					header_.header_size = sizeof(header_);
-					header_.point_offset = sizeof(header) + (34 + schema_.records.size() * 6);
+					header_.point_offset = sizeof(header) + 54 + (34 + schema_.records.size() * 6); // 54 is the size of one vlr header
 					header_.vlr_count = 1;
 
 					header_.point_format_id = factory::schema_to_point_format(schema_);
@@ -722,6 +744,10 @@ namespace laszip {
 					//
 					laz_vlr vlr = laz_vlr::from_schema(schema_);
 
+					// set the other dependent values
+					vlr.compressor = 2; // pointwise chunked
+					vlr.chunk_size = chunk_size_;
+
 					// write the base header
 					f_.write(reinterpret_cast<char*>(&vlr), 32); // don't write the std::vector at the end of the class
 
@@ -751,7 +777,7 @@ namespace laszip {
 					struct {
 						unsigned int version,
 									 chunks_count;
-					} chunk_table_header = { 0, static_cast<unsigned int>(chunk_offsets_.size()) };
+					} chunk_table_header = { 0, static_cast<unsigned int>(chunk_sizes_.size()) }; 
 #pragma pack(pop)
 
 					f_.write(reinterpret_cast<char*>(&chunk_table_header),
@@ -767,10 +793,12 @@ namespace laszip {
 
 					comp.init();
 
-					for (size_t i = 0 ; i < chunk_offsets_.size() ; i ++) {
+					for (size_t i = 0 ; i < chunk_sizes_.size() ; i ++) {
 						comp.compress(encoder,
-								i ? static_cast<unsigned int>(chunk_offsets_[i-1]) : 0,
-								static_cast<unsigned int>(chunk_offsets_[i]), 1);
+								i ? static_cast<int>(chunk_sizes_[i-1]) : 0,
+								static_cast<int>(chunk_sizes_[i]), 1);
+
+						std::cout << i << " : " << chunk_sizes_[i-1] << " -> " << chunk_sizes_[i] << "d: " << chunk_sizes_[i] - chunk_sizes_[i-1] << std::endl;
 					}
 
 					encoder.done();
@@ -795,10 +823,11 @@ namespace laszip {
 					int64_t total_written; // total points written
 					int64_t current_chunk_index; //  the current chunk index we're compressing
 					unsigned int points_in_chunk;
-					__chunk_state() : total_written(0), current_chunk_index(-1), points_in_chunk(0) {}
+					std::streamsize last_chunk_write_offset;
+					__chunk_state() : total_written(0), current_chunk_index(-1), points_in_chunk(0), last_chunk_write_offset(0) {}
 				} chunk_state_;
 
-				std::vector<int64_t> chunk_offsets_; // all the places where chunks begin
+				std::vector<int64_t> chunk_sizes_; // all the places where chunks begin
 			};
 		}
 	}

@@ -45,6 +45,7 @@ namespace laszip {
 	__make_exception_class(invalid_header_request, "Cannot request for headers while the file state in invalid");
 
 	__make_exception_class(no_laszip_vlr, "No LASzip VLR was found in the VLRs section");
+	__make_exception_class(laszip_format_unsupported, "Only LASzip POINTWISE CHUNKED decompressor is supported");
 
 	__make_exception_class(chunk_table_read_error, "There was a problem reading the chunk table");
 	__make_exception_class(unknown_chunk_table_format, "The chunk table version number is unknown");
