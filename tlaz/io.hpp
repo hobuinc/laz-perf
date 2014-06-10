@@ -165,8 +165,9 @@ namespace laszip {
 		// cache line
 #define BUF_SIZE (1 << 20)
 
+		template<typename StreamType>
 		struct __ifstream_wrapper {
-			__ifstream_wrapper(std::ifstream& f) : f_(f), offset(0), have(0), 
+			__ifstream_wrapper(StreamType& f) : f_(f), offset(0), have(0), 
 				buf_((char*)utils::aligned_malloc(BUF_SIZE)) {
 			}
 
@@ -174,8 +175,8 @@ namespace laszip {
 				utils::aligned_free(buf_);
 			}
 
-			__ifstream_wrapper(const __ifstream_wrapper&) = delete;
-			__ifstream_wrapper& operator = (const __ifstream_wrapper&) = delete;
+			__ifstream_wrapper(const __ifstream_wrapper<StreamType>&) = delete;
+			__ifstream_wrapper& operator = (const __ifstream_wrapper<StreamType>&) = delete;
 
 			inline void fillit_() {
 				if (offset >= have) {
@@ -203,7 +204,7 @@ namespace laszip {
 				offset += len;
 			}
 
-			std::ifstream& f_;
+			StreamType& f_;
 			std::streamsize offset, have;
 			char *buf_;
 		};
@@ -255,7 +256,7 @@ namespace laszip {
 						pdecomperssor_.reset();
 						pdecoder_.reset();
 
-						pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(wrapper_));
+						pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper<StreamType> >(wrapper_));
 						pdecomperssor_ = factory::build_decompressor(*pdecoder_, schema_);
 
 						// reset chunk state
@@ -435,9 +436,9 @@ namespace laszip {
 					if (chunk_table_header.chunk_count > 1) {
 						// decode the index out
 						//
-						__ifstream_wrapper w(f_);
+						__ifstream_wrapper<StreamType> w(f_);
 
-						decoders::arithmetic<__ifstream_wrapper> decoder(w);
+						decoders::arithmetic<__ifstream_wrapper<StreamType> > decoder(w);
 						decompressors::integer decomp(32, 2);
 
 						// start decoder
@@ -505,7 +506,7 @@ namespace laszip {
 				basic_file<StreamType>& operator = (const basic_file<StreamType>&) = delete;
 
 				StreamType& f_;
-				__ifstream_wrapper wrapper_;
+				__ifstream_wrapper<StreamType> wrapper_;
 
 				header header_;
 				laz_vlr laz_;
@@ -514,7 +515,7 @@ namespace laszip {
 				factory::record_schema schema_;	// the schema of this file, the LAZ items converted into factory recognizable description,
 
 				// Our decompressor
-				std::shared_ptr<decoders::arithmetic<__ifstream_wrapper> > pdecoder_;
+				std::shared_ptr<decoders::arithmetic<__ifstream_wrapper<StreamType> > > pdecoder_;
 				formats::dynamic_decompressor::ptr pdecomperssor_;
 
 				// Establish our current state as we iterate through the file

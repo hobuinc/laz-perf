@@ -1,6 +1,6 @@
 include_directories(../tlaz)
 
-set(TLAZ_TEST_SOURCES test_main.cpp tlaz_tests.cpp io_tests.cpp)
+set(TLAZ_TEST_SOURCES test_main.cpp tlaz_tests.cpp io_tests.cpp stream_tests.cpp)
 
 set(ALL_LIBRARIES ${TLAZ_DEPENDENT_LIBRARIES})
 
@@ -74,6 +74,9 @@ add_test(NAME schema_to_point_format_works
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_tests/schema_to_point_format_works)
 
+add_test(NAME streams_are_sane
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_stream_tests/streams_are_sane)
 add_test(NAME io_structs_are_of_correct_size
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/io_structs_are_of_correct_size)
@@ -107,3 +110,6 @@ add_test(NAME can_encode_large_files
 add_test(NAME compression_decompression_is_symmetric
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/compression_decompression_is_symmetric)
+add_test(NAME can_decode_large_files_from_memory
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_io_tests/can_decode_large_files_from_memory)

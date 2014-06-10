@@ -29,6 +29,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "io.hpp"
+#include "streams.hpp"
+
 #include "reader.hpp"
 
 BOOST_AUTO_TEST_SUITE(tlaz_io_tests)
@@ -419,6 +421,79 @@ BOOST_AUTO_TEST_CASE(compression_decompression_is_symmetric) {
 		}
 
 		file.close();
+	}
+}
+
+BOOST_AUTO_TEST_CASE(can_decode_large_files_from_memory) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	checkExists("test/raw-sets/autzen.laz");
+	checkExists("test/raw-sets/autzen.las");
+
+	{
+		std::ifstream file("test/raw-sets/autzen.laz");
+		BOOST_CHECK_EQUAL(file.good(), true);
+
+		file.seekg(0, std::ios::end);
+		std::streamsize file_size = file.tellg();
+		file.seekg(0);
+
+		char *buf = (char *)malloc(file_size);
+		file.read(buf, file_size);
+		BOOST_CHECK_EQUAL(file.gcount(), file_size);
+		file.close();
+
+		streams::memory_stream ms(buf, file_size);
+
+		io::reader::basic_file<streams::memory_stream> f(ms);
+		reader fin("test/raw-sets/autzen.las");
+
+		size_t pointCount = f.get_header().point_count;
+
+		BOOST_CHECK_EQUAL(pointCount, fin.count_);
+
+		struct pnt {
+			las::point10 p;
+			las::gpstime t;
+			las::rgb c;
+		};
+
+		for (size_t i = 0 ; i < pointCount ; i ++) {
+			pnt p1, p2;
+
+			f.readPoint((char*)&p1);
+			fin.record((char*)&p2);
+
+			// Make sure the points match
+			{
+				const las::point10& p = p2.p;
+				const las::point10& pout = p1.p;
+
+				BOOST_CHECK_EQUAL(p.x, pout.x);
+				BOOST_CHECK_EQUAL(p.y, pout.y);
+				BOOST_CHECK_EQUAL(p.z, pout.z);
+				BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
+				BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+				BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+				BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
+				BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
+				BOOST_CHECK_EQUAL(p.classification, pout.classification);
+				BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
+				BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
+				BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+			}
+
+			// Make sure the gps time match
+			BOOST_CHECK_EQUAL(p1.t.value, p2.t.value);
+
+			// Make sure the colors match
+			BOOST_CHECK_EQUAL(p1.c.r, p2.c.r);
+			BOOST_CHECK_EQUAL(p1.c.g, p2.c.g);
+			BOOST_CHECK_EQUAL(p1.c.b, p2.c.b);
+		}
+
+		free(buf);
 	}
 }
 

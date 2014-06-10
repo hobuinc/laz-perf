@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <script src="laz-perf.js"></script>
+  <script>
+	var loadFileAsArrayBuffer = function(url, cb) {
+		var oReq = new XMLHttpRequest();
+		oReq.open("GET", url, true);
+		oReq.responseType = "arraybuffer";
+
+		oReq.onload = function (oEvent) {
+			var arrayBuffer = oReq.response; // Note: not oReq.responseText
+			cb(arrayBuffer);
+		};
+
+		oReq.send(null);
+	}
+
+	document.addEventListener('DOMContentLoaded', function() {
+			loadFileAsArrayBuffer('/point10.las.laz', function(ab) {
+				console.log('got array buffer', ab.byteLength);
+				var x = new Module.LASZip();
+
+				var a = new Int8Array(1024);
+				var buf = Module._malloc(a.length*a.BYTES_PER_ELEMENT);
+				Module.HEAPU8.set(a, buf);
+
+				x.open(buf, a.length);
+				Module._free(buf);
+				x.delete();
+			});
+
+	});
+  </script>
+</html>
