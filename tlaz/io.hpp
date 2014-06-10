@@ -226,26 +226,49 @@ namespace laszip {
 		};
 
 		namespace reader {
-			class file {
+			template <typename StreamType>
+			class basic_file {
 				typedef std::function<void (header&)> validator_type;
 
 				public:
-				file() : f_(), wrapper_(f_) {
-				}
-				~file() {
-					close();
+				basic_file(StreamType& st) : f_(st), wrapper_(f_) {
+					_open();
 				}
 
-				explicit file(const std::string& name) : f_(), wrapper_(f_) {
-					open(name);
+				~basic_file() {
 				}
 
-				void open(const std::string& name) {
-					f_.open(name, std::ios::binary);
+				const header& get_header() const {
+					return header_;
+				}
 
-					if (!f_.good())
-						throw file_not_found();
+				const laz_vlr& get_laz_vlr() const {
+					return laz_;
+				}
 
+				void readPoint(char *out) {
+					// read the next point in
+					if (chunk_state_.points_read == laz_.chunk_size ||
+							!pdecomperssor_ || !pdecoder_) {
+						// Its time to (re)init the decoder
+						//
+						pdecomperssor_.reset();
+						pdecoder_.reset();
+
+						pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(wrapper_));
+						pdecomperssor_ = factory::build_decompressor(*pdecoder_, schema_);
+
+						// reset chunk state
+						chunk_state_.current++;
+						chunk_state_.points_read = 0;
+					}
+
+					pdecomperssor_->decompress(out);
+					chunk_state_.points_read ++;
+				}
+
+				private:
+				void _open() {
 					// Make sure our header is correct
 
 					char magic[4];
@@ -280,44 +303,6 @@ namespace laszip {
 					wrapper_.reset();
 				}
 
-				void close() {
-					if (f_.is_open())
-						f_.close();
-				}
-
-				const header& get_header() const {
-					if (!f_.is_open())
-						throw invalid_header_request();
-
-					return header_;
-				}
-
-				const laz_vlr& get_laz_vlr() const {
-					return laz_;
-				}
-
-				void readPoint(char *out) {
-					// read the next point in
-					if (chunk_state_.points_read == laz_.chunk_size ||
-							!pdecomperssor_ || !pdecoder_) {
-						// Its time to (re)init the decoder
-						//
-						pdecomperssor_.reset();
-						pdecoder_.reset();
-
-						pdecoder_.reset(new decoders::arithmetic<__ifstream_wrapper>(wrapper_));
-						pdecomperssor_ = factory::build_decompressor(*pdecoder_, schema_);
-
-						// reset chunk state
-						chunk_state_.current++;
-						chunk_state_.points_read = 0;
-					}
-
-					pdecomperssor_->decompress(out);
-					chunk_state_.points_read ++;
-				}
-
-				private:
 				void _fixMinMax(header& h) {
 					double mx, my, mz, nx, ny, nz;
 
@@ -516,10 +501,10 @@ namespace laszip {
 				}
 
 				// The file object is not copyable or copy constructible
-				file(const file&) : f_(), wrapper_(f_) {}
-				file& operator = (const file&) { return *this;}
+				basic_file(const basic_file<StreamType>&) = delete;
+				basic_file<StreamType>& operator = (const basic_file<StreamType>&) = delete;
 
-				std::ifstream f_;
+				StreamType& f_;
 				__ifstream_wrapper wrapper_;
 
 				header header_;
@@ -541,6 +526,8 @@ namespace laszip {
 					__chunk_state() : current(0u), points_read(0u), current_index(-1) {}
 				} chunk_state_;
 			};
+
+			typedef basic_file<std::ifstream> file;
 		}
 
 		namespace writer {

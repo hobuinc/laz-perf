@@ -40,19 +40,18 @@ BOOST_AUTO_TEST_CASE(io_structs_are_of_correct_size) {
 	BOOST_CHECK_EQUAL(sizeof(header), 227);
 }
 
-BOOST_AUTO_TEST_CASE(can_report_invalid_files) {
-	using namespace laszip;
-
-	io::reader::file f;
-	BOOST_CHECK_THROW(f.open("test/raw-sets/point10-1-not-found.las.laz"), file_not_found);
-}
-
 BOOST_AUTO_TEST_CASE(can_report_invalid_magic) {
 	using namespace laszip;
 
 	{
-		io::reader::file f;
-		BOOST_CHECK_THROW(f.open("test/raw-sets/point10-1.las.raw"), invalid_magic);
+		std::ifstream file("test/raw-sets/point10-1.las.raw", std::ios::binary);
+		auto func = [&file]() {
+			io::reader::file f(file);
+		};
+
+		BOOST_CHECK_THROW(func(), invalid_magic);
+
+		file.close();
 	}
 }
 
@@ -60,25 +59,24 @@ BOOST_AUTO_TEST_CASE(can_check_for_no_compression) {
 	using namespace laszip;
 
 	{
-		io::reader::file f;
-		BOOST_CHECK_THROW(f.open("test/raw-sets/point10.las"), not_compressed);
+		std::ifstream file("test/raw-sets/point10.las", std::ios::binary);
+		auto func = [&file]() {
+			io::reader::file f(file);
+		};
+		BOOST_CHECK_THROW(func(), not_compressed);
+		file.close();
 	}
 }
 
 BOOST_AUTO_TEST_CASE(doesnt_throw_any_errors_for_valid_laz) {
 	using namespace laszip;
 	{
-		io::reader::file f;
-		BOOST_CHECK_NO_THROW(f.open("test/raw-sets/point10.las.laz"));
-	}
-}
+		std::ifstream file("test/raw-sets/point10.las.laz", std::ios::binary);
+		auto func = [&file]() {
+			io::reader::file f(file);
+		};
 
-BOOST_AUTO_TEST_CASE(fails_for_headers_for_invalid_files) {
-	using namespace laszip;
-
-	{
-		io::reader::file f;
-		BOOST_CHECK_THROW(f.get_header(), invalid_header_request);
+		BOOST_CHECK_NO_THROW(func());
 	}
 }
 
@@ -95,7 +93,8 @@ BOOST_AUTO_TEST_CASE(parses_header_correctly) {
 	using namespace laszip;
 
 	{
-		io::reader::file f("test/raw-sets/point10.las.laz");
+		std::ifstream file("test/raw-sets/point10.las.laz", std::ios::binary);
+		io::reader::file f(file);
 		auto header = f.get_header();
 
 		BOOST_CHECK_EQUAL(header.version.major, 1);
@@ -136,7 +135,8 @@ BOOST_AUTO_TEST_CASE(parses_laszip_vlr_correctly) {
 	using namespace laszip;
 
 	{
-		io::reader::file f("test/raw-sets/point10.las.laz");
+		std::ifstream file("test/raw-sets/point10.las.laz");
+		io::reader::file f(file);
 		auto vlr = f.get_laz_vlr();
 
 		BOOST_CHECK_EQUAL(vlr.compressor, 2);
@@ -164,7 +164,8 @@ BOOST_AUTO_TEST_CASE(decodes_single_chunk_files_correctly) {
 	using namespace laszip::formats;
 
 	{
-		io::reader::file f("test/raw-sets/point10.las.laz");
+		std::ifstream file("test/raw-sets/point10.las.laz");
+		io::reader::file f(file);
 		std::ifstream fin("test/raw-sets/point10-1.las.raw", std::ios::binary);
 
 		if (!fin.good())
@@ -214,9 +215,12 @@ BOOST_AUTO_TEST_CASE(can_open_large_files) {
 	checkExists("test/raw-sets/autzen.laz");
 
 	{
-		io::reader::file f;
+		auto func = []() {
+			std::ifstream file("test/raw-sets/autzen.laz");
+			io::reader::file f(file);
+		};
 
-		BOOST_CHECK_NO_THROW(f.open("test/raw-sets/autzen.laz"));
+		BOOST_CHECK_NO_THROW(func());
 	}
 }
 
@@ -228,7 +232,8 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 	checkExists("test/raw-sets/autzen.las");
 
 	{
-		io::reader::file f("test/raw-sets/autzen.laz");
+		std::ifstream file("test/raw-sets/autzen.laz");
+		io::reader::file f(file);
 		reader fin("test/raw-sets/autzen.las");
 
 		size_t pointCount = f.get_header().point_count;
@@ -374,7 +379,8 @@ BOOST_AUTO_TEST_CASE(compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::reader::file f("/tmp/autzen.laz");
+		std::ifstream file("/tmp/autzen.laz");
+		io::reader::file f(file);
 		reader fin("test/raw-sets/autzen.las");
 
 		size_t pointCount = fin.count_;
@@ -412,7 +418,7 @@ BOOST_AUTO_TEST_CASE(compression_decompression_is_symmetric) {
 			BOOST_CHECK_EQUAL(p1.c.b, p2.c.b);
 		}
 
-		f.close();
+		file.close();
 	}
 }
 

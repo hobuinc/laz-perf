@@ -14,7 +14,8 @@ int main(int argc, char *argv[]) {
 
 	std::string filename = argv[1];
 
-	laszip::io::reader::file f(filename);
+	std::ifstream file(filename, std::ios::binary);
+	laszip::io::reader::file f(file);
 
 	size_t count = f.get_header().point_count;
 	char buf[256]; // a buffer large enough to hold our point

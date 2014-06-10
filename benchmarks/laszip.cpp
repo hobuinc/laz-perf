@@ -512,7 +512,8 @@ float bench_laszip() {
 
 
 float bench_tlaz() {
-	laszip::io::reader::file f("test/raw-sets/autzen.laz");
+	std::ifstream file("test/raw-sets/autzen.laz", std::ios::binary);
+	laszip::io::reader::file f(file);
 	float t;
 
 	size_t limit = f.get_header().point_count;
@@ -524,5 +525,7 @@ float bench_tlaz() {
 		f.readPoint(buf);
 
 	t = common::since(start);
+
+	file.close();
 	return t;
 }

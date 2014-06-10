@@ -77,9 +77,6 @@ add_test(NAME schema_to_point_format_works
 add_test(NAME io_structs_are_of_correct_size
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/io_structs_are_of_correct_size)
-add_test(NAME can_report_invalid_files
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	COMMAND tlaz_tests --run_test=tlaz_io_tests/can_report_invalid_files)
 add_test(NAME can_report_invalid_magic
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/can_report_invalid_magic)
@@ -89,9 +86,6 @@ add_test(NAME can_check_for_no_compression
 add_test(NAME doesnt_throw_any_errors_for_valid_laz
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/doesnt_throw_any_errors_for_valid_laz)
-add_test(NAME fails_for_headers_for_invalid_files
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	COMMAND tlaz_tests --run_test=tlaz_io_tests/fails_for_headers_for_invalid_files)
 add_test(NAME parses_header_correctly
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_io_tests/parses_header_correctly)
