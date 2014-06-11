@@ -247,6 +247,10 @@ namespace laszip {
 					return laz_;
 				}
 
+				const factory::record_schema& get_schema() const {
+					return schema_;
+				}
+
 				void readPoint(char *out) {
 					// read the next point in
 					if (chunk_state_.points_read == laz_.chunk_size ||
@@ -379,6 +383,8 @@ namespace laszip {
 
 					// parse and build laz items
 					buf += 34;
+
+					laz_.items = std::vector<laz_item>();
 					for (size_t i = 0 ; i < num_items ; i ++) {
 						laz_item item;
 						std::copy(buf, buf + 6, (char*)&item);

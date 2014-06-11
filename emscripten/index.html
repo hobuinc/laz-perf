@@ -15,17 +15,38 @@
 		oReq.send(null);
 	}
 
+	function parse(dv) {
+		return {
+			"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
+				"intensity": dv.getUint16(12, true),
+				"classification": dv.getUint8(16, true)
+		};
+	}
+
 	document.addEventListener('DOMContentLoaded', function() {
 			loadFileAsArrayBuffer('/point10.las.laz', function(ab) {
 				console.log('got array buffer', ab.byteLength);
 				var x = new Module.LASZip();
 
-				var a = new Int8Array(1024);
-				var buf = Module._malloc(a.length*a.BYTES_PER_ELEMENT);
-				Module.HEAPU8.set(a, buf);
+				var abInt = new Uint8Array(ab);
+				var buf = Module._malloc(ab.byteLength);
 
-				x.open(buf, a.length);
+				Module.HEAPU8.set(abInt, buf);
+				x.open(buf, ab.byteLength);
+
+				var pointbuf = Module._malloc(40);
+				for (var i = 0 ; i < 1000 ; i ++) {
+					x.getPoint(pointbuf);
+					var p = parse(new DataView(Module.HEAPU8.buffer, pointbuf, 40));
+					console.log(p);
+				}
+
+				console.log("Read 1000 points!");
+
+				//x.getPoint();
+
 				Module._free(buf);
+
 				x.delete();
 			});
 
