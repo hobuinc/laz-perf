@@ -275,7 +275,7 @@ namespace laszip {
 				private:
 				void _open() {
 					// Make sure our header is correct
-
+					//
 					char magic[4];
 					f_.read(magic, sizeof(magic));
 
@@ -383,13 +383,13 @@ namespace laszip {
 
 					// parse and build laz items
 					buf += 34;
+					laz_.items = std::vector<laz_item>(num_items);
 
-					laz_.items = std::vector<laz_item>();
 					for (size_t i = 0 ; i < num_items ; i ++) {
 						laz_item item;
 						std::copy(buf, buf + 6, (char*)&item);
 
-						laz_.items.push_back(item);
+						laz_.items[i] = item;
 
 						buf += 6;
 					}
