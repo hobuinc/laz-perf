@@ -109,6 +109,21 @@ namespace laszip {
 				return make_dynamic_decompressor(dec,
 						new formats::record_decompressor<field<las::point10> >());
 			}
+			else if (__c("v2t6s20v2t7s8")) {
+				// point 10, gpstime
+				return make_dynamic_decompressor(dec,
+						new formats::record_decompressor<
+							field<las::point10>,
+							field<las::gpstime> >());
+			}
+			else if (__c("v2t6s20v2t8s6")) {
+				// point 10, gpstime
+				return make_dynamic_decompressor(dec,
+						new formats::record_decompressor<
+							field<las::point10>,
+							field<las::rgb> >());
+			}
+
 			else if (__c("v2t6s20v2t7s8v2t8s6")) {
 				// point10, gpstime, color
 				return make_dynamic_decompressor(dec,
@@ -120,6 +135,7 @@ namespace laszip {
 #undef __c
 
 			// we got a schema we don't know how to build
+			std::cout << hash << std::endl;
 			throw unknown_schema_type();
 			return dynamic_decompressor::ptr(); // avoid warning
 		}
