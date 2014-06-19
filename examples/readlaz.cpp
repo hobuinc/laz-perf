@@ -51,6 +51,9 @@ int main(int argc, char *argv[]) {
 	auto start = common::tick();
 	for(size_t i = 0 ; i < count ; i ++) {
 		f.readPoint(buf); // read the point out
+		//laszip::formats::las::point10 p = laszip::formats::packers<laszip::formats::las::point10>::unpack(buf);
+
+		//std::cout << p.x << ", " << p.y << ", " << p.z << std::endl;
 	}
 
 	float t = common::since(start);

@@ -24,7 +24,7 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', function() {
-			loadFileAsArrayBuffer('/haloe.laz', function(ab) {
+			loadFileAsArrayBuffer('/autzen.laz', function(ab) {
 				console.log('got array buffer', ab.byteLength);
 				var x = new Module.LASZip();
 
@@ -47,7 +47,11 @@
 
 				Module._free(buf);
 
-				x.delete();
+				try {
+					x.delete();
+				} catch(e) {
+					console.log("deletion failed!", e);
+				}
 			});
 
 	});

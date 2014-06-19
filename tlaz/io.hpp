@@ -131,6 +131,8 @@ namespace laszip {
 
 			std::vector<laz_item> items;
 
+			laz_vlr() : items() {}
+
 			static laz_vlr from_schema(const factory::record_schema& s) {
 				laz_vlr r;
 
@@ -237,6 +239,7 @@ namespace laszip {
 				}
 
 				~basic_file() {
+					std::cout << "going down!" << std::endl;
 				}
 
 				const header& get_header() const {
@@ -282,6 +285,8 @@ namespace laszip {
 					if (std::string(magic, magic+4) != "LASF")
 						throw invalid_magic();
 
+					std::cout << "Magic read!" << std::endl;
+
 					// Read the header in
 					f_.seekg(0);
 					f_.read((char*)&header_, sizeof(header_));
@@ -296,9 +301,11 @@ namespace laszip {
 						f(header_);
 
 					// things look fine, move on with VLR extraction
+					std::cout << "parsing laszip" << std::endl;
 					_parseLASZIP();
 
 					// parse the chunk table offset
+					std::cout << "parsing chunk table" << std::endl;
 					_parseChunkTable();
 
 					// set the file pointer to the beginning of data to start reading
@@ -341,11 +348,15 @@ namespace laszip {
 
 						const char *user_id = "laszip encoded";
 
+						std::cout << "vlr header read!" << std::endl;
+
 						if (std::equal(vlr_header.user_id, vlr_header.user_id + 14, user_id) &&
 								vlr_header.record_id == 22204) {
 							// this is the laszip VLR
 							//
 							laszipFound = true;
+
+							std::cout << "laszip vlr found" << std::endl;
 
 							char *buffer = new char[vlr_header.record_length];
 
@@ -372,24 +383,30 @@ namespace laszip {
 				}
 
 				void _parseLASZIPVLR(const char *buf) {
+					using namespace laszip::formats;
+
 					// read the header information
 					//
+
 					std::copy(buf, buf + 32, (char*)&laz_); // don't write to std::vector
 
 					if (laz_.compressor != 2)
 						throw laszip_format_unsupported();
 
+					std::cout << "compressor is: " << laz_.compressor << std::endl;
+
 					unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
 
 					// parse and build laz items
 					buf += 34;
-					laz_.items = std::vector<laz_item>(num_items);
 
+					std::cout << "Parsing through items now!" << std::endl;
 					for (size_t i = 0 ; i < num_items ; i ++) {
 						laz_item item;
 						std::copy(buf, buf + 6, (char*)&item);
 
-						laz_.items[i] = item;
+						std::cout << "Pushing item at index: " << i << std::endl;
+						laz_.items.push_back(item);
 
 						buf += 6;
 					}

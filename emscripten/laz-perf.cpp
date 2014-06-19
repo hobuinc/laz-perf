@@ -18,29 +18,12 @@ class LASZip {
 		~LASZip() {}
 
 		void open(unsigned int b, size_t len) {
-			try {
-				char *buf = (char*) b;
-				int i = 0 ;
+			char *buf = (char*) b;
 
-				for(size_t j = 0 ; j < len ; j ++) {
-					if (j < 10)
-						std::cout << j << ": " << buf[j] << std::endl;
+			std::cout << "Got data " << len << " bytes" << std::endl;
 
-					if (buf[j] == 0)
-						i ++;
-				}
-
-				std::cout << "count: " << i << std::endl;
-
-				pmem_stream_.reset(new stream_type(buf, len));
-				pfile_.reset(new reader_type(*pmem_stream_));
-			}
-			catch(std::runtime_error& e) {
-				std::cout << "Failed! " << e.what() << std::endl;
-			}
-			catch(...) {
-				std::cout << "Unknown" << std::endl;
-			}
+			pmem_stream_.reset(new stream_type(buf, len));
+			pfile_.reset(new reader_type(*pmem_stream_));
 		}
 
 		void getPoint(int buf) {
