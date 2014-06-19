@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(parses_laszip_vlr_correctly) {
 		BOOST_CHECK_EQUAL(vlr.num_points, -1);
 		BOOST_CHECK_EQUAL(vlr.num_bytes, -1);
 
-		BOOST_CHECK_EQUAL(vlr.items.size(), 1u);
+		BOOST_CHECK_EQUAL(vlr.num_items, 1u);
 		BOOST_CHECK_EQUAL(vlr.items[0].type, 6);
 		BOOST_CHECK_EQUAL(vlr.items[0].size, 20);
 		BOOST_CHECK_EQUAL(vlr.items[0].version, 2);

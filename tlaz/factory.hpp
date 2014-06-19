@@ -135,7 +135,7 @@ namespace laszip {
 #undef __c
 
 			// we got a schema we don't know how to build
-			std::cout << hash << std::endl;
+			std::cout << "has is: " << hash << std::endl;
 			throw unknown_schema_type();
 			return dynamic_decompressor::ptr(); // avoid warning
 		}
@@ -165,6 +165,7 @@ namespace laszip {
 #undef __c
 
 			// we got a schema we don't know how to build
+			std::cout << "hash is: " << hash << std::endl;
 			throw unknown_schema_type();
 			return dynamic_compressor::ptr(); // avoid warning
 		}

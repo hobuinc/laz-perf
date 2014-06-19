@@ -34,14 +34,19 @@
 				Module.HEAPU8.set(abInt, buf);
 				x.open(buf, ab.byteLength);
 
+				var pointc = x.getCount();
+				console.log("total points:", pointc);
+
 				var pointbuf = Module._malloc(40);
-				for (var i = 0 ; i < 1000 ; i ++) {
+				var tstart = (new Date()).getTime();
+				for (var i = 0 ; i < pointc ; i ++) {
 					x.getPoint(pointbuf);
 					var p = parse(new DataView(Module.HEAPU8.buffer, pointbuf, 40));
-					console.log(p);
+					//console.log(p);
 				}
+				var tend = (new Date()).getTime();
 
-				console.log("Read 1000 points!");
+				console.log("Read 1000 points!", (tend - tstart), "ms");
 
 				//x.getPoint();
 

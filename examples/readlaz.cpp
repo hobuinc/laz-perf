@@ -19,8 +19,6 @@ int main(int argc, char *argv[]) {
 
 	std::string filename = argv[1];
 
-	printf("wat!");
-
 #ifdef EMSCRIPTEN_BUILD
 	EM_ASM(
 			FS.mkdir('/files');

@@ -129,9 +129,69 @@ namespace laszip {
 			int64_t num_points,
 					num_bytes;
 
-			std::vector<laz_item> items;
+			unsigned short num_items;
+			laz_item *items;
+			laz_vlr() : num_items(0), items(NULL) {}
+			~laz_vlr() {
+				std::cout << "deleting shit!" << std::endl;
+				if (items) {
+					delete [] items;
+				}
+				std::cout << "done deleting shit!" << std::endl;
+			}
 
-			laz_vlr() : items() {}
+			laz_vlr(const laz_vlr& rhs) {
+				compressor = rhs.compressor;
+				coder = rhs.coder;
+
+				// the version we're compatible with
+				version.major = rhs.version.major;
+				version.minor = rhs.version.minor;
+				version.revision = rhs.version.revision;
+
+				options = rhs.options;
+				chunk_size = rhs.chunk_size;
+
+				num_points = rhs.num_points;
+				num_bytes = rhs.num_bytes;
+
+				num_items = rhs.num_items;
+				if (rhs.items) {
+					items = new laz_item[num_items];
+					for (int i = 0 ; i < num_items ; i ++) {
+						items[i] = rhs.items[i];
+					}
+				}
+			}
+
+			laz_vlr& operator = (const laz_vlr& rhs) {
+				if (this == &rhs)
+					return *this;
+
+				compressor = rhs.compressor;
+				coder = rhs.coder;
+
+				// the version we're compatible with
+				version.major = rhs.version.major;
+				version.minor = rhs.version.minor;
+				version.revision = rhs.version.revision;
+
+				options = rhs.options;
+				chunk_size = rhs.chunk_size;
+
+				num_points = rhs.num_points;
+				num_bytes = rhs.num_bytes;
+
+				num_items = rhs.num_items;
+				if (rhs.items) {
+					items = new laz_item[num_items];
+					for (int i = 0 ; i < num_items ; i ++) {
+						items[i] = rhs.items[i];
+					}
+				}
+
+				return *this;
+			}
 
 			static laz_vlr from_schema(const factory::record_schema& s) {
 				laz_vlr r;
@@ -150,13 +210,15 @@ namespace laszip {
 				r.num_points = -1;
 				r.num_bytes = -1;
 
-				for (auto rec : s.records) {
-					laz_item i;
-					i.type = static_cast<unsigned short>(rec.type);
-					i.size = static_cast<unsigned short>(rec.size);
-					i.version = static_cast<unsigned short>(rec.version);
+				r.num_items = static_cast<unsigned short>(s.records.size());
+				r.items = new laz_item[s.records.size()];
+				for (size_t i = 0 ; i < s.records.size() ; i ++) {
+					laz_item& item = r.items[i];
+					const factory::record_item& rec = s.records.at(i);
 
-					r.items.push_back(i);
+					item.type = static_cast<unsigned short>(rec.type);
+					item.size = static_cast<unsigned short>(rec.size);
+					item.version = static_cast<unsigned short>(rec.version);
 				}
 
 				return r;
@@ -377,9 +439,21 @@ namespace laszip {
 
 					// convert the laszip items into record schema to be used by compressor/decompressor
 					// builder
-					for(auto item : laz_.items) {
+					for(auto i = 0 ; i < laz_.num_items ; i++) {
+						std::cout << "pushing!" << std::endl;
+						laz_item& item = laz_.items[i];
 						schema_.push(factory::record_item(item.type, item.size, item.version));
 					}
+				}
+
+				void binPrint(const char *buf, int len) {
+					for (int i = 0 ; i < len ; i ++) {
+						char b[256];
+						sprintf(b, "%02X", buf[i] & 0xFF);
+						std::cout << b << " ";
+					}
+
+					std::cout << std::endl;
 				}
 
 				void _parseLASZIPVLR(const char *buf) {
@@ -387,27 +461,27 @@ namespace laszip {
 
 					// read the header information
 					//
-
-					std::copy(buf, buf + 32, (char*)&laz_); // don't write to std::vector
+					//
+					std::copy(buf, buf + 34, (char*)&laz_); // don't write to std::vector
 
 					if (laz_.compressor != 2)
 						throw laszip_format_unsupported();
 
 					std::cout << "compressor is: " << laz_.compressor << std::endl;
 
-					unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
+					//unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
 
 					// parse and build laz items
 					buf += 34;
+					std::cout << "total items: " << laz_.num_items << std::endl;
+					laz_.items = new laz_item[laz_.num_items];
 
 					std::cout << "Parsing through items now!" << std::endl;
-					for (size_t i = 0 ; i < num_items ; i ++) {
-						laz_item item;
+					for (auto i = 0 ; i < laz_.num_items ; i ++) {
+						laz_item& item = laz_.items[i];
 						std::copy(buf, buf + 6, (char*)&item);
 
 						std::cout << "Pushing item at index: " << i << std::endl;
-						laz_.items.push_back(item);
-
 						buf += 6;
 					}
 				}
@@ -754,21 +828,20 @@ namespace laszip {
 					// prep our VLR so we can write it
 					//
 					laz_vlr vlr = laz_vlr::from_schema(schema_);
+					std::cout << "schema size: " << schema_.records.size() << std::endl;
+					std::cout << "laz items: " << vlr.num_items << std::endl;
 
 					// set the other dependent values
 					vlr.compressor = 2; // pointwise chunked
 					vlr.chunk_size = chunk_size_;
 
 					// write the base header
-					f_.write(reinterpret_cast<char*>(&vlr), 32); // don't write the std::vector at the end of the class
-
-					// write the count of items
-					unsigned short length = static_cast<unsigned short>(vlr.items.size());
-					f_.write(reinterpret_cast<char*>(&length), sizeof(unsigned short));
+					std::cout << "total items:" << vlr.num_items << std::endl;
+					f_.write(reinterpret_cast<char*>(&vlr), 34); // don't write the std::vector at the end of the class
 
 					// write items
-					for (auto i : vlr.items) {
-						f_.write(reinterpret_cast<char*>(&i), sizeof(laz_item));
+					for (auto i = 0 ; i < vlr.num_items ; i ++) {
+						f_.write(reinterpret_cast<char*>(&vlr.items[i]), sizeof(laz_item));
 					}
 
 					// TODO: Write chunk table

@@ -31,6 +31,10 @@ class LASZip {
 			pfile_->readPoint(pbuf);
 		}
 
+		unsigned int getCount() {
+			return static_cast<unsigned int>(pfile_->get_header().point_count);
+		}
+
 	private:
 		std::shared_ptr<stream_type> pmem_stream_;
 		std::shared_ptr<reader_type> pfile_;
@@ -40,5 +44,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
 	class_<LASZip>("LASZip")
 		.constructor()
 		.function("open", &LASZip::open, allow_raw_pointers())
-		.function("getPoint", &LASZip::getPoint);
+		.function("getPoint", &LASZip::getPoint)
+		.function("getCount", &LASZip::getCount);
 }
