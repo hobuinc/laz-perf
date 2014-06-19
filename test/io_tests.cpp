@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_SUITE(tlaz_io_tests)
 BOOST_AUTO_TEST_CASE(io_structs_are_of_correct_size) {
 	using namespace laszip::io;
 
-	BOOST_CHECK_EQUAL(sizeof(header), 227);
+	BOOST_CHECK_EQUAL(sizeof(header), 227u);
 }
 
 BOOST_AUTO_TEST_CASE(can_report_invalid_magic) {
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files_from_memory) {
 		std::streamsize file_size = file.tellg();
 		file.seekg(0);
 
-		char *buf = (char *)malloc(file_size);
+		char *buf = (char *)malloc(static_cast<size_t>(file_size));
 		file.read(buf, file_size);
 		BOOST_CHECK_EQUAL(file.gcount(), file_size);
 		file.close();

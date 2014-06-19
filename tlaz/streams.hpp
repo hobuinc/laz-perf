@@ -43,7 +43,7 @@ namespace laszip {
 					return;
 				}
 
-				size_t to_read = std::min(size, len_ - offset_);
+				std::streamsize to_read = std::min(size, len_ - offset_);
 				std::copy(buf_ + offset_, buf_ + offset_ + to_read, into);
 				offset_ += to_read;
 				last_read_count_ = to_read;
@@ -71,7 +71,7 @@ namespace laszip {
 				is_eof_ = false;
 			}
 
-			size_t tellg() {
+			std::streamsize tellg() {
 				return offset_;
 			}
 

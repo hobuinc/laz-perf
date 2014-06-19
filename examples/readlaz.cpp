@@ -7,7 +7,9 @@
 #include "../common/common.hpp"
 
 #include <stdio.h>
-#include <emscripten.h>
+#ifdef EMSCRIPTEN_BUILD
+	#include <emscripten.h>
+#endif
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {

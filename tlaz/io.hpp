@@ -451,7 +451,7 @@ namespace laszip {
 						throw not_supported("chunk_size == uint.max is not supported at this time, call 1-800-DAFUQ for support.");
 
 					// Allocate enough room for our chunk
-					chunk_table_offsets_.resize(chunk_table_header.chunk_count);
+					chunk_table_offsets_.resize(chunk_table_header.chunk_count + 1);
 
 					// Add The first one
 					chunk_table_offsets_[0] = header_.point_offset + sizeof(uint64_t);
@@ -470,7 +470,7 @@ namespace laszip {
 
 						std::cout << "chunk table count is: " << chunk_table_header.chunk_count << std::endl;
 						for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++) {
-							chunk_table_offsets_[i] = decomp.decompress(decoder, (i > 1) ? chunk_table_offsets_[i-1] : 0, 1);
+							chunk_table_offsets_[i] = static_cast<uint64_t>(decomp.decompress(decoder, (i > 1) ? static_cast<I32>(chunk_table_offsets_[i - 1]) : 0, 1));
 							std::cout << "cto[" << i << "]: " << chunk_table_offsets_[i] << std::endl;
 							//std::cout << "chunk: " << chunk_table_offsets_[i-1] << " --> " << chunk_table_offsets_[i] << std::endl;
 						}
