@@ -133,11 +133,9 @@ namespace laszip {
 			laz_item *items;
 			laz_vlr() : num_items(0), items(NULL) {}
 			~laz_vlr() {
-				std::cout << "deleting shit!" << std::endl;
 				if (items) {
 					delete [] items;
 				}
-				std::cout << "done deleting shit!" << std::endl;
 			}
 
 			laz_vlr(const laz_vlr& rhs) {
@@ -301,7 +299,6 @@ namespace laszip {
 				}
 
 				~basic_file() {
-					std::cout << "going down!" << std::endl;
 				}
 
 				const header& get_header() const {
@@ -347,8 +344,6 @@ namespace laszip {
 					if (std::string(magic, magic+4) != "LASF")
 						throw invalid_magic();
 
-					std::cout << "Magic read!" << std::endl;
-
 					// Read the header in
 					f_.seekg(0);
 					f_.read((char*)&header_, sizeof(header_));
@@ -363,11 +358,9 @@ namespace laszip {
 						f(header_);
 
 					// things look fine, move on with VLR extraction
-					std::cout << "parsing laszip" << std::endl;
 					_parseLASZIP();
 
 					// parse the chunk table offset
-					std::cout << "parsing chunk table" << std::endl;
 					_parseChunkTable();
 
 					// set the file pointer to the beginning of data to start reading
@@ -410,15 +403,11 @@ namespace laszip {
 
 						const char *user_id = "laszip encoded";
 
-						std::cout << "vlr header read!" << std::endl;
-
 						if (std::equal(vlr_header.user_id, vlr_header.user_id + 14, user_id) &&
 								vlr_header.record_id == 22204) {
 							// this is the laszip VLR
 							//
 							laszipFound = true;
-
-							std::cout << "laszip vlr found" << std::endl;
 
 							char *buffer = new char[vlr_header.record_length];
 
@@ -440,7 +429,6 @@ namespace laszip {
 					// convert the laszip items into record schema to be used by compressor/decompressor
 					// builder
 					for(auto i = 0 ; i < laz_.num_items ; i++) {
-						std::cout << "pushing!" << std::endl;
 						laz_item& item = laz_.items[i];
 						schema_.push(factory::record_item(item.type, item.size, item.version));
 					}
@@ -467,21 +455,16 @@ namespace laszip {
 					if (laz_.compressor != 2)
 						throw laszip_format_unsupported();
 
-					std::cout << "compressor is: " << laz_.compressor << std::endl;
-
 					//unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
 
 					// parse and build laz items
 					buf += 34;
-					std::cout << "total items: " << laz_.num_items << std::endl;
 					laz_.items = new laz_item[laz_.num_items];
 
-					std::cout << "Parsing through items now!" << std::endl;
 					for (auto i = 0 ; i < laz_.num_items ; i ++) {
 						laz_item& item = laz_.items[i];
 						std::copy(buf, buf + 6, (char*)&item);
 
-						std::cout << "Pushing item at index: " << i << std::endl;
 						buf += 6;
 					}
 				}
@@ -542,16 +525,12 @@ namespace laszip {
 						decoder.readInitBytes();
 						decomp.init();
 
-						std::cout << "chunk table count is: " << chunk_table_header.chunk_count << std::endl;
 						for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++) {
 							chunk_table_offsets_[i] = static_cast<uint64_t>(decomp.decompress(decoder, (i > 1) ? static_cast<I32>(chunk_table_offsets_[i - 1]) : 0, 1));
-							std::cout << "cto[" << i << "]: " << chunk_table_offsets_[i] << std::endl;
-							//std::cout << "chunk: " << chunk_table_offsets_[i-1] << " --> " << chunk_table_offsets_[i] << std::endl;
 						}
 
 						for (size_t i = 1 ; i < chunk_table_offsets_.size() ; i ++) {
 							chunk_table_offsets_[i] += chunk_table_offsets_[i-1];
-							std::cout << "cto[" << i << "]: " << chunk_table_offsets_[i] << std::endl;
 						}
 					}
 				}
@@ -720,8 +699,6 @@ namespace laszip {
 							// When we hit this point the first time around, we don't do anything since we are just
 							// starting to write out our first chunk.
 							chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
-							std::cout << "pushed chunke: offset: " << offset << ", last offset: " << chunk_state_.last_chunk_write_offset <<
-								", diff: " << offset - chunk_state_.last_chunk_write_offset << std::endl;
 						}
 
 						chunk_state_.last_chunk_write_offset = offset;
@@ -828,15 +805,12 @@ namespace laszip {
 					// prep our VLR so we can write it
 					//
 					laz_vlr vlr = laz_vlr::from_schema(schema_);
-					std::cout << "schema size: " << schema_.records.size() << std::endl;
-					std::cout << "laz items: " << vlr.num_items << std::endl;
 
 					// set the other dependent values
 					vlr.compressor = 2; // pointwise chunked
 					vlr.chunk_size = chunk_size_;
 
 					// write the base header
-					std::cout << "total items:" << vlr.num_items << std::endl;
 					f_.write(reinterpret_cast<char*>(&vlr), 34); // don't write the std::vector at the end of the class
 
 					// write items
@@ -881,8 +855,6 @@ namespace laszip {
 						comp.compress(encoder,
 								i ? static_cast<int>(chunk_sizes_[i-1]) : 0,
 								static_cast<int>(chunk_sizes_[i]), 1);
-
-						std::cout << i << " : " << chunk_sizes_[i-1] << " -> " << chunk_sizes_[i] << "d: " << chunk_sizes_[i] - chunk_sizes_[i-1] << std::endl;
 					}
 
 					encoder.done();
