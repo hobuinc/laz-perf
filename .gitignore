@@ -17,6 +17,10 @@ benchmarks/laszip
 .vagrant/
 CTestTestfile.cmake
 Testing/
+emscripten/autzen.laz
+emscripten/haloe.laz
+test/raw-sets/SpaceShuttle.laz
+test/raw-sets/haloe.laz
 
 # test files we don't need to version control
 /test/raw-sets/autzen.la?

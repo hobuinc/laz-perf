@@ -2,16 +2,16 @@
 ===============================================================================
 
   FILE:  tlaz_tests.cpp
-  
+
   CONTENTS:
-    
+
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -21,9 +21,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -325,9 +325,9 @@ BOOST_AUTO_TEST_CASE(correctly_packs_unpacks_point10) {
 		las::point10 pout = packers<las::point10>::unpack(buf);
 
 		// Make things are still sane
-		BOOST_CHECK_EQUAL(pout.x, p.x); 
-		BOOST_CHECK_EQUAL(pout.y, p.y); 
-		BOOST_CHECK_EQUAL(pout.z, p.z); 
+		BOOST_CHECK_EQUAL(pout.x, p.x);
+		BOOST_CHECK_EQUAL(pout.y, p.y);
+		BOOST_CHECK_EQUAL(pout.z, p.z);
 
 		BOOST_CHECK_EQUAL(pout.intensity, p.intensity);
 		BOOST_CHECK_EQUAL(pout.return_number, p.return_number);
@@ -480,7 +480,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
 		BOOST_CHECK_EQUAL(p.y, pout.y);
 		BOOST_CHECK_EQUAL(p.z, pout.z);
 		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -542,7 +542,7 @@ BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
 		BOOST_CHECK_EQUAL(p.y, pout.y);
 		BOOST_CHECK_EQUAL(p.z, pout.z);
 		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -704,7 +704,7 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 		BOOST_CHECK_EQUAL(p.y, pout.y);
 		BOOST_CHECK_EQUAL(p.z, pout.z);
 		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -893,7 +893,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
 
 BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
 	reader las("test/raw-sets/point-time.las");
-	
+
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -934,7 +934,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
 
 BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
 	reader las("test/raw-sets/point-color.las");
-	
+
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -978,7 +978,7 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
 BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 	reader laz("test/raw-sets/point-time.las.laz"),
 		   las("test/raw-sets/point-time.las");
-	
+
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -1012,7 +1012,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
 	reader laz("test/raw-sets/point-color.las.laz"),
 		   las("test/raw-sets/point-color.las");
-	
+
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -1049,7 +1049,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
 BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
 	reader laz("test/raw-sets/point-color-time.las.laz"),
 		   las("test/raw-sets/point-color-time.las");
-	
+
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -1146,6 +1146,51 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 		BOOST_CHECK_THROW(f1(), unknown_schema_type);
 		BOOST_CHECK_THROW(f2(), unknown_schema_type);
 		BOOST_CHECK_THROW(f3(), unknown_schema_type);
+	}
+}
+
+BOOST_AUTO_TEST_CASE(just_xyz_encodes_and_decodes) {
+    const int POINT_COUNT = 100000;
+
+	using namespace laszip;
+	using namespace laszip::formats;
+
+    las::xyz input;
+
+	record_compressor<
+		field<las::xyz>
+    > compressor;
+
+	SuchStream s;
+
+	encoders::arithmetic<SuchStream> encoder(s);
+
+    time_t seed = time(NULL);
+
+    srand(seed);
+	for (int i = 0 ; i < POINT_COUNT; i ++) {
+        input.x = rand();
+        input.y = rand();
+        input.z = rand();
+
+		compressor.compressWith(encoder, (const char*)&input);
+	}
+	encoder.done();
+
+	record_decompressor<
+		field<las::xyz>
+    > decompressor;
+
+	decoders::arithmetic<SuchStream> decoder(s);
+
+
+    srand(seed);
+	for (int i = 0 ; i < POINT_COUNT ; i ++) {
+		decompressor.decompressWith(decoder, (char *)&input);
+
+		BOOST_CHECK_EQUAL(input.x, rand());
+		BOOST_CHECK_EQUAL(input.y, rand());
+		BOOST_CHECK_EQUAL(input.z, rand());
 	}
 }
 

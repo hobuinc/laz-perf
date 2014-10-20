@@ -2,7 +2,7 @@
 ===============================================================================
 
   FILE:  las.hpp
-  
+
   CONTENTS:
     Point formats for LAS
 
@@ -10,9 +10,9 @@
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,9 +22,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -69,6 +69,11 @@ namespace laszip {
 				rgb(unsigned short _r, unsigned short _g, unsigned short _b) :
 					r(_r), g(_g), b(_b) {}
 			};
+
+            // just the XYZ fields out of the POINT10 struct
+			struct xyz {
+				int x, y, z;
+			};
 #pragma pack(pop)
 		}
 	}
@@ -77,5 +82,6 @@ namespace laszip {
 #include "detail/field_point10.hpp"
 #include "detail/field_gpstime.hpp"
 #include "detail/field_rgb.hpp"
+#include "detail/field_xyz.hpp"
 
 #endif // __las_hpp__

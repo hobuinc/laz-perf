@@ -73,6 +73,9 @@ add_test(NAME can_encode_match_laszip_point10timecolor
 add_test(NAME schema_to_point_format_works
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_tests/schema_to_point_format_works)
+add_test(NAME just_xyz_encodes_and_decodes
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/just_xyz_encodes_and_decodes)
 
 add_test(NAME streams_are_sane
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
