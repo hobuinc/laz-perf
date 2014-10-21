@@ -2,17 +2,17 @@
 ===============================================================================
 
   FILE:  field_point10.hpp
-  
+
   CONTENTS:
-    
+
 
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,9 +22,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -104,7 +104,7 @@ namespace laszip {
 				p.y = packers<int>::unpack(in);						in += sizeof(int);
 				p.z = packers<int>::unpack(in);						in += sizeof(int);
 				p.intensity = packers<unsigned short>::unpack(in);	in += sizeof(unsigned short);
-				
+
 				unsigned char d =
 					packers<unsigned char>::unpack(in);				in += sizeof(unsigned char);
 
@@ -137,7 +137,7 @@ namespace laszip {
 				packers<char>::pack(p.scan_angle_rank, buffer);		buffer += sizeof(char);
 				packers<char>::pack(p.user_data, buffer);			buffer += sizeof(char);
 				packers<unsigned short>::pack(
-						p.point_source_ID, buffer);				
+						p.point_source_ID, buffer);
 
 			}
 		};
@@ -158,7 +158,7 @@ namespace laszip {
 					compressors_.init();
 					compressor_inited_ = true;
 				}
-				
+
 				if (!common_.have_last_) {
 					// don't have the first data yet, just push it to our have last stuff and move on
 					common_.have_last_ = true;
