@@ -46,7 +46,7 @@ namespace laszip {
 
 				p.x = packers<int>::unpack(in);						in += sizeof(int);
 				p.y = packers<int>::unpack(in);						in += sizeof(int);
-				p.z = packers<int>::unpack(in);						in += sizeof(int);
+				p.z = packers<int>::unpack(in);	
 
 				return p;
 			}
@@ -54,7 +54,7 @@ namespace laszip {
 			inline static void pack(const las::xyz& p, char *buffer) {
 				packers<int>::pack(p.x, buffer);					buffer += sizeof(int);
 				packers<int>::pack(p.y, buffer);					buffer += sizeof(int);
-				packers<int>::pack(p.z, buffer);					buffer += sizeof(int);
+				packers<int>::pack(p.z, buffer);
 			}
 		};
 
@@ -184,6 +184,7 @@ namespace laszip {
 
 				__common() :
 					have_last_(false) {
+					last_height.fill(0);
 				}
 
 				~__common() {
