@@ -18,110 +18,110 @@
 // as long as it confirms with the behaviour below.
 //
 struct SuchStream {
-	SuchStream() : buf(), idx(0) {}
+    SuchStream() : buf(), idx(0) {}
 
-	void putBytes(const unsigned char* b, size_t len) {
-		while(len --) {
-			buf.push_back(*b++);
-		}
-	}
+    void putBytes(const unsigned char* b, size_t len) {
+        while(len --) {
+            buf.push_back(*b++);
+        }
+    }
 
-	void putByte(const unsigned char b) {
-		buf.push_back(b);
-	}
+    void putByte(const unsigned char b) {
+        buf.push_back(b);
+    }
 
-	unsigned char getByte() {
-		return buf[idx++];
-	}
+    unsigned char getByte() {
+        return buf[idx++];
+    }
 
-	void getBytes(unsigned char *b, int len) {
-		for (int i = 0 ; i < len ; i ++) {
-			b[i] = getByte();
-		}
-	}
+    void getBytes(unsigned char *b, int len) {
+        for (int i = 0 ; i < len ; i ++) {
+            b[i] = getByte();
+        }
+    }
 
-	std::vector<unsigned char> buf;	// cuz I'm ze faste
-	size_t idx;
+    std::vector<unsigned char> buf;	// cuz I'm ze faste
+    size_t idx;
 };
 
 int main() {
-	// import namespaces to reduce typing
-	//
-	using namespace laszip;
-	using namespace laszip::formats;
+    // import namespaces to reduce typing
+    //
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	typedef encoders::arithmetic<SuchStream> EncoderType;
+    typedef encoders::arithmetic<SuchStream> EncoderType;
     typedef decoders::arithmetic<SuchStream> DecoderType;
 
-	// Get a memory stream backed encoder up
-	SuchStream s;
-	EncoderType encoder(s);
+    // Get a memory stream backed encoder up
+    SuchStream s;
+    EncoderType encoder(s);
     struct {
         las::xyz p;
         int a, b;
         short c;
     } data;
 
-	auto compressor = new dynamic_field_compressor<EncoderType>(encoder);
+    auto compressor = new dynamic_field_compressor<EncoderType>(encoder);
     compressor->add_field<las::xyz>();
     compressor->add_field<int>();
-	compressor->add_field<int>();
-	compressor->add_field<short>();
+    compressor->add_field<int>();
+    compressor->add_field<short>();
 
-	// Encode some dummy data
-	//
-	for (int i = 0 ; i < 1000; i ++) {
-		data.p.x = i;
-		data.p.y = i;
-		data.p.z = i;
+    // Encode some dummy data
+    //
+    for (int i = 0 ; i < 1000; i ++) {
+        data.p.x = i;
+        data.p.y = i;
+        data.p.z = i;
         data.a = i + 50000;
-		data.b = i + 10;
-		data.c = i + 10000;
+        data.b = i + 10;
+        data.c = i + 10000;
 
-		// All compressor cares about is your data as a pointer, it will unpack data
-		// automatically based on the fields that were specified and compress them
-		//
-		compressor->compress((const char*)&data);
-	}
+        // All compressor cares about is your data as a pointer, it will unpack data
+        // automatically based on the fields that were specified and compress them
+        //
+        compressor->compress((const char*)&data);
+    }
 
     encoder.done();
 
     delete compressor; // much nice
 
-	std::cout << "Points compressed to: " << s.buf.size() << " bytes" << std::endl;
+    std::cout << "Points compressed to: " << s.buf.size() << " bytes" << std::endl;
 
     DecoderType decoder(s);
 
-	// Print some fun stuff about compression
-	//
+    // Print some fun stuff about compression
+    //
 
     auto decompressor = new dynamic_field_decompressor<DecoderType>(decoder);
     decompressor->add_field<las::xyz>();
     decompressor->add_field<int>();
-	decompressor->add_field<int>();
-	decompressor->add_field<short>();
+    decompressor->add_field<int>();
+    decompressor->add_field<short>();
 
-	// This time we'd read the values out instead and make sure they match what we pushed in
-	//
-	for (int i = 0 ; i < 1000 ; i ++) {
-		// When we decompress data we need to provide where to decode stuff to
-		//
-		decompressor->decompress((char *)&data);
+    // This time we'd read the values out instead and make sure they match what we pushed in
+    //
+    for (int i = 0 ; i < 1000 ; i ++) {
+        // When we decompress data we need to provide where to decode stuff to
+        //
+        decompressor->decompress((char *)&data);
 
-		// Finally make sure things match, otherwise bail
-		if (data.p.x != i ||
-            data.p.y != i ||
-            data.p.z != i ||
-            data.a != i + 50000 ||
-			data.b != i + 10 ||
-			data.c != i + 10000)
-			throw std::runtime_error("I have failed thee!");
-	}
+        // Finally make sure things match, otherwise bail
+        if (data.p.x != i ||
+                data.p.y != i ||
+                data.p.z != i ||
+                data.a != i + 50000 ||
+                data.b != i + 10 ||
+                data.c != i + 10000)
+            throw std::runtime_error("I have failed thee!");
+    }
 
     delete decompressor;
 
-	// And we're done
-	std::cout << "Done!" << std::endl;
+    // And we're done
+    std::cout << "Done!" << std::endl;
 
-	return 0;
+    return 0;
 }
