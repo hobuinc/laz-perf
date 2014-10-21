@@ -46,7 +46,7 @@ namespace laszip {
 
 				p.x = packers<int>::unpack(in);						in += sizeof(int);
 				p.y = packers<int>::unpack(in);						in += sizeof(int);
-				p.z = packers<int>::unpack(in);	
+				p.z = packers<int>::unpack(in);
 
 				return p;
 			}
@@ -92,27 +92,24 @@ namespace laszip {
 
 				unsigned int k_bits;
 				int median, diff;
-				int n = 1;
-				int m = 0;
-				int l = 0;
 
 				// compress x coordinate
-				median = common_.last_x_diff_median5[m].get();
+				median = common_.last_x_diff_median5.get();
 				diff = this_val.x - common_.last_.x;
-				compressors_.ic_dx.compress(enc, median, diff, n == 1);
-				common_.last_x_diff_median5[m].add(diff);
+				compressors_.ic_dx.compress(enc, median, diff, 0);
+				common_.last_x_diff_median5.add(diff);
 
 				// compress y coordinate
 				k_bits = compressors_.ic_dx.getK();
-				median = common_.last_y_diff_median5[m].get();
+				median = common_.last_y_diff_median5.get();
 				diff = this_val.y - common_.last_.y;
-				compressors_.ic_dy.compress(enc, median, diff, (n==1) + ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20 ));
-				common_.last_y_diff_median5[m].add(diff);
+				compressors_.ic_dy.compress(enc, median, diff, ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20 ));
+				common_.last_y_diff_median5.add(diff);
 
 				// compress z coordinate
 				k_bits = (compressors_.ic_dx.getK() + compressors_.ic_dy.getK()) / 2;
-				compressors_.ic_z.compress(enc, common_.last_height[l], this_val.z, (n==1) + (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
-				common_.last_height[l] = this_val.z;
+				compressors_.ic_z.compress(enc, common_.last_height, this_val.z, (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
+				common_.last_height = this_val.z;
 
 				common_.last_ = this_val;
 			}
@@ -142,28 +139,25 @@ namespace laszip {
 
 				unsigned int k_bits;
 				int median, diff;
-				int n = 1;
-				int m = 0;
-				int l = 0;
 
 				// decompress x coordinate
-				median = common_.last_x_diff_median5[m].get();
+				median = common_.last_x_diff_median5.get();
 
-				diff = decompressors_.ic_dx.decompress(dec, median, n==1);
+				diff = decompressors_.ic_dx.decompress(dec, median, 0);
 				common_.last_.x += diff;
-				common_.last_x_diff_median5[m].add(diff);
+				common_.last_x_diff_median5.add(diff);
 
 				// decompress y coordinate
-				median = common_.last_y_diff_median5[m].get();
+				median = common_.last_y_diff_median5.get();
 				k_bits = decompressors_.ic_dx.getK();
-				diff = decompressors_.ic_dy.decompress(dec, median, (n==1) + ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20 ));
+				diff = decompressors_.ic_dy.decompress(dec, median, ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20 ));
 				common_.last_.y += diff;
-				common_.last_y_diff_median5[m].add(diff);
+				common_.last_y_diff_median5.add(diff);
 
 				// decompress z coordinate
 				k_bits = (decompressors_.ic_dx.getK() + decompressors_.ic_dy.getK()) / 2;
-				common_.last_.z = decompressors_.ic_z.decompress(dec, common_.last_height[l], (n==1) + (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
-				common_.last_height[l] = common_.last_.z;
+				common_.last_.z = decompressors_.ic_z.decompress(dec, common_.last_height, (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
+				common_.last_height = common_.last_.z;
 
 				return common_.last_;
 			}
@@ -175,16 +169,15 @@ namespace laszip {
 			struct __common {
 				type last_;
 
-				std::array<utils::streaming_median<int>, 16> last_x_diff_median5;
-				std::array<utils::streaming_median<int>, 16> last_y_diff_median5;
+				utils::streaming_median<int>    last_x_diff_median5;
+				utils::streaming_median<int>    last_y_diff_median5;
 
-				std::array<int, 8> last_height;
-
+				int last_height;
 				bool have_last_;
 
 				__common() :
+                    last_height(0),
 					have_last_(false) {
-					last_height.fill(0);
 				}
 
 				~__common() {

@@ -2,16 +2,16 @@
 ===============================================================================
 
   FILE:  streams.hpp
-  
+
   CONTENTS:
     Stream abstractions
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2014, Uday Verma, Hobu, Inc.
 
     This is free software; you can redistribute and/or modify it under the
@@ -20,9 +20,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -33,7 +33,7 @@ namespace laszip {
 	namespace streams {
 		struct memory_stream {
 			memory_stream(const char *buf, std::streamsize len) :
-				buf_(buf), len_(len), offset_(0), 
+				buf_(buf), len_(len), offset_(0),
 				is_bad_(false), is_eof_(false), last_read_count_(0) {
 			}
 
@@ -88,6 +88,7 @@ namespace laszip {
 					case std::ios::beg: new_offset_ = p; break;
 					case std::ios::end: new_offset_ = len_ + p - 1; break;
 					case std::ios::cur: new_offset_ = offset_ + p; break;
+                    default: break;
 				}
 
 				if (new_offset_ >= len_ || new_offset_ < 0)
@@ -106,6 +107,6 @@ namespace laszip {
 			std::streamsize last_read_count_;
 		};
 	}
-};
+}
 
 #endif // __streams_hpp__
