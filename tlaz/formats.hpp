@@ -2,7 +2,7 @@
 ===============================================================================
 
   FILE:  formats.hpp
-  
+
   CONTENTS:
     Format support
 
@@ -10,9 +10,9 @@
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,9 +22,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 #ifndef __formats_hpp__
@@ -142,6 +142,18 @@ namespace laszip {
 
 			T value;
 			bool have_value_;
+		};
+
+		struct base_field {
+			typedef std::shared_ptr<base_field> ptr;
+
+			virtual ~base_field() {
+				// hello 1996
+			}
+
+			virtual size_t field_size() = 0;
+			virtual void compressRaw(const char *) {}
+			virtual void decompressRaw(char *) {}
 		};
 
 		template<typename T, typename TDiffMethod = standard_diff_method<T> >
@@ -366,6 +378,111 @@ namespace laszip {
 			return dynamic_decompressor::ptr(
 					new dynamic_decompressor1<TDecoder, TRecordDecompressor>(decoder, decompressor));
 		}
+
+
+		// type-erasure stuff for fields
+		template<
+			typename TEncoderDecoder,
+			typename TField
+		>
+		struct dynamic_compressor_field : base_field {
+			dynamic_compressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
+
+			virtual void compressRaw(const char *in) {
+				typedef packers<typename TField::type> p;
+
+				auto to_compress = p::unpack(in);
+				field_.compressWith(encdec_, to_compress);
+			}
+
+			virtual size_t field_size() {
+				return sizeof(typename TField::type);
+			}
+
+			TEncoderDecoder& encdec_;
+			TField field_;
+		};
+
+		template<
+			typename TEncoderDecoder,
+			typename TField
+		>
+		struct dynamic_decompressor_field : base_field {
+			dynamic_decompressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
+
+			virtual void decompressRaw(char *out) {
+				typedef packers<typename TField::type> p;
+
+				auto decomp = field_.decompressWith(encdec_);
+				p::pack(decomp, out);
+			}
+
+			virtual size_t field_size() {
+				return sizeof(typename TField::type);
+			}
+
+			TEncoderDecoder& encdec_;
+			TField field_;
+		};
+
+		template<
+			typename TEncoder
+		>
+		struct dynamic_field_compressor: dynamic_compressor {
+			dynamic_field_compressor(TEncoder& encoder) : enc_(encoder), fields_() { }
+
+			template<typename TFieldType>
+			void add_field() {
+				fields_.push_back(base_field::ptr(new
+							dynamic_compressor_field<TEncoder, field<TFieldType> >(enc_)));
+			};
+
+			virtual void compress(const char *in) {
+                size_t offset = 0;
+                for (auto f: fields_) {
+                    f->compressRaw(in + offset);
+                    offset += f->field_size();
+                }
+			}
+
+			TEncoder& enc_;
+			std::vector<base_field::ptr> fields_;
+		};
+
+
+        template<
+            typename TDecoder
+        >
+        struct dynamic_field_decompressor : dynamic_decompressor {
+			dynamic_field_decompressor(TDecoder& decoder) : dec_(decoder), fields_(), first_decomp_(true) { }
+
+			template<typename TFieldType>
+			void add_field() {
+				fields_.push_back(base_field::ptr(new
+							dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
+			};
+
+			virtual void decompress(char *out) {
+				// will do soemthign with in
+                size_t offset = 0;
+                for (auto f: fields_) {
+                    f->decompressRaw(out + offset);
+                    offset += f->field_size();
+                }
+
+                // the decoder needs to be told that it should read the init bytes
+                // after the first record has been read
+                //
+                if (first_decomp_) {
+                    first_decomp_ = false;
+                    dec_.readInitBytes();
+                }
+			}
+
+			TDecoder& dec_;
+			std::vector<base_field::ptr> fields_;
+            bool first_decomp_;
+        };
 	}
 }
 
