@@ -1194,4 +1194,195 @@ BOOST_AUTO_TEST_CASE(just_xyz_encodes_and_decodes) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
+    const int POINT_COUNT = 1000;
+
+	using namespace laszip;
+	using namespace laszip::formats;
+
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<int>();
+
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            int a = rand();
+            comp->compress((const char*)&a);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<int>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            int a = 0;
+            decomp->decompress((char *)&a);
+
+            BOOST_CHECK_EQUAL(a, rand());
+        }
+    }
+
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+
+        int arr[10];
+
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            for (int j = 0 ; j < 10 ; j ++) {
+                arr[j] = rand();
+            }
+
+            comp->compress((const char*)arr);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            decomp->decompress((char *)arr);
+
+            for (int j = 0 ; j < 10 ; j ++) {
+                BOOST_CHECK_EQUAL(arr[j], rand());
+            }
+        }
+    }
+
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<las::gpstime>();
+
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            las::gpstime g(makegps(rand(), rand()));
+            comp->compress((const char*)&g);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<las::gpstime>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            las::gpstime a;
+            decomp->decompress((char *)&a);
+
+            BOOST_CHECK_EQUAL(a.value, makegps(rand(), rand()));
+        }
+    }
+
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<las::gpstime>();
+        comp->add_field<las::rgb>();
+        comp->add_field<short>();
+        comp->add_field<unsigned short>();
+        comp->add_field<int>();
+
+        // make sure if you're writing structs directly, they need to be packed in tight
+#pragma pack(push, 1)
+        struct {
+            las::gpstime t;
+            las::rgb c;
+            short a;
+            unsigned short b;
+            int d;
+        } data;
+#pragma pack(pop)
+
+        auto randshort = []() -> short {
+            return rand() % std::numeric_limits<short>::max();
+        };
+
+        auto randushort = []() -> unsigned short {
+            return rand() % std::numeric_limits<unsigned short>::max();
+        };
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            data.t = las::gpstime(makegps(rand(), rand()));
+            data.c = las::rgb(randushort(), randushort(), randushort());
+            data.a = randshort();
+            data.b = randushort();
+            data.d =  rand();
+
+            comp->compress((const char*)&data);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<las::rgb>();
+        decomp->add_field<short>();
+        decomp->add_field<unsigned short>();
+        decomp->add_field<int>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            decomp->decompress((char *)&data);
+
+            BOOST_CHECK_EQUAL(data.t.value, makegps(rand(), rand()));
+            BOOST_CHECK_EQUAL(data.c.r, randushort());
+            BOOST_CHECK_EQUAL(data.c.g, randushort());
+            BOOST_CHECK_EQUAL(data.c.b, randushort());
+            BOOST_CHECK_EQUAL(data.a, randshort());
+            BOOST_CHECK_EQUAL(data.b, randushort());
+            BOOST_CHECK_EQUAL(data.d, rand());
+        }
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

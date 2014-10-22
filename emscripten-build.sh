@@ -1,3 +1,4 @@
+#!/bin/sh
 if [ -z "$EMSCRIPTEN" ] ; then
 	echo "You need to set the EMSCRIPTEN environment variable."
 	exit 1
