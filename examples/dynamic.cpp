@@ -62,7 +62,7 @@ int main() {
         short c;
     } data;
 
-    auto compressor = new dynamic_field_compressor<EncoderType>(encoder);
+    auto compressor = make_dynamic_compressor(encoder);
     compressor->add_field<las::xyz>();
     compressor->add_field<int>();
     compressor->add_field<int>();
@@ -86,8 +86,6 @@ int main() {
 
     encoder.done();
 
-    delete compressor; // much nice
-
     std::cout << "Points compressed to: " << s.buf.size() << " bytes" << std::endl;
 
     DecoderType decoder(s);
@@ -95,7 +93,7 @@ int main() {
     // Print some fun stuff about compression
     //
 
-    auto decompressor = new dynamic_field_decompressor<DecoderType>(decoder);
+    auto decompressor = make_dynamic_decompressor(decoder);
     decompressor->add_field<las::xyz>();
     decompressor->add_field<int>();
     decompressor->add_field<int>();
@@ -117,8 +115,6 @@ int main() {
                 data.c != i + 10000)
             throw std::runtime_error("I have failed thee!");
     }
-
-    delete decompressor;
 
     // And we're done
     std::cout << "Done!" << std::endl;

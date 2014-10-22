@@ -379,7 +379,6 @@ namespace laszip {
 					new dynamic_decompressor1<TDecoder, TRecordDecompressor>(decoder, decompressor));
 		}
 
-
 		// type-erasure stuff for fields
 		template<
 			typename TEncoderDecoder,
@@ -429,6 +428,9 @@ namespace laszip {
 			typename TEncoder
 		>
 		struct dynamic_field_compressor: dynamic_compressor {
+            typedef dynamic_field_compressor<TEncoder>  this_type;
+            typedef std::shared_ptr<this_type>          ptr;
+
 			dynamic_field_compressor(TEncoder& encoder) : enc_(encoder), fields_() { }
 
 			template<typename TFieldType>
@@ -454,6 +456,9 @@ namespace laszip {
             typename TDecoder
         >
         struct dynamic_field_decompressor : dynamic_decompressor {
+            typedef dynamic_field_decompressor<TDecoder> this_type;
+            typedef std::shared_ptr<this_type>           ptr;
+
 			dynamic_field_decompressor(TDecoder& decoder) : dec_(decoder), fields_(), first_decomp_(true) { }
 
 			template<typename TFieldType>
@@ -483,6 +488,25 @@ namespace laszip {
 			std::vector<base_field::ptr> fields_;
             bool first_decomp_;
         };
+
+        template<
+            typename TEncoder
+        >
+        static typename dynamic_field_compressor<TEncoder>::ptr make_dynamic_compressor(TEncoder& encoder) {
+            typedef typename dynamic_field_compressor<TEncoder>::ptr ptr;
+            return ptr(new dynamic_field_compressor<TEncoder>(encoder));
+        }
+
+
+		template<
+			typename TDecoder
+		>
+		static typename dynamic_field_decompressor<TDecoder>::ptr make_dynamic_decompressor(TDecoder& decoder) {
+            typedef typename dynamic_field_decompressor<TDecoder>::ptr ptr;
+            return ptr(new dynamic_field_decompressor<TDecoder>(decoder));
+		}
+
+
 	}
 }
 
