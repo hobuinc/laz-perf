@@ -2,14 +2,14 @@
 ===============================================================================
 
   FILE:  brute_point10.cpp
-  
+
   CONTENTS:
     Brute force benchmarking
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
 
     (c) 2014, Uday Verma, Hobu, Inc.
@@ -20,13 +20,13 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
-#include "../common/common.hpp"
+#include "common/common.hpp"
 
 #include "compressor.hpp"
 #include "decompressor.hpp"
@@ -79,7 +79,7 @@ struct SuchStream {
 
 	std::vector<unsigned char> buf;	// cuz I'm ze faste
 	size_t idx;
-	
+
 	float totalTime;
 };
 

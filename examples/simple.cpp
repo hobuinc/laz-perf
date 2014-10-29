@@ -2,7 +2,7 @@
 // Run the templatize laz
 //
 
-#include "../common/common.hpp"
+#include "common/common.hpp"
 #include "compressor.hpp"
 #include "decompressor.hpp"
 

@@ -2,17 +2,17 @@
 ===============================================================================
 
   FILE:  model.hpp
-  
+
   CONTENTS:
-    
+
 
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,16 +22,16 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
 #ifndef __model_hpp__
 #define __model_hpp__
 
-#include "../common/types.hpp"
+#include "common/types.hpp"
 #include "util.hpp"
 
 #include <stdexcept>
@@ -39,7 +39,7 @@
 namespace laszip {
 	namespace models {
 		struct arithmetic {
-			arithmetic(U32 syms, bool com = false, U32 *initTable = nullptr) : 
+			arithmetic(U32 syms, bool com = false, U32 *initTable = nullptr) :
 				symbols(syms), compress(com),
 				distribution(nullptr), symbol_count(nullptr), decoder_table(nullptr) {
 				if ( (symbols < 2) || (symbols > (1 << 11)) ) {

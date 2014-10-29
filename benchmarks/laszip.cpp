@@ -2,14 +2,14 @@
 ===============================================================================
 
   FILE:  laszip.cpp
-  
+
   CONTENTS:
     Comparison with LASzip
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
 
     (c) 2014, Uday Verma, Hobu, Inc.
@@ -20,9 +20,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -36,11 +36,11 @@
 #include <vector>
 
 
-#include <laszip/laszip.hpp>    
+#include <laszip/laszip.hpp>
 #include <laszip/lasunzipper.hpp>
 #include <laszip/laszipper.hpp>
 
-#include "../common/common.hpp"
+#include "common/common.hpp"
 
 #include "io.hpp"
 
@@ -173,14 +173,14 @@ class VLR {
 			}
 
 			return;
-		}    
+		}
 };
 
 // LASzip stuff
 std::vector<VLR*> readVLRs(FILE* fp, int count)
 {
     std::vector<VLR*> output;
-    
+
     for (int i = 0; i < count; ++i)
     {
         // std::cout << "Reading vlr #:" << i << std::endl;
@@ -195,20 +195,20 @@ VLR* getLASzipVLR(std::vector<VLR*> const& vlrs)
 {
     std::string userId("laszip encoded");
     uint16_t recordId(22204);
-    
+
     for(size_t i = 0; i < vlrs.size(); ++i)
     {
         VLR* vlr = vlrs[i];
         std::string const& uid = vlr->userId;
         uint16_t rid = vlr->recordId;
-        // 
+        //
         // std::cout << "VLR recordId: " << rid << std::endl;
         // std::cout << "VLR userid: '" << uid <<"'"<< std::endl;
         // std::cout << "uid size" << uid.size() << std::endl;
-        // 
+        //
         // std::cout << "uid equal: " << boost::iequals(uid, userId) << std::endl;
         // std::cout << "rid equal: " << (rid == recordId) << std::endl;
-        
+
         if (uid == userId && rid == recordId)
             return vlr;
     }
@@ -269,7 +269,7 @@ class LASzipInstance {
   {
   }
 
-  virtual ~LASzipInstance() 
+  virtual ~LASzipInstance()
   {
   }
 
@@ -280,7 +280,7 @@ class LASzipInstance {
         {
             return false;
         }
-        
+
         char magic[4] = {'\0'};
         int numRead = fread(&magic, 1, 4, fp_);
         if (numRead != 4)
@@ -295,14 +295,14 @@ class LASzipInstance {
         {
             return false;
         }
-        
+
         fseek(fp_, 0, SEEK_SET);
 
 		readHeader(header_);
 
         return true;
     }
-    
+
     bool readHeader(LASHeader& header)
     {
         fseek(fp_, 32*3 + 11, SEEK_SET);
@@ -311,7 +311,7 @@ class LASzipInstance {
         {
             return false;
         }
-    
+
         fseek(fp_, 32*3, SEEK_SET);
         result = fread(&header.data_offset, 4, 1, fp_);
         if (result != 1)
@@ -325,7 +325,7 @@ class LASzipInstance {
         {
             return false;
         }
-    
+
 
         fseek(fp_, 32*3-2, SEEK_SET);
         result = fread(&header.header_size, 2, 1, fp_);
@@ -343,14 +343,14 @@ class LASzipInstance {
 
         uint8_t compression_bit_7 = (header.point_format_id & 0x80) >> 7;
         uint8_t compression_bit_6 = (header.point_format_id & 0x40) >> 6;
-        
+
         if (!compression_bit_7 && !compression_bit_6 )
         {
             return false;
         }
         if (compression_bit_7 && compression_bit_6)
         {
-            return false;            
+            return false;
         }
 
         header.point_format_id = header.point_format_id & 0x3f;
@@ -360,7 +360,7 @@ class LASzipInstance {
         if (result != 1)
         {
             return false;
-        }        
+        }
 
 
         size_t start = 32*3 + 35;
@@ -368,47 +368,47 @@ class LASzipInstance {
 
         result = fread(&header.scale, 8, 3, fp_ );
         if (result != 3)
-        {       
+        {
             return false;
         }
-        
+
 
         result = fread(&header.offset, 8, 3, fp_ );
         if (result != 3)
-        {      
+        {
             return false;
         }
-        
+
         result = fread(&header.maxs[0], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
 
         result = fread(&header.mins[0], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
         result = fread(&header.maxs[1], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
         result = fread(&header.mins[1], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
 
         result = fread(&header.maxs[2], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
         result = fread(&header.mins[2], 8, 1, fp_ );
         if (result != 1)
-        {      
+        {
             return false;
         }
 
@@ -416,7 +416,7 @@ class LASzipInstance {
         fseek(fp_, header_.header_size, SEEK_SET);
         std::vector<VLR*> vlrs = readVLRs(fp_, header_.vlr_count);
         VLR* zvlr = getLASzipVLR(vlrs);
-    
+
         if (!zvlr)
         {
             return false;
@@ -426,19 +426,19 @@ class LASzipInstance {
         {
             return false;
         }
-    
+
         fseek(fp_, header_.data_offset, SEEK_SET);
         stat = unzipper_.open(fp_, &zip_);
         if (!stat)
-        {       
+        {
             return false;
         }
-        
+
         for (size_t i = 0; i < vlrs.size(); ++i)
         {
             delete vlrs[i];
         }
-        unsigned int point_offset(0); 
+        unsigned int point_offset(0);
         point_ = new unsigned char*[zip_.num_items];
         uint32_t point_size(0);
         for (unsigned i = 0; i < zip_.num_items; i++)
@@ -453,7 +453,7 @@ class LASzipInstance {
             point_[i] = &(bytes_[point_offset]);
             point_offset += zip_.items[i].size;
         }
-                
+
         return true;
     }
 
@@ -474,7 +474,7 @@ class LASzipInstance {
 	}
 
 
-  void readPoint() 
+  void readPoint()
   {
 	  unzipper_.read(point_);
 	  pointIndex_++;
@@ -521,7 +521,7 @@ float bench_tlaz() {
 
 
 	auto start = common::tick();
-	for (size_t i = 0 ; i < limit ; i ++) 
+	for (size_t i = 0 ; i < limit ; i ++)
 		f.readPoint(buf);
 
 	t = common::since(start);

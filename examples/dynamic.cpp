@@ -2,7 +2,7 @@
 // Do some dynamic record stuff
 //
 
-#include "../common/common.hpp"
+#include "common/common.hpp"
 #include "compressor.hpp"
 #include "decompressor.hpp"
 

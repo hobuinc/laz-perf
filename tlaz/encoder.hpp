@@ -2,7 +2,7 @@
 ===============================================================================
 
   FILE:  encoder.hpp
-  
+
   CONTENTS:
     Encoder stuff
 
@@ -10,9 +10,9 @@
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,16 +22,16 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
 #ifndef __encoder_hpp__
 #define __encoder_hpp__
 
-#include "../common/types.hpp"
+#include "common/types.hpp"
 
 namespace laszip {
 	namespace encoders {
@@ -222,8 +222,8 @@ namespace laszip {
 					else
 						p--;
 					assert(outbuffer <= p);
-					assert(p < endbuffer);    
-					assert(outbyte < endbuffer);    
+					assert(p < endbuffer);
+					assert(outbyte < endbuffer);
 				}
 				++*p;
 			}
@@ -231,8 +231,8 @@ namespace laszip {
 			void renorm_enc_interval() {
 				do {                                          // output and discard top byte
 					assert(outbuffer <= outbyte);
-					assert(outbyte < endbuffer);    
-					assert(outbyte < endbyte);    
+					assert(outbyte < endbuffer);
+					assert(outbyte < endbyte);
 					*outbyte++ = (U8)(base >> 24);
 					if (outbyte == endbyte) manage_outbuffer();
 					base <<= 8;
@@ -244,7 +244,7 @@ namespace laszip {
 				outstream.putBytes(outbyte, AC_BUFFER_SIZE);
 				endbyte = outbyte + AC_BUFFER_SIZE;
 				assert(endbyte > outbyte);
-				assert(outbyte < endbuffer);    
+				assert(outbyte < endbuffer);
 			}
 
 			arithmetic<TOutStream>(const arithmetic<TOutStream>&) = delete;

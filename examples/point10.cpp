@@ -2,7 +2,7 @@
 // Test point10 stuff
 //
 
-#include "../common/common.hpp"
+#include "common/common.hpp"
 #include "compressor.hpp"
 #include "decompressor.hpp"
 
