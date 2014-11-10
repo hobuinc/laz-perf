@@ -2,17 +2,17 @@
 ===============================================================================
 
   FILE:  common.hpp
-  
+
   CONTENTS:
-    
+
 
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,23 +22,22 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
-#ifndef __common_hpp__
-#define __common_hpp__
+#pragma once
 
 #include <chrono>
 
 namespace common {
-	std::chrono::time_point<std::chrono::high_resolution_clock> tick() {
+	inline std::chrono::time_point<std::chrono::high_resolution_clock> tick() {
 		return std::chrono::high_resolution_clock::now();
 	}
 
-	float since(const std::chrono::time_point<std::chrono::high_resolution_clock>& p) {
+	inline float since(const std::chrono::time_point<std::chrono::high_resolution_clock>& p) {
 		using namespace std::chrono;
 
 		auto now = high_resolution_clock::now();
@@ -46,5 +45,3 @@ namespace common {
 	}
 }
 
-
-#endif // __common_hpp__
