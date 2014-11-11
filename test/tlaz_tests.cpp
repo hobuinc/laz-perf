@@ -1385,4 +1385,69 @@ BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(dynamic_can_do_blind_compression) {
+    const int POINT_COUNT = 10000;
+
+	using namespace laszip;
+	using namespace laszip::formats;
+
+#pragma pack(push, 1)
+    struct {
+        double x, y, z;
+        float  r, g, b;
+    } p1, p2;
+#pragma pack(pop)
+
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<las::gpstime>();
+        comp->add_field<las::gpstime>();
+        comp->add_field<las::gpstime>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            p1.x = static_cast<double>(rand());
+            p1.y = static_cast<double>(rand());
+            p1.z = static_cast<double>(rand());
+
+            p1.r = static_cast<float>(rand());
+            p1.g = static_cast<float>(rand());
+            p1.b = static_cast<float>(rand());
+
+            comp->compress((const char*)&p1);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            decomp->decompress((char *)&p2);
+
+            BOOST_CHECK_EQUAL(p2.x, static_cast<double>(rand()));
+            BOOST_CHECK_EQUAL(p2.y, static_cast<double>(rand()));
+            BOOST_CHECK_EQUAL(p2.z, static_cast<double>(rand()));
+            BOOST_CHECK_EQUAL(p2.r, static_cast<float>(rand()));
+            BOOST_CHECK_EQUAL(p2.g, static_cast<float>(rand()));
+            BOOST_CHECK_EQUAL(p2.b, static_cast<float>(rand()));
+        }
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
