@@ -1448,6 +1448,56 @@ BOOST_AUTO_TEST_CASE(dynamic_can_do_blind_compression) {
             BOOST_CHECK_EQUAL(p2.b, static_cast<float>(rand()));
         }
     }
+    {
+        SuchStream s;
+        encoders::arithmetic<SuchStream> encoder(s);
+        auto comp = make_dynamic_compressor(encoder);
+
+        comp->add_field<las::gpstime>();
+        comp->add_field<las::gpstime>();
+        comp->add_field<las::gpstime>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+        comp->add_field<int>();
+
+        time_t seed = time(NULL);
+        srand(seed);
+
+        for (int i = 0 ; i < POINT_COUNT; i ++) {
+            p1.x = static_cast<double>(rand()) / static_cast<double>(rand());
+            p1.y = static_cast<double>(rand()) / static_cast<double>(rand());
+            p1.z = static_cast<double>(rand()) / static_cast<double>(rand());
+
+            p1.r = static_cast<float>(rand()) / static_cast<double>(rand());
+            p1.g = static_cast<float>(rand()) / static_cast<double>(rand());
+            p1.b = static_cast<float>(rand()) / static_cast<double>(rand());
+
+            comp->compress((const char*)&p1);
+        }
+        encoder.done();
+
+        decoders::arithmetic<SuchStream> decoder(s);
+        auto decomp = make_dynamic_decompressor(decoder);
+
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<las::gpstime>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+        decomp->add_field<int>();
+
+        srand(seed);
+        for (int i = 0 ; i < POINT_COUNT ; i ++) {
+            decomp->decompress((char *)&p2);
+
+            BOOST_CHECK_CLOSE(p2.x, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
+            BOOST_CHECK_CLOSE(p2.y, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
+            BOOST_CHECK_CLOSE(p2.z, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
+            BOOST_CHECK_CLOSE(p2.r, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
+            BOOST_CHECK_CLOSE(p2.g, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
+            BOOST_CHECK_CLOSE(p2.b, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
+        }
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -40,6 +40,9 @@ add_test(NAME binary_matches_laszip
 add_test(NAME dynamic_compressor_works
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_tests/dynamic_compressor_works)
+add_test(NAME dynamic_can_do_blind_compression
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND tlaz_tests --run_test=tlaz_tests/dynamic_can_do_blind_compression)
 add_test(NAME can_compress_decompress_gpstime
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMAND tlaz_tests --run_test=tlaz_tests/can_compress_decompress_gpstime)
