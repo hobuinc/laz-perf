@@ -30,6 +30,7 @@
 #ifndef __formats_hpp__
 #define __formats_hpp__
 
+#include <cstdint>
 #include <iostream>
 #include "compressor.hpp"
 #include "decompressor.hpp"
@@ -43,12 +44,12 @@ namespace laszip {
 		};
 
 		template<>
-		struct packers<unsigned int> {
+		struct packers<uint32_t> {
 			static unsigned int unpack(const char *in) {
-				unsigned int b1 = in[0],
-							 b2 = in[1],
-							 b3 = in[2],
-							 b4 = in[3];
+				uint32_t b1 = in[0],
+					b2 = in[1],
+					b3 = in[2],
+					b4 = in[3];
 
 				return (b4 << 24) |
 					((b3 & 0xFF) << 16) |
@@ -56,7 +57,7 @@ namespace laszip {
 					(b1 & 0xFF);
 			}
 
-			static void pack(const unsigned int& v, char *out) {
+			static void pack(const uint32_t& v, char *out) {
 				out[3] = (v >> 24) & 0xFF;
 				out[2] = (v >> 16) & 0xFF;
 				out[1] = (v >> 8) & 0xFF;
@@ -65,53 +66,65 @@ namespace laszip {
 		};
 
 		template<>
-		struct packers<unsigned short> {
+		struct packers<uint16_t> {
 			static unsigned short unpack(const char *in) {
-				unsigned short b1 = in[0],
+				uint16_t b1 = in[0],
 							 b2 = in[1];
 
 				return (((b2 & 0xFF) << 8) | (b1 & 0xFF));
 			}
 
-			static void pack(const unsigned short& v, char *out) {
+			static void pack(const uint16_t& v, char *out) {
 				out[1] = (v >> 8) & 0xFF;
 				out[0] = v & 0xFF;
 			}
 		};
 
 		template<>
-		struct packers<unsigned char> {
+		struct packers<uint8_t> {
 			static unsigned char unpack(const char *in) {
-				return static_cast<unsigned char>(in[0]);
+				return static_cast<uint8_t>(in[0]);
 			}
 
-			static void pack(const unsigned char& c, char *out) {
-				out[0] = static_cast<char>(c);
+			static void pack(const uint8_t& c, char *out) {
+				out[0] = static_cast<int8_t>(c);
 			}
 		};
 
 		template<>
-		struct packers<int> {
+		struct packers<int32_t> {
 			static int unpack(const char *in) {
-				return static_cast<int>(packers<unsigned int>::unpack(in));
+				return static_cast<int32_t>(packers<uint32_t>::unpack(in));
 			}
 
-			static void pack(const int& t, char *out) {
-				packers<unsigned int>::pack(static_cast<unsigned int>(t), out);
+			static void pack(const int32_t& t, char *out) {
+				packers<uint32_t>::pack(static_cast<uint32_t>(t), out);
 			}
 		};
 
 		template<>
-		struct packers<short> {
+		struct packers<int16_t> {
 			static short unpack(const char *in) {
-				return static_cast<short>(packers<unsigned short>::unpack(in));
+				return static_cast<int16_t>(packers<uint16_t>::unpack(in));
 			}
 
-			static void pack(const short& t, char *out) {
-				packers<unsigned short>::pack(static_cast<unsigned short>(t), out);
+			static void pack(const int16_t& t, char *out) {
+				packers<uint16_t>::pack(static_cast<uint16_t>(t), out);
 			}
 		};
 
+		template<>
+		struct packers<int8_t> {
+			static int8_t unpack(const char *in) {
+				return in[0];
+			}
+
+			static void pack(const int8_t& t, char *out) {
+				out[0] = t;
+			}
+		};
+
+        // Char is neither signed char nor unsigned char.
 		template<>
 		struct packers<char> {
 			static char unpack(const char *in) {
