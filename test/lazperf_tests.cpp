@@ -1,7 +1,7 @@
 /*
 ===============================================================================
 
-  FILE:  tlaz_tests.cpp
+  FILE:  lazperf_tests.cpp
 
   CONTENTS:
 
@@ -69,7 +69,7 @@ struct SuchStream {
 	size_t idx;
 };
 
-BOOST_AUTO_TEST_SUITE(tlaz_tests)
+BOOST_AUTO_TEST_SUITE(lazperf_tests)
 
 
 BOOST_AUTO_TEST_CASE(packers_are_symmetric) {

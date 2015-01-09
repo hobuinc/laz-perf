@@ -1,17 +1,17 @@
 /*
 ===============================================================================
 
-  FILE:  tlaz.cpp
-  
+  FILE:  main.cpp
+
   CONTENTS:
     Run templatized LASzip
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2014, Uday Verma, Hobu, Inc.
 
     This is free software; you can redistribute and/or modify it under the
@@ -20,9 +20,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 

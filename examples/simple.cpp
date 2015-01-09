@@ -1,4 +1,4 @@
-// tlaz.cpp
+// simple.cpp
 // Run the templatize laz
 //
 

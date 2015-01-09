@@ -1,13 +1,13 @@
-tlaz/tlaz
+lazperf/lazperf
 *.o
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-tlaz-config.cmake
-tlaz-configVersion.cmake
+lazperf-config.cmake
+lazperf-configVersion.cmake
 Makefile
 install_manifest.txt
-test/tlaz_tests
+test/lazperf_tests
 examples/simple
 examples/point10
 examples/readlaz

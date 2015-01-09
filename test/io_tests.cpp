@@ -2,14 +2,14 @@
 ===============================================================================
 
   FILE:  io_tests.cpp
-  
+
   CONTENTS:
     Factory to create dynamic compressors and decompressors
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
 
     (c) 2014, Uday Verma, Hobu, Inc.
@@ -20,9 +20,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -33,7 +33,7 @@
 
 #include "reader.hpp"
 
-BOOST_AUTO_TEST_SUITE(tlaz_io_tests)
+BOOST_AUTO_TEST_SUITE(lazperf_io_tests)
 
 
 BOOST_AUTO_TEST_CASE(io_structs_are_of_correct_size) {
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(parses_laszip_vlr_correctly) {
 
 		BOOST_CHECK_EQUAL(vlr.compressor, 2);
 		BOOST_CHECK_EQUAL(vlr.coder, 0);
-		
+
 		BOOST_CHECK_EQUAL(vlr.version.major, 2);
 		BOOST_CHECK_EQUAL(vlr.version.minor, 2);
 		BOOST_CHECK_EQUAL(vlr.version.revision, 0);
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(decodes_single_chunk_files_correctly) {
 			BOOST_CHECK_EQUAL(p.y, pout.y);
 			BOOST_CHECK_EQUAL(p.z, pout.z);
 			BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-			BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+			BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 			BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 			BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 			BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files) {
 				BOOST_CHECK_EQUAL(p.y, pout.y);
 				BOOST_CHECK_EQUAL(p.z, pout.z);
 				BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-				BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+				BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 				BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 				BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 				BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(compression_decompression_is_symmetric) {
 				BOOST_CHECK_EQUAL(p.y, pout.y);
 				BOOST_CHECK_EQUAL(p.z, pout.z);
 				BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-				BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+				BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 				BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 				BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 				BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE(can_decode_large_files_from_memory) {
 				BOOST_CHECK_EQUAL(p.y, pout.y);
 				BOOST_CHECK_EQUAL(p.z, pout.z);
 				BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-				BOOST_CHECK_EQUAL(p.return_number, pout.return_number); 
+				BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
 				BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
 				BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
 				BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);

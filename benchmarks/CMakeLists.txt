@@ -1,7 +1,7 @@
-include_directories(../tlaz)
+include_directories(../laz-perf)
 
 
-set(ALL_LIBRARIES ${TLAZ_DEPENDENT_LIBRARIES})
+set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES})
 
 add_executable(brute brute.cpp)
 add_executable(brute_point10 brute_point10.cpp)

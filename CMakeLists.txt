@@ -1,5 +1,5 @@
 #
-# top-level CMake configuration file for TLAZ
+# top-level CMake configuration file for LAZPERF
 #
 # (based originally on the libLAS files copyright Mateusz Loskot)
 
@@ -9,7 +9,7 @@ else()
 cmake_minimum_required(VERSION 2.6.0)
 endif()
 
-project(TLAZ)
+project(LAZPERF)
 
 #------------------------------------------------------------------------------
 # internal cmake settings
@@ -28,13 +28,13 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 # general settings
 #------------------------------------------------------------------------------
 
-set(TLAZ_VERSION_MAJOR "0")
-set(TLAZ_VERSION_MINOR "0")
-set(TLAZ_VERSION_PATCH "1")
+set(LAZPERF_VERSION_MAJOR "0")
+set(LAZPERF_VERSION_MINOR "0")
+set(LAZPERF_VERSION_PATCH "1")
 
-set(TLAZ_VERSION "${TLAZ_VERSION_MAJOR}.${TLAZ_VERSION_MINOR}.${TLAZ_VERSION_PATCH}")
-set(TLAZ_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
-set(TLAZ_C_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
+set(LAZPERF_VERSION "${LAZPERF_VERSION_MAJOR}.${LAZPERF_VERSION_MINOR}.${LAZPERF_VERSION_PATCH}")
+set(LAZPERF_LIB_SOVERSION ${LAZPERF_VERSION_MAJOR})
+set(LAZPERF_C_LIB_SOVERSION ${LAZPERF_VERSION_MAJOR})
 
 set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
 
@@ -44,7 +44,7 @@ set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
 #------------------------------------------------------------------------------
 
 # Choose package components
-set(WITH_TESTS TRUE CACHE BOOL "Choose if TLAZ unit tests should be built")
+set(WITH_TESTS TRUE CACHE BOOL "Choose if LAZPERF unit tests should be built")
 
 
 #------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ set(WITH_TESTS TRUE CACHE BOOL "Choose if TLAZ unit tests should be built")
 #------------------------------------------------------------------------------
 
 # Name of test suite runner
-set(TLAZ_UNIT_TEST tlaz_tests)
+set(LAZPERF_UNIT_TEST lazperf_tests)
 
 
 
@@ -67,7 +67,7 @@ if(NOT MSVC_IDE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel" FORCE)
   endif()
-  message(STATUS "Setting TLAZ build type - ${CMAKE_BUILD_TYPE}")
+  message(STATUS "Setting LAZPERF build type - ${CMAKE_BUILD_TYPE}")
 endif()
 
 set(PROJCL_BUILD_TYPE ${CMAKE_BUILD_TYPE})
@@ -85,17 +85,17 @@ if(WIN32)
       add_definitions(-D_CRT_NONSTDC_NO_WARNING)
       add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 
-      set(TLAZ_COMPILER_MSVC 1)
+      set(LAZPERF_COMPILER_MSVC 1)
       if (MSVC12)
-        set(TLAZ_COMPILER_VC12 1)
+        set(LAZPERF_COMPILER_VC12 1)
       elseif (MSVC11)
-        set(TLAZ_COMPILER_VC11 1)
+        set(LAZPERF_COMPILER_VC11 1)
       elseif (MSVC10)
-        set(TLAZ_COMPILER_VC10 1)
+        set(LAZPERF_COMPILER_VC10 1)
       elseif (MSVC9)
-        set(TLAZ_COMPILER_VC9 1)
+        set(LAZPERF_COMPILER_VC9 1)
       elseif (MSVC8)
-        set(TLAZ_COMPILER_VC8 1)
+        set(LAZPERF_COMPILER_VC8 1)
       endif()
     endif()
 
@@ -107,28 +107,28 @@ if(WIN32)
     endif()
   endif()
 
-  set(TLAZ_PLATFORM_WIN32 1)
+  set(LAZPERF_PLATFORM_WIN32 1)
 
 else()
   # not WIN32
 
   # Recommended C++ compilation flags
   # -Weffc++
-  set(TLAZ_COMMON_CXX_FLAGS
+  set(LAZPERF_COMMON_CXX_FLAGS
 	  "-std=c++11 -Wextra -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
 
   if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TLAZ_COMMON_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}")
     if (CMAKE_COMPILER_IS_GNUCXX)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     endif()
 
-    set(TLAZ_COMPILER_GCC 1)
+    set(LAZPERF_COMPILER_GCC 1)
 
   elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER}" MATCHES "clang")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TLAZ_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
-    set(TLAZ_COMPILER_CLANG 1)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
+    set(LAZPERF_COMPILER_CLANG 1)
   endif()
 
   # Compiler-specific C++11 activation.
@@ -166,7 +166,7 @@ else(WIN32 AND MSVC)
 	set(BOOST_USE_STATIC_RUNTIME OFF)
 endif(WIN32 AND MSVC)
 
-set(TLAZ_DEPENDENT_LIBRARIES "")
+set(LAZPERF_DEPENDENT_LIBRARIES "")
 
 find_package(Boost "1.55.0" COMPONENTS unit_test_framework)
 if(NOT Boost_FOUND)
@@ -181,7 +181,7 @@ else()
 	if(WIN32 AND MSVC)
 		link_directories(${Boost_LIBRARY_DIRS})
 	else()
-		set(TLAZ_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
+		set(LAZPERF_DEPENDENT_LIBRARIES ${Boost_LIBRARIES})
 	endif()
 endif(NOT Boost_FOUND)
 
@@ -215,16 +215,16 @@ endif()
 if (WIN32 AND NOT CYGWIN)
   set (DEF_INSTALL_CMAKE_DIR cmake)
 else ()
-  set (DEF_INSTALL_CMAKE_DIR lib/cmake/tlaz)
+  set (DEF_INSTALL_CMAKE_DIR lib/cmake/lazperf)
 endif ()
 set (INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
 
-configure_file (tlaz-config.cmake.in "tlaz-config.cmake" @ONLY)
-configure_file (tlaz-configVersion.cmake.in "tlaz-configVersion.cmake" @ONLY)
+configure_file (lazperf-config.cmake.in "lazperf-config.cmake" @ONLY)
+configure_file (lazperf-configVersion.cmake.in "lazperf-configVersion.cmake" @ONLY)
 
-# Install the tlaz-config.cmake and tlaz-configVersion.cmake
-install (FILES "tlaz-config.cmake" "tlaz-configVersion.cmake"
+# Install the lazperf-config.cmake and lazperf-configVersion.cmake
+install (FILES "lazperf-config.cmake" "lazperf-configVersion.cmake"
     DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
-install(DIRECTORY tlaz DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+install(DIRECTORY laz-perf DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 

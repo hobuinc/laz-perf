@@ -47,10 +47,10 @@
 // Each library will decode autzen.las without doing any IO to write out points
 // The timing will not include time required to initialize encoding etc.
 float bench_laszip();
-float bench_tlaz();
+float bench_lazperf();
 
 int main() {
-	std::vector<float> laztimes, tlaztimes;
+	std::vector<float> laztimes, lazperftimes;
 	// run one kind of test at a time, to give them maximum locality of reference benefit
 
 	std::cout << "Benchmarking laszip: " << std::endl;
@@ -67,25 +67,25 @@ int main() {
 		}
 	}
 
-	std::cout << "Benchmarking tlaz: " << std::endl;
+	std::cout << "Benchmarking lazperf: " << std::endl;
 	for (int i = 0 ; i < 5 ; i ++) {
 		std::cout << (i+1) << ": ";
 
 		if (i >= 2) {
 			std::cout << "    Capturing..." << std::endl;
-			tlaztimes.push_back(bench_tlaz());
+			lazperftimes.push_back(bench_lazperf());
 		}
 		else {
 			std::cout << "    Warming up..." << std::endl;
-			bench_tlaz();
+			bench_lazperf();
 		}
 	}
 
 
 	printf("\n\n");
-	printf("%10s%10s%10s\n", "Index", "LASzip", "tlaz");
+	printf("%10s%10s%10s\n", "Index", "LASzip", "lazperf");
 	for (size_t i = 0 ; i < 3 ; i ++) {
-		printf("%10zu%10.6f%10.6f\n", i, laztimes[i], tlaztimes[i]);
+		printf("%10zu%10.6f%10.6f\n", i, laztimes[i], lazperftimes[i]);
 	}
 
 	return 0;
@@ -511,7 +511,7 @@ float bench_laszip() {
 }
 
 
-float bench_tlaz() {
+float bench_lazperf() {
 	std::ifstream file("test/raw-sets/autzen.laz", std::ios::binary);
 	laszip::io::reader::file f(file);
 	float t;
