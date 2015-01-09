@@ -70,7 +70,7 @@ set(TLAZ_UNIT_TEST tlaz_tests)
 # note we default to debug mode
 if(NOT MSVC_IDE)
   if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING 
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel" FORCE)
   endif()
   message(STATUS "Setting TLAZ build type - ${CMAKE_BUILD_TYPE}")
@@ -104,7 +104,7 @@ if(WIN32)
         set(TLAZ_COMPILER_VC8 1)
       endif()
     endif()
-    
+
     if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
       string(REGEX REPLACE "/W[0-4]" "/W4"
         CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -112,7 +112,7 @@ if(WIN32)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
     endif()
   endif()
-  
+
   set(TLAZ_PLATFORM_WIN32 1)
 
 else()
@@ -129,9 +129,9 @@ else()
     if (CMAKE_COMPILER_IS_GNUCXX)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     endif()
-    
+
     set(TLAZ_COMPILER_GCC 1)
-    
+
   elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER}" MATCHES "clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TLAZ_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
     set(TLAZ_COMPILER_CLANG 1)
@@ -181,7 +181,7 @@ if(NOT Boost_FOUND)
 else()
 
 	include_directories(${Boost_INCLUDE_DIRS})
-	
+
 	# Make sure compilers can find other variants of the libraries (libxxx), also don't explicitly add libraries, just the
 	# path should suffice and auto-linking should take over
 	if(WIN32 AND MSVC)
@@ -217,3 +217,6 @@ if(WITH_TESTS)
 		add_subdirectory(test)
 	endif()
 endif()
+
+install(DIRECTORY tlaz DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
