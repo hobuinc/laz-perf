@@ -450,7 +450,7 @@ namespace laszip {
 			void add_field() {
 				fields_.push_back(base_field::ptr(new
 							dynamic_compressor_field<TEncoder, field<TFieldType> >(enc_)));
-			};
+			}
 
 			virtual void compress(const char *in) {
                 size_t offset = 0;
@@ -478,7 +478,7 @@ namespace laszip {
 			void add_field() {
 				fields_.push_back(base_field::ptr(new
 							dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
-			};
+			}
 
 			virtual void decompress(char *out) {
 				// will do soemthign with in

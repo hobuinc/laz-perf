@@ -6,3 +6,4 @@ cd liblas
 cmake . -DCMAKE_INSTALL_PREFIX=/usr -DWITH_LASZIP=ON
 make
 sudo make install
+
