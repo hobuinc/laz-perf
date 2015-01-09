@@ -25,24 +25,18 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 
 
 #------------------------------------------------------------------------------
-# PDAL general settings
+# general settings
 #------------------------------------------------------------------------------
 
+set(TLAZ_VERSION_MAJOR "0")
+set(TLAZ_VERSION_MINOR "0")
+set(TLAZ_VERSION_PATCH "1")
 
-
-# the next three lines are the ONLY place in the entire pdal system where
-# the version info is hard-coded
-SET(TLAZ_VERSION_MAJOR "0")
-SET(TLAZ_VERSION_MINOR "0")
-SET(TLAZ_VERSION_PATCH "1")
-
-set(TLAZ_VERSION_STRING "${TLAZ_VERSION_MAJOR}.${TLAZ_VERSION_MINOR}.${TLAZ_VERSION_PATCH}")
-SET(TLAZ_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
-SET(TLAZ_C_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
-
+set(TLAZ_VERSION "${TLAZ_VERSION_MAJOR}.${TLAZ_VERSION_MINOR}.${TLAZ_VERSION_PATCH}")
+set(TLAZ_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
+set(TLAZ_C_LIB_SOVERSION ${TLAZ_VERSION_MAJOR})
 
 set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
-
 
 
 #------------------------------------------------------------------------------
@@ -217,6 +211,20 @@ if(WITH_TESTS)
 		add_subdirectory(test)
 	endif()
 endif()
+
+if (WIN32 AND NOT CYGWIN)
+  set (DEF_INSTALL_CMAKE_DIR cmake)
+else ()
+  set (DEF_INSTALL_CMAKE_DIR lib/cmake/tlaz)
+endif ()
+set (INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
+
+configure_file (tlaz-config.cmake.in "tlaz-config.cmake" @ONLY)
+configure_file (tlaz-configVersion.cmake.in "tlaz-configVersion.cmake" @ONLY)
+
+# Install the tlaz-config.cmake and tlaz-configVersion.cmake
+install (FILES "tlaz-config.cmake" "tlaz-configVersion.cmake"
+    DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
 install(DIRECTORY tlaz DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 

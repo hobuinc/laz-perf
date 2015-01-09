@@ -3,6 +3,8 @@ tlaz/tlaz
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+tlaz-config.cmake
+tlaz-configVersion.cmake
 Makefile
 install_manifest.txt
 test/tlaz_tests
