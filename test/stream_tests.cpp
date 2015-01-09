@@ -2,14 +2,14 @@
 ===============================================================================
 
   FILE:  stream_tests.cpp
-  
+
   CONTENTS:
     Factory to create dynamic compressors and decompressors
 
   PROGRAMMERS:
 
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
 
     (c) 2014, Uday Verma, Hobu, Inc.
@@ -20,9 +20,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -30,7 +30,7 @@
 
 #include "streams.hpp"
 
-BOOST_AUTO_TEST_SUITE(tlaz_stream_tests)
+BOOST_AUTO_TEST_SUITE(lazperf_stream_tests)
 
 BOOST_AUTO_TEST_CASE(streams_are_sane) {
 	using namespace laszip::streams;

@@ -2,7 +2,7 @@
 ===============================================================================
 
   FILE:  io.hpp
-  
+
   CONTENTS:
     LAZ io
 
@@ -10,9 +10,9 @@
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,9 +22,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -229,7 +229,7 @@ namespace laszip {
 
 		template<typename StreamType>
 		struct __ifstream_wrapper {
-			__ifstream_wrapper(StreamType& f) : f_(f), offset(0), have(0), 
+			__ifstream_wrapper(StreamType& f) : f_(f), offset(0), have(0),
 				buf_((char*)utils::aligned_malloc(BUF_SIZE)) {
 			}
 
@@ -254,7 +254,7 @@ namespace laszip {
 				offset = have = 0; // when a file is seeked, reset this
 			}
 
-			inline unsigned char getByte() { 
+			inline unsigned char getByte() {
 				fillit_();
 				return static_cast<unsigned char>(buf_[offset++]);
 			}
@@ -610,7 +610,7 @@ namespace laszip {
 		namespace writer {
 #define DefaultChunkSize 50000
 
-			// An object to encapsulate what gets passed to 
+			// An object to encapsulate what gets passed to
 			struct config {
 				vector3<double> scale, offset;
 				unsigned int chunk_size;
@@ -663,10 +663,10 @@ namespace laszip {
 					// write junk to our prelude, we'll overwrite this with
 					// awesome data later
 					//
-					size_t preludeSize = 
+					size_t preludeSize =
 						sizeof(header) +	// the LAS header
 						54 + // size of one vlr header
-						(34 + s.records.size() * 6) + // the LAZ vlr size 
+						(34 + s.records.size() * 6) + // the LAZ vlr size
 						sizeof(int64_t); // chunk table offset
 
 					char *junk = new char[preludeSize];
@@ -683,7 +683,7 @@ namespace laszip {
 						// Time to (re)init the encoder
 						//
 						pcompressor_.reset();
-						if (pencoder_) { 
+						if (pencoder_) {
 							pencoder_->done(); // make sure we flush it out
 							pencoder_.reset();
 						}
@@ -750,7 +750,7 @@ namespace laszip {
 					// Fill up things not filled up by our header
 					//
 					header_.magic[0] = 'L'; header_.magic[1] = 'A';
-					header_.magic[2] = 'S'; header_.magic[3] = 'F'; 
+					header_.magic[2] = 'S'; header_.magic[3] = 'F';
 
 					header_.version.major = 1;
 					header_.version.minor = 2;
@@ -796,7 +796,7 @@ namespace laszip {
 					las_vlr_header.record_length_after_header = static_cast<unsigned short>(34 + (schema_.records.size() * 6));
 
 					strcpy(las_vlr_header.user_id, "laszip encoded");
-					strcpy(las_vlr_header.description, "tlaz variant");
+					strcpy(las_vlr_header.description, "laz-perf variant");
 
 					// write the las vlr header
 					f_.write(reinterpret_cast<char*>(&las_vlr_header), sizeof(las_vlr_header));
@@ -826,7 +826,7 @@ namespace laszip {
 				void _writeChunks() {
 					// move to the end of the file to start emitting our compresed table
 					f_.seekp(0, std::ios::end);
-					
+
 					// take note of where we're writing the chunk table, we need this later
 					int64_t chunk_table_offset = static_cast<int64_t>(f_.tellp());
 
@@ -835,7 +835,7 @@ namespace laszip {
 					struct {
 						unsigned int version,
 									 chunks_count;
-					} chunk_table_header = { 0, static_cast<unsigned int>(chunk_sizes_.size()) }; 
+					} chunk_table_header = { 0, static_cast<unsigned int>(chunk_sizes_.size()) };
 #pragma pack(pop)
 
 					f_.write(reinterpret_cast<char*>(&chunk_table_header),

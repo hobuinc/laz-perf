@@ -2,6 +2,6 @@
 #define BOOST_TEST_DYN_LINK
 #endif
 
-#define BOOST_TEST_MODULE tlaz
+#define BOOST_TEST_MODULE lazperf
 
 #include <boost/test/unit_test.hpp>
