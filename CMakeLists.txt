@@ -229,5 +229,5 @@ install (FILES "lazperf-config.cmake" "lazperf-configVersion.cmake"
     DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
 # Install source headers.
-install(DIRECTORY laz-perf/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+install(DIRECTORY laz-perf DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
