@@ -217,14 +217,17 @@ if (WIN32 AND NOT CYGWIN)
 else ()
   set (DEF_INSTALL_CMAKE_DIR lib/cmake/lazperf)
 endif ()
+
+set (INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
 set (INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
 
 configure_file (lazperf-config.cmake.in "lazperf-config.cmake" @ONLY)
 configure_file (lazperf-configVersion.cmake.in "lazperf-configVersion.cmake" @ONLY)
 
-# Install the lazperf-config.cmake and lazperf-configVersion.cmake
+# Install cmake files.
 install (FILES "lazperf-config.cmake" "lazperf-configVersion.cmake"
     DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
+# Install source headers.
 install(DIRECTORY laz-perf DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
