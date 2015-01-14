@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <script src="laz-perf.js"></script>
+  <script>
+	var loadFileAsArrayBuffer = function(url, cb) {
+		var oReq = new XMLHttpRequest();
+		oReq.open("GET", url, true);
+		oReq.responseType = "arraybuffer";
+
+		oReq.onload = function (oEvent) {
+			var arrayBuffer = oReq.response; // Note: not oReq.responseText
+			cb(arrayBuffer);
+		};
+
+		oReq.send(null);
+	}
+
+	function parse(dv) {
+		return {
+            "position": [ dv.getFloat32(0, true), dv.getFloat32(4, true), dv.getFloat32(8, true)],
+            "intensity": dv.getUint16(12, true),
+            "r": dv.getUint16(14, true),
+            "g": dv.getUint16(16, true),
+            "b": dv.getUint16(18, true)
+		};
+	}
+
+	document.addEventListener('DOMContentLoaded', function() {
+			loadFileAsArrayBuffer('/compressed-autzen.bin', function(ab) {
+				console.log('got array buffer', ab.byteLength);
+				var x = new Module.DynamicLASZip();
+
+				var abInt = new Uint8Array(ab);
+				var buf = Module._malloc(ab.byteLength);
+
+				Module.HEAPU8.set(abInt, buf);
+				x.open(buf, ab.byteLength);
+
+                x.addFieldFloating(4); // X Y Z
+                x.addFieldFloating(4);
+                x.addFieldFloating(4);
+                x.addFieldUnsigned(2); // I
+                x.addFieldUnsigned(2); // R
+                x.addFieldUnsigned(2); // G
+                x.addFieldUnsigned(2); // B
+
+                var pointc = 10653;
+				console.log("total points:", pointc);
+
+				var pointbuf = Module._malloc(20);
+				var tstart = (new Date()).getTime();
+				for (var i = 0 ; i < pointc ; i ++) {
+					x.getPoint(pointbuf);
+					var p = parse(new DataView(Module.HEAPU8.buffer, pointbuf, 40));
+
+                    console.log(p);
+				}
+				var tend = (new Date()).getTime();
+
+				console.log("Read", pointc, "points!", (tend - tstart), "ms");
+
+				Module._free(buf);
+
+				try {
+					x.delete();
+				} catch(e) {
+					console.log("deletion failed!", e);
+				}
+			});
+
+	});
+  </script>
+</html>

@@ -43,3 +43,4 @@ test/raw-sets/haloe.laz
 *.obj
 *.vcxproj.user
 *.dll
+*.js.mem
