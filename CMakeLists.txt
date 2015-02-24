@@ -225,7 +225,8 @@ configure_file (lazperf-config.cmake.in "lazperf-config.cmake" @ONLY)
 configure_file (lazperf-configVersion.cmake.in "lazperf-configVersion.cmake" @ONLY)
 
 # Install cmake files.
-install (FILES "lazperf-config.cmake" "lazperf-configVersion.cmake"
+install (FILES ${CMAKE_BINARY_DIR}/lazperf-config.cmake
+               ${CMAKE_BINARY_DIR}/lazperf-configVersion.cmake
     DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 
 # Install source headers.
