@@ -27,6 +27,7 @@
 ===============================================================================
 */
 
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 
 #include <boost/test/unit_test.hpp>
 #include <ctime>
