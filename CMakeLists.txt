@@ -189,7 +189,7 @@ endif(NOT Boost_FOUND)
 # look for laszip
 find_package(LASzip "2.0.1")
 if(NOT LASZIP_FOUND)
-	message(STATUS "LASzip >= 2.0.1 was not found, comparison benchmarks will be be available")
+	message(STATUS "LASzip >= 2.0.1 was not found, comparison benchmarks will not be available")
 endif()
 
 # if we have an emscripten build, make sure the emscripten tag is set
