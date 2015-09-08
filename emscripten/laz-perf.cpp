@@ -15,7 +15,10 @@ class LASZip {
 	typedef laszip::io::reader::basic_file<stream_type> reader_type;
 	public:
 		LASZip() : pmem_stream_(), pfile_() {}
-		~LASZip() {}
+		~LASZip() {
+            pmem_stream_.reset();
+            pfile_.reset();
+        }
 
 		void open(unsigned int b, size_t len) {
 			char *buf = (char*) b;
@@ -61,12 +64,16 @@ class DynamicLASZip {
     typedef laszip::formats::dynamic_field_decompressor<decoder_type>::ptr decompressor_ptr;
 public:
     DynamicLASZip() {}
-    ~DynamicLASZip() {}
+    ~DynamicLASZip() {
+        pmem_stream_.reset();
+        pdecomp_.reset();
+        pdecomp_.reset();
+    }
 
     void addFieldFloating(size_t size) {
         if (!pdecomp_)
           return;
-        
+
         switch(size) {
         case 4: pdecomp_->add_field<int32_t>(); break;
         case 8: pdecomp_->add_field<uint32_t>(); pdecomp_->add_field<uint32_t>(); break;
