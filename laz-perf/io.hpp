@@ -196,7 +196,6 @@ namespace laszip {
 			}
 
             void fill(const char *data) {
-                const char *d = data;
                 memcpy(&compressor, data, sizeof(compressor));
                 compressor = le16toh(compressor);
                 data += sizeof(compressor);
@@ -281,6 +280,21 @@ namespace laszip {
 
 				return r;
 			}
+
+            static factory::record_schema to_schema(const laz_vlr& vlr) {
+                // convert the laszip items into record schema to be used by
+                // compressor/decompressor
+
+                using namespace factory;
+                factory::record_schema schema;
+
+                for(auto i = 0 ; i < vlr.num_items ; i++) {
+                    laz_item& item = vlr.items[i];
+                    schema.push(factory::record_item(item.type, item.size,
+                        item.version));
+                }
+                return schema;
+            }
 		};
 #pragma pack(pop)
 
@@ -485,13 +499,7 @@ namespace laszip {
 					if (!laszipFound)
 						throw no_laszip_vlr();
 
-
-					// convert the laszip items into record schema to be used by compressor/decompressor
-					// builder
-					for(auto i = 0 ; i < laz_.num_items ; i++) {
-						laz_item& item = laz_.items[i];
-						schema_.push(factory::record_item(item.type, item.size, item.version));
-					}
+                    schema_ = laz_vlr::to_schema(laz_);
 				}
 
 				void binPrint(const char *buf, int len) {
