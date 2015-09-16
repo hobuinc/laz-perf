@@ -41,6 +41,7 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 #include "util.hpp"
+#include "portable_endian.hpp"
 
 namespace laszip {
 	// A simple datastructure to get input from the user
@@ -114,29 +115,32 @@ namespace laszip {
 		};
 
 		struct laz_vlr {
-			unsigned short compressor;
-			unsigned short coder;
+			uint16_t compressor;
+			uint16_t coder;
 
 			struct {
 				unsigned char major;
 				unsigned char minor;
-				unsigned short revision;
+				uint16_t revision;
 			} version;
 
-			unsigned int options;
-			unsigned int chunk_size;
+			uint32_t options;
+			uint32_t chunk_size;
 
 			int64_t num_points,
 					num_bytes;
 
-			unsigned short num_items;
+			uint16_t num_items;
 			laz_item *items;
 			laz_vlr() : num_items(0), items(NULL) {}
 			~laz_vlr() {
-				if (items) {
-					delete [] items;
-				}
+                delete [] items;
 			}
+
+            laz_vlr(const char *data) {
+                items = NULL;
+                fill(data);
+            }
 
 			laz_vlr(const laz_vlr& rhs) {
 				compressor = rhs.compressor;
@@ -191,6 +195,61 @@ namespace laszip {
 				return *this;
 			}
 
+            void fill(const char *data) {
+                memcpy(&compressor, data, sizeof(compressor));
+                compressor = le16toh(compressor);
+                data += sizeof(compressor);
+
+                memcpy(&coder, data, sizeof(coder));
+                coder = le16toh(coder);
+                data += sizeof(coder);
+
+                version.major = *(unsigned char *)data++;
+                version.minor = *(unsigned char *)data++;
+
+                memcpy(&version.revision, data, sizeof(version.revision));
+                version.revision = le16toh(version.revision);
+                data += sizeof(version.revision);
+
+                memcpy(&options, data, sizeof(options));
+                options = le32toh(options);
+                data += sizeof(options);
+
+                memcpy(&chunk_size, data, sizeof(chunk_size));
+                chunk_size = le32toh(chunk_size);
+                data += sizeof(chunk_size);
+
+                memcpy(&num_points, data, sizeof(num_points));
+                num_points = le64toh(num_points);
+                data += sizeof(num_points);
+
+                memcpy(&num_bytes, data, sizeof(num_bytes));
+                num_bytes = le64toh(num_bytes);
+                data += sizeof(num_bytes);
+
+                memcpy(&num_items, data, sizeof(num_items));
+                num_items = le16toh(num_items);
+                data += sizeof(num_items);
+
+                delete [] items;
+		        items = new laz_item[num_items];
+                for (int i = 0 ; i < num_items ; i ++) {
+                    laz_item& item = items[i];
+
+                    memcpy(&item.type, data, sizeof(item.type));
+                    item.type = le16toh(item.type);
+                    data += sizeof(item.type);
+
+                    memcpy(&item.size, data, sizeof(item.size));
+                    item.size = le16toh(item.size);
+                    data += sizeof(item.size);
+
+                    memcpy(&item.version, data, sizeof(item.version));
+                    item.version = le16toh(item.version);
+                    data += sizeof(item.version);
+                }
+            }
+
 			static laz_vlr from_schema(const factory::record_schema& s) {
 				laz_vlr r;
 
@@ -221,6 +280,21 @@ namespace laszip {
 
 				return r;
 			}
+
+            static factory::record_schema to_schema(const laz_vlr& vlr) {
+                // convert the laszip items into record schema to be used by
+                // compressor/decompressor
+
+                using namespace factory;
+                factory::record_schema schema;
+
+                for(auto i = 0 ; i < vlr.num_items ; i++) {
+                    laz_item& item = vlr.items[i];
+                    schema.push(factory::record_item(item.type, item.size,
+                        item.version));
+                }
+                return schema;
+            }
 		};
 #pragma pack(pop)
 
@@ -425,13 +499,7 @@ namespace laszip {
 					if (!laszipFound)
 						throw no_laszip_vlr();
 
-
-					// convert the laszip items into record schema to be used by compressor/decompressor
-					// builder
-					for(auto i = 0 ; i < laz_.num_items ; i++) {
-						laz_item& item = laz_.items[i];
-						schema_.push(factory::record_item(item.type, item.size, item.version));
-					}
+                    schema_ = laz_vlr::to_schema(laz_);
 				}
 
 				void binPrint(const char *buf, int len) {
@@ -445,28 +513,10 @@ namespace laszip {
 				}
 
 				void _parseLASZIPVLR(const char *buf) {
-					using namespace laszip::formats;
-
-					// read the header information
-					//
-					//
-					std::copy(buf, buf + 34, (char*)&laz_); // don't write to std::vector
+                    laz_.fill(buf);
 
 					if (laz_.compressor != 2)
 						throw laszip_format_unsupported();
-
-					//unsigned short num_items = (((unsigned short)buf[33]) << 8) | buf[32];
-
-					// parse and build laz items
-					buf += 34;
-					laz_.items = new laz_item[laz_.num_items];
-
-					for (auto i = 0 ; i < laz_.num_items ; i ++) {
-						laz_item& item = laz_.items[i];
-						std::copy(buf, buf + 6, (char*)&item);
-
-						buf += 6;
-					}
 				}
 
 				void _parseChunkTable() {
