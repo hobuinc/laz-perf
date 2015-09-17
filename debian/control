@@ -1,0 +1,15 @@
+Source: laz-perf
+Section: devel
+Priority: extra
+Maintainer: Pete Gadomski <pete.gadomski@gmail.com>
+Build-Depends: debhelper (>=9), cmake, gcc-4.7, g++-4.7
+Standards-Version: 3.9.3
+Homepage: https://github.com/verma/laz-perf
+
+Package: laz-perf
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Emscripten laz
+ This laz-perf package was desgined for use in PDAL's (http://pdal.io)
+ continuous integration. This Debian packaging is likely incomplete and/or
+ incorrect.
