@@ -211,8 +211,8 @@ namespace laszip {
                 coder = le16toh(coder);
                 data += sizeof(coder);
 
-                version.major = *(unsigned char *)data++;
-                version.minor = *(unsigned char *)data++;
+                version.major = *(const unsigned char *)data++;
+                version.minor = *(const unsigned char *)data++;
 
                 std::copy(data, data + sizeof(version.revision), (char *)&version.revision);
                 version.revision = le16toh(version.revision);
