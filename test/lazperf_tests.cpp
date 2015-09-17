@@ -1034,7 +1034,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
 
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
-		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
+//		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
 		comp.compressWith(encoder, (char*)&p);
 	}
 	encoder.done();
@@ -1074,7 +1074,7 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
 
-		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
+//		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
 		comp.compressWith(encoder, (char*)&p);
 	}
 	encoder.done();
