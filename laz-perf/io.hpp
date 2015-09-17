@@ -58,6 +58,8 @@ namespace laszip {
 
 	};
 
+#define DefaultChunkSize 50000
+
 	namespace io {
 		// LAZ file header
 #pragma pack(push, 1)
@@ -140,6 +142,11 @@ namespace laszip {
             laz_vlr(const char *data) {
                 items = NULL;
                 fill(data);
+            }
+
+            size_t size() const {
+                return sizeof(laz_vlr) - sizeof(laz_item *) +
+                    (num_items * sizeof(laz_item));
             }
 
 			laz_vlr(const laz_vlr& rhs) {
@@ -250,10 +257,68 @@ namespace laszip {
                 }
             }
 
-			static laz_vlr from_schema(const factory::record_schema& s) {
+            void extract(char *data) {
+                uint16_t s;
+                uint32_t i;
+                uint64_t ll;
+
+                s = htole16(compressor);
+                memcpy(data, &s, sizeof(compressor));
+                data += sizeof(compressor);
+
+                s = htole16(coder);
+                memcpy(data, &s, sizeof(coder));
+                data += sizeof(coder);
+
+                *data++ = version.major;
+                *data++ = version.minor;
+
+                s = htole16(version.revision);
+                memcpy(data, &s, sizeof(version.revision));
+                data += sizeof(version.revision);
+
+                i = htole32(options);
+                memcpy(data, &i, sizeof(options));
+                data += sizeof(options);
+
+                i = htole32(chunk_size);
+                memcpy(data, &i, sizeof(chunk_size));
+                data += sizeof(chunk_size);
+
+                ll = htole64(num_points);
+                memcpy(data, &ll, sizeof(num_points));
+                data += sizeof(num_points);
+
+                ll = htole64(num_bytes);
+                memcpy(data, &ll, sizeof(num_bytes));
+                data += sizeof(num_bytes);
+
+                s = htole16(num_items);
+                memcpy(data, &s, sizeof(num_items));
+                data += sizeof(num_items);
+
+                for (int i = 0 ; i < num_items ; i ++) {
+                    laz_item& item = items[i];
+
+                    s = htole16(item.type);
+                    memcpy(data, &s, sizeof(item.type));
+                    data += sizeof(item.type);
+
+                    s = htole16(item.size);
+                    memcpy(data, &s, sizeof(item.size));
+                    data += sizeof(item.size);
+
+                    s = htole16(item.version);
+                    memcpy(data, &s, sizeof(item.version));
+                    data += sizeof(item.version);
+                }
+            }
+
+			static laz_vlr from_schema(const factory::record_schema& s, uint32_t chunksize = DefaultChunkSize) {
 				laz_vlr r;
 
-				r.compressor = 0;
+                // We only do pointwise chunking.
+				r.compressor = 2;
 				r.coder = 0;
 
 				// the version we're compatible with
@@ -262,7 +327,7 @@ namespace laszip {
 				r.version.revision = 0;
 
 				r.options = 0;
-				r.chunk_size = 0;
+				r.chunk_size = chunksize;
 
 				r.num_points = -1;
 				r.num_bytes = -1;
@@ -345,8 +410,9 @@ namespace laszip {
 			char *buf_;
 		};
 
+        template<typename StreamType>
 		struct __ofstream_wrapper {
-			__ofstream_wrapper(std::ofstream& f) : f_(f) {}
+			__ofstream_wrapper(StreamType& f) : f_(f) {}
 
 			void putBytes(const unsigned char *b, size_t len) {
 				f_.write(reinterpret_cast<const char*>(b), len);
@@ -359,7 +425,7 @@ namespace laszip {
 			__ofstream_wrapper(const __ofstream_wrapper&) = delete;
 			__ofstream_wrapper& operator = (const __ofstream_wrapper&) = delete;
 
-			std::ofstream& f_;
+			StreamType& f_;
 		};
 
 		namespace reader {
@@ -658,7 +724,6 @@ namespace laszip {
 		}
 
 		namespace writer {
-#define DefaultChunkSize 50000
 
 			// An object to encapsulate what gets passed to
 			struct config {
@@ -754,7 +819,7 @@ namespace laszip {
 						chunk_state_.last_chunk_write_offset = offset;
 
 						// reinit stuff
-						pencoder_.reset(new encoders::arithmetic<__ofstream_wrapper>(wrapper_));
+						pencoder_.reset(new encoders::arithmetic<__ofstream_wrapper<std::ofstream> >(wrapper_));
 						pcompressor_ = factory::build_compressor(*pencoder_, schema_);
 					}
 
@@ -854,19 +919,11 @@ namespace laszip {
 
 					// prep our VLR so we can write it
 					//
-					laz_vlr vlr = laz_vlr::from_schema(schema_);
+					laz_vlr vlr = laz_vlr::from_schema(schema_, chunk_size_);
 
-					// set the other dependent values
-					vlr.compressor = 2; // pointwise chunked
-					vlr.chunk_size = chunk_size_;
-
-					// write the base header
-					f_.write(reinterpret_cast<char*>(&vlr), 34); // don't write the std::vector at the end of the class
-
-					// write items
-					for (auto i = 0 ; i < vlr.num_items ; i ++) {
-						f_.write(reinterpret_cast<char*>(&vlr.items[i]), sizeof(laz_item));
-					}
+                    std::unique_ptr<char> vlrbuf(new char[vlr.size()]);
+                    vlr.extract(vlrbuf.get());
+                    f_.write(vlrbuf.get(), vlr.size());
 
 					// TODO: Write chunk table
 					//
@@ -894,9 +951,9 @@ namespace laszip {
 
 					// Now compress and write the chunk table
 					//
-					__ofstream_wrapper w(f_);
+					__ofstream_wrapper<std::ofstream> w(f_);
 
-					encoders::arithmetic<__ofstream_wrapper> encoder(w);
+					encoders::arithmetic<__ofstream_wrapper<std::ofstream> > encoder(w);
 					compressors::integer comp(32, 2);
 
 					comp.init();
@@ -915,10 +972,10 @@ namespace laszip {
 				}
 
 				std::ofstream f_;
-				__ofstream_wrapper wrapper_;
+				__ofstream_wrapper<std::ofstream> wrapper_;
 
 				formats::dynamic_compressor::ptr pcompressor_;
-				std::shared_ptr<encoders::arithmetic<__ofstream_wrapper> > pencoder_;
+				std::shared_ptr<encoders::arithmetic<__ofstream_wrapper<std::ofstream> > > pencoder_;
 
 				factory::record_schema schema_;
 
