@@ -3,7 +3,7 @@ Section: devel
 Priority: extra
 Maintainer: Pete Gadomski <pete.gadomski@gmail.com>
 Build-Depends: debhelper (>=9), cmake, gcc-4.7, g++-4.7
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
 Homepage: https://github.com/verma/laz-perf
 
 Package: laz-perf
