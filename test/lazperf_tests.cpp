@@ -29,17 +29,16 @@
 
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 
-#include <boost/test/unit_test.hpp>
+#include "test_main.hpp"
+
 #include <ctime>
-
-
 #include <fstream>
 
-#include "encoder.hpp"
-#include "decoder.hpp"
-#include "formats.hpp"
-#include "las.hpp"
-#include "factory.hpp"
+#include <laz-perf/encoder.hpp>
+#include <laz-perf/decoder.hpp>
+#include <laz-perf/formats.hpp>
+#include <laz-perf/las.hpp>
+#include <laz-perf/factory.hpp>
 
 #include "reader.hpp"
 
@@ -70,40 +69,38 @@ struct SuchStream {
 	size_t idx;
 };
 
-BOOST_AUTO_TEST_SUITE(lazperf_tests)
 
-
-BOOST_AUTO_TEST_CASE(packers_are_symmetric) {
+TEST(lazperf_tests, packers_are_symmetric) {
 	using namespace laszip::formats;
 
 	char buf[4];
 	packers<unsigned int>::pack(0xdeadbeaf, buf);
 	unsigned int v = packers<unsigned int>::unpack(buf);
-	BOOST_CHECK_EQUAL(v, 0xdeadbeaf);
+	EXPECT_EQ(v, 0xdeadbeaf);
 
 	packers<int>::pack(0xeadbeef, buf);
 	v = packers<int>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xeadbeefu, v);
+	EXPECT_EQ(0xeadbeefu, v);
 
 	packers<unsigned short>::pack(0xbeef, buf);
 	v = packers<unsigned short>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xbeefu, v);
+	EXPECT_EQ(0xbeefu, v);
 
 	packers<short>::pack(0xeef, buf);
 	v = packers<short>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xeefu, v);
+	EXPECT_EQ(0xeefu, v);
 
 	packers<unsigned char>::pack(0xf, buf);
 	v = packers<unsigned char>::unpack(buf);
-	BOOST_CHECK_EQUAL(0xfu, v);
+	EXPECT_EQ(0xfu, v);
 
 	packers<char>::pack(0x7, buf);
 	v = packers<char>::unpack(buf);
-	BOOST_CHECK_EQUAL(0x7u, v);
+	EXPECT_EQ(0x7u, v);
 }
 
 
-BOOST_AUTO_TEST_CASE(packers_canpack_gpstime) {
+TEST(lazperf_tests, packers_canpack_gpstime) {
 	using namespace laszip::formats;
 
 	{
@@ -113,8 +110,8 @@ BOOST_AUTO_TEST_CASE(packers_canpack_gpstime) {
 		packers<las::gpstime>::pack(v, buf);
 		las::gpstime out = packers<las::gpstime>::unpack(buf);
 
-		BOOST_CHECK_EQUAL(v.value, out.value);
-		BOOST_CHECK_EQUAL(std::equal(buf, buf + 8, (char *)&v.value), true);
+		EXPECT_EQ(v.value, out.value);
+		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
 	}
 
 	{
@@ -124,12 +121,12 @@ BOOST_AUTO_TEST_CASE(packers_canpack_gpstime) {
 		packers<las::gpstime>::pack(v, buf);
 		las::gpstime out = packers<las::gpstime>::unpack(buf);
 
-		BOOST_CHECK_EQUAL(v.value, out.value);
-		BOOST_CHECK_EQUAL(std::equal(buf, buf + 8, (char *)&v.value), true);
+		EXPECT_EQ(v.value, out.value);
+		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(packers_canpack_rgb) {
+TEST(lazperf_tests, packers_canpack_rgb) {
 	using namespace laszip::formats;
 
 	las::rgb c(1<<15, 1<<14, 1<<13);
@@ -138,24 +135,24 @@ BOOST_AUTO_TEST_CASE(packers_canpack_rgb) {
 	packers<las::rgb>::pack(c, buf);
 	las::rgb out = packers<las::rgb>::unpack(buf);
 
-	BOOST_CHECK_EQUAL(c.r, out.r);
-	BOOST_CHECK_EQUAL(c.g, out.g);
-	BOOST_CHECK_EQUAL(c.b, out.b);
+	EXPECT_EQ(c.r, out.r);
+	EXPECT_EQ(c.g, out.g);
+	EXPECT_EQ(c.b, out.b);
 
-	BOOST_CHECK_EQUAL(std::equal(buf, buf+2, (char*)&c.r), true);
-	BOOST_CHECK_EQUAL(std::equal(buf+2, buf+4, (char*)&c.g), true);
-	BOOST_CHECK_EQUAL(std::equal(buf+4, buf+6, (char*)&c.b), true);
+	EXPECT_EQ(std::equal(buf, buf+2, (char*)&c.r), true);
+	EXPECT_EQ(std::equal(buf+2, buf+4, (char*)&c.g), true);
+	EXPECT_EQ(std::equal(buf+4, buf+6, (char*)&c.b), true);
 }
 
-BOOST_AUTO_TEST_CASE(las_structs_are_of_correct_size) {
+TEST(lazperf_tests, las_structs_are_of_correct_size) {
 	using namespace laszip::formats;
 
-	BOOST_CHECK_EQUAL(sizeof(las::point10), 20u);
-	BOOST_CHECK_EQUAL(sizeof(las::gpstime), 8u);
-	BOOST_CHECK_EQUAL(sizeof(las::rgb), 6u);
+	EXPECT_EQ(sizeof(las::point10), 20u);
+	EXPECT_EQ(sizeof(las::gpstime), 8u);
+	EXPECT_EQ(sizeof(las::rgb), 6u);
 }
 
-BOOST_AUTO_TEST_CASE(works_with_fields) {
+TEST(lazperf_tests, works_with_fields) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -197,14 +194,14 @@ BOOST_AUTO_TEST_CASE(works_with_fields) {
 	for (int i = 0 ; i < 10 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);
 
-		BOOST_CHECK_EQUAL(data.a, i);
-		BOOST_CHECK_EQUAL(data.b, i+10);
-		BOOST_CHECK_EQUAL(data.c, i+40000);
-		BOOST_CHECK_EQUAL(data.d, (unsigned int)i+ (1<<31));
+		EXPECT_EQ(data.a, i);
+		EXPECT_EQ(data.b, i+10);
+		EXPECT_EQ(data.c, i+40000);
+		EXPECT_EQ(data.d, (unsigned int)i+ (1<<31));
 	}
 }
 
-BOOST_AUTO_TEST_CASE(works_with_one_field) {
+TEST(lazperf_tests, works_with_one_field) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -232,11 +229,11 @@ BOOST_AUTO_TEST_CASE(works_with_one_field) {
 
 	for (int i = 0 ; i < 1000 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);
-		BOOST_CHECK_EQUAL(data.a, i);
+		EXPECT_EQ(data.a, i);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(works_with_all_kinds_of_fields) {
+TEST(lazperf_tests, works_with_all_kinds_of_fields) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -287,17 +284,17 @@ BOOST_AUTO_TEST_CASE(works_with_all_kinds_of_fields) {
 
 	for (int i = 0 ; i < 1000 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);
-		BOOST_CHECK_EQUAL(data.a, i);
-		BOOST_CHECK_EQUAL(data.ua, (unsigned int)i + (1<<31));
-		BOOST_CHECK_EQUAL(data.b, i);
-		BOOST_CHECK_EQUAL(data.ub, (unsigned short)i + (1<<15));
-		BOOST_CHECK_EQUAL(data.c, i % 128);
-		BOOST_CHECK_EQUAL(data.uc, (unsigned char)(i % 128) + (1<<7));
+		EXPECT_EQ(data.a, i);
+		EXPECT_EQ(data.ua, (unsigned int)i + (1<<31));
+		EXPECT_EQ(data.b, i);
+		EXPECT_EQ(data.ub, (unsigned short)i + (1<<15));
+		EXPECT_EQ(data.c, i % 128);
+		EXPECT_EQ(data.uc, (unsigned char)(i % 128) + (1<<7));
 	}
 }
 
 
-BOOST_AUTO_TEST_CASE(correctly_packs_unpacks_point10) {
+TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -326,23 +323,23 @@ BOOST_AUTO_TEST_CASE(correctly_packs_unpacks_point10) {
 		las::point10 pout = packers<las::point10>::unpack(buf);
 
 		// Make things are still sane
-		BOOST_CHECK_EQUAL(pout.x, p.x);
-		BOOST_CHECK_EQUAL(pout.y, p.y);
-		BOOST_CHECK_EQUAL(pout.z, p.z);
+		EXPECT_EQ(pout.x, p.x);
+		EXPECT_EQ(pout.y, p.y);
+		EXPECT_EQ(pout.z, p.z);
 
-		BOOST_CHECK_EQUAL(pout.intensity, p.intensity);
-		BOOST_CHECK_EQUAL(pout.return_number, p.return_number);
-		BOOST_CHECK_EQUAL(pout.number_of_returns_of_given_pulse, p.number_of_returns_of_given_pulse);
-		BOOST_CHECK_EQUAL(pout.scan_angle_rank, p.scan_angle_rank);
-		BOOST_CHECK_EQUAL(pout.edge_of_flight_line, p.edge_of_flight_line);
-		BOOST_CHECK_EQUAL(pout.classification, p.classification);
-		BOOST_CHECK_EQUAL(pout.scan_angle_rank, p.scan_angle_rank);
-		BOOST_CHECK_EQUAL(pout.user_data, p.user_data);
-		BOOST_CHECK_EQUAL(pout.point_source_ID, p.point_source_ID);
+		EXPECT_EQ(pout.intensity, p.intensity);
+		EXPECT_EQ(pout.return_number, p.return_number);
+		EXPECT_EQ(pout.number_of_returns_of_given_pulse, p.number_of_returns_of_given_pulse);
+		EXPECT_EQ(pout.scan_angle_rank, p.scan_angle_rank);
+		EXPECT_EQ(pout.edge_of_flight_line, p.edge_of_flight_line);
+		EXPECT_EQ(pout.classification, p.classification);
+		EXPECT_EQ(pout.scan_angle_rank, p.scan_angle_rank);
+		EXPECT_EQ(pout.user_data, p.user_data);
+		EXPECT_EQ(pout.point_source_ID, p.point_source_ID);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
+TEST(lazperf_tests, point10_enc_dec_is_sym) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -392,19 +389,19 @@ BOOST_AUTO_TEST_CASE(point10_enc_dec_is_sym) {
 
 		las::point10 p = packers<las::point10>::unpack(buf);
 
-		BOOST_CHECK_EQUAL(p.x, i);
-		BOOST_CHECK_EQUAL(p.y, i + 1000);
-		BOOST_CHECK_EQUAL(p.z, i + 10000);
+		EXPECT_EQ(p.x, i);
+		EXPECT_EQ(p.y, i + 1000);
+		EXPECT_EQ(p.z, i + 10000);
 
-		BOOST_CHECK_EQUAL(p.intensity, (i + (1<14)) % (1 << 16));
-		BOOST_CHECK_EQUAL(p.return_number,  i & 0x7);
-		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
-		BOOST_CHECK_EQUAL(p.scan_direction_flag, i & 1);
-		BOOST_CHECK_EQUAL(p.edge_of_flight_line, (i+1) & 1);
-		BOOST_CHECK_EQUAL(p.classification, (i + (1 << 7)) % (1 << 8));
-		BOOST_CHECK_EQUAL(p.scan_angle_rank, i % (1 << 7));
-		BOOST_CHECK_EQUAL(p.user_data, (i + 64) % (1 << 7));
-		BOOST_CHECK_EQUAL(p.point_source_ID, i % (1 << 16));
+		EXPECT_EQ(p.intensity, (i + (1<14)) % (1 << 16));
+		EXPECT_EQ(p.return_number,  i & 0x7);
+		EXPECT_EQ(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
+		EXPECT_EQ(p.scan_direction_flag, i & 1);
+		EXPECT_EQ(p.edge_of_flight_line, (i+1) & 1);
+		EXPECT_EQ(p.classification, (i + (1 << 7)) % (1 << 8));
+		EXPECT_EQ(p.scan_angle_rank, i % (1 << 7));
+		EXPECT_EQ(p.user_data, (i + 64) % (1 << 7));
+		EXPECT_EQ(p.point_source_ID, i % (1 << 16));
 	}
 }
 
@@ -430,13 +427,13 @@ void printBytes(const unsigned char *bytes, size_t len) {
 	printf("\n");
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
+TEST(lazperf_tests, can_compress_decompress_real_data) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	std::ifstream f("test/raw-sets/point10-1.las.raw", std::ios::binary);
+	std::ifstream f(testFile("point10-1.las.raw"), std::ios::binary);
 	if (!f.good())
-		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAS file not available.";
 
 	las::point10 pnt;
 
@@ -476,30 +473,30 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_data) {
 		// Make sure all fields match
 		las::point10& p = points[i];
 
-		BOOST_CHECK_EQUAL(p.x, pout.x);
+		EXPECT_EQ(p.x, pout.x);
 
-		BOOST_CHECK_EQUAL(p.y, pout.y);
-		BOOST_CHECK_EQUAL(p.z, pout.z);
-		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
-		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
-		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
-		BOOST_CHECK_EQUAL(p.classification, pout.classification);
-		BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
-		BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
-		BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+		EXPECT_EQ(p.y, pout.y);
+		EXPECT_EQ(p.z, pout.z);
+		EXPECT_EQ(p.intensity, pout.intensity);
+		EXPECT_EQ(p.return_number, pout.return_number);
+		EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+		EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+		EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+		EXPECT_EQ(p.classification, pout.classification);
+		EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+		EXPECT_EQ(p.user_data, pout.user_data);
+		EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
 	}
 }
 
 
-BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
+TEST(lazperf_tests, can_decode_laszip_buffer) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	std::ifstream f("test/raw-sets/point10-1.las.laz.raw", std::ios::binary);
+	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
-		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAZ file not available.";
 
 	f.seekg(0, std::ios::end);
 	size_t fileSize = (size_t)f.tellg();
@@ -521,9 +518,9 @@ BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
 	> decomp;
 
 	// open raw las point stream
-	std::ifstream fin("test/raw-sets/point10-1.las.raw", std::ios::binary);
+	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
 	if (!fin.good())
-		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAS file not available.";
 
 	fin.seekg(0, std::ios::end);
 	size_t count = (size_t)fin.tellg() / sizeof(las::point10);
@@ -539,18 +536,18 @@ BOOST_AUTO_TEST_CASE(can_decode_laszip_buffer) {
 		decomp.decompressWith(dec, (char*)&pout);
 
 		// make sure they match
-		BOOST_CHECK_EQUAL(p.x, pout.x);
-		BOOST_CHECK_EQUAL(p.y, pout.y);
-		BOOST_CHECK_EQUAL(p.z, pout.z);
-		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
-		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
-		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
-		BOOST_CHECK_EQUAL(p.classification, pout.classification);
-		BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
-		BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
-		BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+		EXPECT_EQ(p.x, pout.x);
+		EXPECT_EQ(p.y, pout.y);
+		EXPECT_EQ(p.z, pout.z);
+		EXPECT_EQ(p.intensity, pout.intensity);
+		EXPECT_EQ(p.return_number, pout.return_number);
+		EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+		EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+		EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+		EXPECT_EQ(p.classification, pout.classification);
+		EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+		EXPECT_EQ(p.user_data, pout.user_data);
+		EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
 	}
 
 	fin.close();
@@ -562,7 +559,7 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
-		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAS file not available.";
 
 	las::point10 pnt;
 	f.seekg(0, std::ios::end);
@@ -588,28 +585,27 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 	// now open compressed data file
 	std::ifstream fc(lazRaw, std::ios::binary);
 	if (!fc.good())
-		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAZ file not available.";
 
 	// Make sure things match
 	for (size_t i = 0 ; i < s.buf.size() && !fc.eof() ; i ++) {
-		BOOST_CHECK_EQUAL(s.buf[i], fc.get());
+		EXPECT_EQ(s.buf[i], fc.get());
 	}
 
 	fc.close();
 }
 
-BOOST_AUTO_TEST_CASE(binary_matches_laszip) {
-	matchSets("test/raw-sets/point10-1.las.raw",
-			"test/raw-sets/point10-1.las.laz.raw");
+TEST(lazperf_tests, binary_matches_laszip) {
+	matchSets(testFile("point10-1.las.raw"), testFile("point10-1.las.laz.raw"));
 }
 
 
-BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
+TEST(lazperf_tests, dynamic_compressor_works) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	const std::string lasRaw = "test/raw-sets/point10-1.las.raw";
-	const std::string lazRaw = "test/raw-sets/point10-1.las.laz.raw";
+	const std::string lasRaw = testFile("point10-1.las.raw");
+	const std::string lazRaw = testFile("point10-1.las.laz.raw");
 
 	typedef encoders::arithmetic<SuchStream> Encoder;
 
@@ -623,7 +619,7 @@ BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
-		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAS file not available.";
 
 	las::point10 pnt;
 	f.seekg(0, std::ios::end);
@@ -643,24 +639,24 @@ BOOST_AUTO_TEST_CASE(dynamic_compressor_works) {
 	// now open compressed data file
 	std::ifstream fc(lazRaw, std::ios::binary);
 	if (!fc.good())
-		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAZ file not available.";
 
 	// Make sure things match
 	for (size_t i = 0 ; i < s.buf.size() && !fc.eof() ; i ++) {
-		BOOST_CHECK_EQUAL(s.buf[i], fc.get());
+		EXPECT_EQ(s.buf[i], fc.get());
 	}
 
 	fc.close();
 }
 
 
-BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
+TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	std::ifstream f("test/raw-sets/point10-1.las.laz.raw", std::ios::binary);
+	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
-		BOOST_FAIL("Raw LAZ file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAZ file not available.";
 
 	f.seekg(0, std::ios::end);
 	size_t fileSize = (size_t)f.tellg();
@@ -683,9 +679,9 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(dec, decomp);
 
 	// open raw las point stream
-	std::ifstream fin("test/raw-sets/point10-1.las.raw", std::ios::binary);
+	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
 	if (!fin.good())
-		BOOST_FAIL("Raw LAS file not available. Make sure you're running tests from the root of the project.");
+		FAIL() << "Raw LAS file not available.";
 
 	fin.seekg(0, std::ios::end);
 	size_t count = (size_t)fin.tellg() / sizeof(las::point10);
@@ -701,18 +697,18 @@ BOOST_AUTO_TEST_CASE(dynamic_decompressor_can_decode_laszip_buffer) {
 		pdecomp->decompress((char*)&pout);
 
 		// make sure they match
-		BOOST_CHECK_EQUAL(p.x, pout.x);
-		BOOST_CHECK_EQUAL(p.y, pout.y);
-		BOOST_CHECK_EQUAL(p.z, pout.z);
-		BOOST_CHECK_EQUAL(p.intensity, pout.intensity);
-		BOOST_CHECK_EQUAL(p.return_number, pout.return_number);
-		BOOST_CHECK_EQUAL(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-		BOOST_CHECK_EQUAL(p.scan_direction_flag, pout.scan_direction_flag);
-		BOOST_CHECK_EQUAL(p.edge_of_flight_line, pout.edge_of_flight_line);
-		BOOST_CHECK_EQUAL(p.classification, pout.classification);
-		BOOST_CHECK_EQUAL(p.scan_angle_rank, pout.scan_angle_rank);
-		BOOST_CHECK_EQUAL(p.user_data, pout.user_data);
-		BOOST_CHECK_EQUAL(p.point_source_ID, pout.point_source_ID);
+		EXPECT_EQ(p.x, pout.x);
+		EXPECT_EQ(p.y, pout.y);
+		EXPECT_EQ(p.z, pout.z);
+		EXPECT_EQ(p.intensity, pout.intensity);
+		EXPECT_EQ(p.return_number, pout.return_number);
+		EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+		EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+		EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+		EXPECT_EQ(p.classification, pout.classification);
+		EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+		EXPECT_EQ(p.user_data, pout.user_data);
+		EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
 	}
 
 	fin.close();
@@ -724,7 +720,7 @@ int64_t makegps(unsigned int upper, unsigned int lower) {
 	return (u << 32) | l;
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
+TEST(lazperf_tests, can_compress_decompress_gpstime) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -756,12 +752,12 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_gpstime) {
 			las::gpstime out;
 			decomp.decompressWith(decoder, (char *)&out);
 
-			BOOST_CHECK_EQUAL(out.value, t.value);
+			EXPECT_EQ(out.value, t.value);
 		}
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_random_gpstime) {
+TEST(lazperf_tests, can_compress_decompress_random_gpstime) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -798,11 +794,11 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_random_gpstime) {
 		las::gpstime out;
 		decomp.decompressWith(decoder, (char *)&out);
 
-		BOOST_CHECK_EQUAL(out.value, vs[i]);
+		EXPECT_EQ(out.value, vs[i]);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
+TEST(lazperf_tests, can_compress_decompress_rgb) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -841,15 +837,15 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb) {
 
 				decomp.decompressWith(decoder, (char *)&out);
 
-				BOOST_CHECK_EQUAL(out.r, c.r);
-				BOOST_CHECK_EQUAL(out.g, c.g);
-				BOOST_CHECK_EQUAL(out.b, c.b);
+				EXPECT_EQ(out.r, c.r);
+				EXPECT_EQ(out.g, c.g);
+				EXPECT_EQ(out.b, c.b);
 			}
 		}
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
+TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
@@ -886,14 +882,14 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_rgb_single_channel) {
 
 		decomp.decompressWith(decoder, (char *)&out);
 
-		BOOST_CHECK_EQUAL(out.r, c.r);
-		BOOST_CHECK_EQUAL(out.g, c.g);
-		BOOST_CHECK_EQUAL(out.b, c.b);
+		EXPECT_EQ(out.r, c.r);
+		EXPECT_EQ(out.g, c.g);
+		EXPECT_EQ(out.b, c.b);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
-	reader las("test/raw-sets/point-time.las");
+TEST(lazperf_tests, can_compress_decompress_real_gpstime) {
+	reader las(testFile("point-time.las"));
 
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -929,12 +925,12 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_gpstime) {
 	for (size_t i = 0 ; i < l ; i ++) {
 		las::gpstime t;
 		decomp.decompressWith(decoder, (char*)&t);
-		BOOST_CHECK_EQUAL(ts[i], t.value);
+		EXPECT_EQ(ts[i], t.value);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
-	reader las("test/raw-sets/point-color.las");
+TEST(lazperf_tests, can_compress_decompress_real_color) {
+	reader las(testFile("point-color.las"));
 
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -970,15 +966,15 @@ BOOST_AUTO_TEST_CASE(can_compress_decompress_real_color) {
 	for (size_t i = 0 ; i < l ; i ++) {
 		las::rgb t;
 		decomp.decompressWith(decoder, (char*)&t);
-		BOOST_CHECK_EQUAL(ts[i].r, t.r);
-		BOOST_CHECK_EQUAL(ts[i].g, t.g);
-		BOOST_CHECK_EQUAL(ts[i].b, t.b);
+		EXPECT_EQ(ts[i].r, t.r);
+		EXPECT_EQ(ts[i].g, t.g);
+		EXPECT_EQ(ts[i].b, t.b);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
-	reader laz("test/raw-sets/point-time.las.laz"),
-		   las("test/raw-sets/point-time.las");
+TEST(lazperf_tests, can_encode_match_laszip_point10time) {
+	reader laz(testFile("point-time.las.laz")),
+           las(testFile("point-time.las"));
 
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -1006,13 +1002,13 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10time) {
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
-		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+		EXPECT_EQ(s.buf[i], laz.byte());
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
-	reader laz("test/raw-sets/point-color.las.laz"),
-		   las("test/raw-sets/point-color.las");
+TEST(lazperf_tests, can_encode_match_laszip_point10color) {
+	reader laz(testFile("point-color.las.laz")),
+		   las(testFile("point-color.las"));
 
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -1043,13 +1039,13 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10color) {
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
-		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+		EXPECT_EQ(s.buf[i], laz.byte());
 	}
 }
 
-BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
-	reader laz("test/raw-sets/point-color-time.las.laz"),
-		   las("test/raw-sets/point-color-time.las");
+TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
+	reader laz(testFile("point-color-time.las.laz")),
+		   las(testFile("point-color-time.las"));
 
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -1081,11 +1077,11 @@ BOOST_AUTO_TEST_CASE(can_encode_match_laszip_point10timecolor) {
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
-		BOOST_CHECK_EQUAL(s.buf[i], laz.byte());
+		EXPECT_EQ(s.buf[i], laz.byte());
 	}
 }
 
-BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
+TEST(lazperf_tests, schema_to_point_format_works) {
 	using namespace laszip;
 	using namespace laszip::factory;
 
@@ -1093,7 +1089,7 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 		record_schema s;
 		s(record_item(record_item::POINT10));
 
-		BOOST_CHECK_EQUAL(schema_to_point_format(s), 0);
+		EXPECT_EQ(schema_to_point_format(s), 0);
 	}
 
 	{
@@ -1101,7 +1097,7 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 		s(record_item(record_item::POINT10))
 			(record_item(record_item::GPSTIME));
 
-		BOOST_CHECK_EQUAL(schema_to_point_format(s), 1);
+		EXPECT_EQ(schema_to_point_format(s), 1);
 	}
 
 	{
@@ -1109,7 +1105,7 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 		s(record_item(record_item::POINT10))
 			(record_item(record_item::RGB12));
 
-		BOOST_CHECK_EQUAL(schema_to_point_format(s), 2);
+		EXPECT_EQ(schema_to_point_format(s), 2);
 	}
 
 	{
@@ -1118,7 +1114,7 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 			(record_item(record_item::GPSTIME))
 			(record_item(record_item::RGB12));
 
-		BOOST_CHECK_EQUAL(schema_to_point_format(s), 3);
+		EXPECT_EQ(schema_to_point_format(s), 3);
 	}
 
 	// Make sure we bail if something is not supported
@@ -1144,13 +1140,13 @@ BOOST_AUTO_TEST_CASE(schema_to_point_format_works) {
 			schema_to_point_format(s);
 		};
 
-		BOOST_CHECK_THROW(f1(), unknown_schema_type);
-		BOOST_CHECK_THROW(f2(), unknown_schema_type);
-		BOOST_CHECK_THROW(f3(), unknown_schema_type);
+		EXPECT_THROW(f1(), unknown_schema_type);
+		EXPECT_THROW(f2(), unknown_schema_type);
+		EXPECT_THROW(f3(), unknown_schema_type);
 	}
 }
 
-BOOST_AUTO_TEST_CASE(just_xyz_encodes_and_decodes) {
+TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
     const int POINT_COUNT = 100000;
 
 	using namespace laszip;
@@ -1189,13 +1185,13 @@ BOOST_AUTO_TEST_CASE(just_xyz_encodes_and_decodes) {
 	for (int i = 0 ; i < POINT_COUNT ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&input);
 
-		BOOST_CHECK_EQUAL(input.x, rand());
-		BOOST_CHECK_EQUAL(input.y, rand());
-		BOOST_CHECK_EQUAL(input.z, rand());
+		EXPECT_EQ(input.x, rand());
+		EXPECT_EQ(input.y, rand());
+		EXPECT_EQ(input.z, rand());
 	}
 }
 
-BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
+TEST(lazperf_tests, dynamic_field_compressor_works) {
     const int POINT_COUNT = 1000;
 
 	using namespace laszip;
@@ -1228,7 +1224,7 @@ BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
             int a = 0;
             decomp->decompress((char *)&a);
 
-            BOOST_CHECK_EQUAL(a, rand());
+            EXPECT_EQ(a, rand());
         }
     }
 
@@ -1282,7 +1278,7 @@ BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
             decomp->decompress((char *)arr);
 
             for (int j = 0 ; j < 10 ; j ++) {
-                BOOST_CHECK_EQUAL(arr[j], rand());
+                EXPECT_EQ(arr[j], rand());
             }
         }
     }
@@ -1314,7 +1310,7 @@ BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
             las::gpstime a;
             decomp->decompress((char *)&a);
 
-            BOOST_CHECK_EQUAL(a.value, makegps(rand(), rand()));
+            EXPECT_EQ(a.value, makegps(rand(), rand()));
         }
     }
 
@@ -1375,18 +1371,18 @@ BOOST_AUTO_TEST_CASE(dynamic_field_compressor_works) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&data);
 
-            BOOST_CHECK_EQUAL(data.t.value, makegps(rand(), rand()));
-            BOOST_CHECK_EQUAL(data.c.r, randushort());
-            BOOST_CHECK_EQUAL(data.c.g, randushort());
-            BOOST_CHECK_EQUAL(data.c.b, randushort());
-            BOOST_CHECK_EQUAL(data.a, randshort());
-            BOOST_CHECK_EQUAL(data.b, randushort());
-            BOOST_CHECK_EQUAL(data.d, rand());
+            EXPECT_EQ(data.t.value, makegps(rand(), rand()));
+            EXPECT_EQ(data.c.r, randushort());
+            EXPECT_EQ(data.c.g, randushort());
+            EXPECT_EQ(data.c.b, randushort());
+            EXPECT_EQ(data.a, randshort());
+            EXPECT_EQ(data.b, randushort());
+            EXPECT_EQ(data.d, rand());
         }
     }
 }
 
-BOOST_AUTO_TEST_CASE(dynamic_can_do_blind_compression) {
+TEST(lazperf_tests, dynamic_can_do_blind_compression) {
     const int POINT_COUNT = 10000;
 
 	using namespace laszip;
@@ -1441,12 +1437,12 @@ BOOST_AUTO_TEST_CASE(dynamic_can_do_blind_compression) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            BOOST_CHECK_EQUAL(p2.x, static_cast<double>(rand()));
-            BOOST_CHECK_EQUAL(p2.y, static_cast<double>(rand()));
-            BOOST_CHECK_EQUAL(p2.z, static_cast<double>(rand()));
-            BOOST_CHECK_EQUAL(p2.r, static_cast<float>(rand()));
-            BOOST_CHECK_EQUAL(p2.g, static_cast<float>(rand()));
-            BOOST_CHECK_EQUAL(p2.b, static_cast<float>(rand()));
+            EXPECT_EQ(p2.x, static_cast<double>(rand()));
+            EXPECT_EQ(p2.y, static_cast<double>(rand()));
+            EXPECT_EQ(p2.z, static_cast<double>(rand()));
+            EXPECT_EQ(p2.r, static_cast<float>(rand()));
+            EXPECT_EQ(p2.g, static_cast<float>(rand()));
+            EXPECT_EQ(p2.b, static_cast<float>(rand()));
         }
     }
     {
@@ -1491,14 +1487,12 @@ BOOST_AUTO_TEST_CASE(dynamic_can_do_blind_compression) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            BOOST_CHECK_CLOSE(p2.x, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
-            BOOST_CHECK_CLOSE(p2.y, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
-            BOOST_CHECK_CLOSE(p2.z, static_cast<double>(rand()) / static_cast<double>(rand()), 0.000000000001);
-            BOOST_CHECK_CLOSE(p2.r, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
-            BOOST_CHECK_CLOSE(p2.g, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
-            BOOST_CHECK_CLOSE(p2.b, static_cast<float>(rand()) / static_cast<double>(rand()), 0.00001);
+            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rand()) / static_cast<double>(rand()));
+            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rand()) / static_cast<double>(rand()));
+            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rand()) / static_cast<double>(rand()));
+            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rand()) / static_cast<double>(rand()));
+            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rand()) / static_cast<double>(rand()));
+            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rand()) / static_cast<double>(rand()));
         }
     }
 }
-
-BOOST_AUTO_TEST_SUITE_END()

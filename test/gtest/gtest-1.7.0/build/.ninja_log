@@ -1,0 +1,5 @@
+# ninja log v5
+0	1650	0	CMakeFiles/gtest.dir/src/gtest-all.cc.o	cc3e9a6250dfa576
+1650	1685	0	libgtest.a	711cba8775e163d7
+1685	2209	0	CMakeFiles/gtest_main.dir/src/gtest_main.cc.o	79ff3007d275496
+2209	2227	0	libgtest_main.a	7905cfa1e5502137
