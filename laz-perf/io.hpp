@@ -203,38 +203,38 @@ namespace laszip {
 			}
 
             void fill(const char *data) {
-                memcpy(&compressor, data, sizeof(compressor));
+                std::copy(data, data + sizeof(compressor), (char *)&compressor);
                 compressor = le16toh(compressor);
                 data += sizeof(compressor);
 
-                memcpy(&coder, data, sizeof(coder));
+                std::copy(data, data + sizeof(coder), (char *)&coder);
                 coder = le16toh(coder);
                 data += sizeof(coder);
 
                 version.major = *(const unsigned char *)data++;
                 version.minor = *(const unsigned char *)data++;
 
-                memcpy(&version.revision, data, sizeof(version.revision));
+                std::copy(data, data + sizeof(version.revision), (char *)&version.revision);
                 version.revision = le16toh(version.revision);
                 data += sizeof(version.revision);
 
-                memcpy(&options, data, sizeof(options));
+                std::copy(data, data + sizeof(options), (char *)&options);
                 options = le32toh(options);
                 data += sizeof(options);
 
-                memcpy(&chunk_size, data, sizeof(chunk_size));
+                std::copy(data, data + sizeof(chunk_size), (char *)&chunk_size);
                 chunk_size = le32toh(chunk_size);
                 data += sizeof(chunk_size);
 
-                memcpy(&num_points, data, sizeof(num_points));
+                std::copy(data, data + sizeof(num_points), (char *)&num_points);
                 num_points = le64toh(num_points);
                 data += sizeof(num_points);
 
-                memcpy(&num_bytes, data, sizeof(num_bytes));
+                std::copy(data, data + sizeof(num_bytes), (char *)&num_bytes);
                 num_bytes = le64toh(num_bytes);
                 data += sizeof(num_bytes);
 
-                memcpy(&num_items, data, sizeof(num_items));
+                std::copy(data, data + sizeof(num_items), (char *)&num_items);
                 num_items = le16toh(num_items);
                 data += sizeof(num_items);
 
@@ -243,15 +243,15 @@ namespace laszip {
                 for (int i = 0 ; i < num_items ; i ++) {
                     laz_item& item = items[i];
 
-                    memcpy(&item.type, data, sizeof(item.type));
+                    std::copy(data, data + sizeof(item.type), (char *)&item.type);
                     item.type = le16toh(item.type);
                     data += sizeof(item.type);
 
-                    memcpy(&item.size, data, sizeof(item.size));
+                    std::copy(data, data + sizeof(item.size), (char *)&item.size);
                     item.size = le16toh(item.size);
                     data += sizeof(item.size);
 
-                    memcpy(&item.version, data, sizeof(item.version));
+                    std::copy(data, data + sizeof(item.version), (char *)&item.version);
                     item.version = le16toh(item.version);
                     data += sizeof(item.version);
                 }
@@ -261,55 +261,67 @@ namespace laszip {
                 uint16_t s;
                 uint32_t i;
                 uint64_t ll;
+                char *src;
 
                 s = htole16(compressor);
-                memcpy(data, &s, sizeof(compressor));
+                src = (char *)&s;
+                std::copy(src, src + sizeof(compressor), data);
                 data += sizeof(compressor);
 
                 s = htole16(coder);
-                memcpy(data, &s, sizeof(coder));
+                src = (char *)&s;
+                std::copy(src, src + sizeof(coder), data);
                 data += sizeof(coder);
 
                 *data++ = version.major;
                 *data++ = version.minor;
 
                 s = htole16(version.revision);
-                memcpy(data, &s, sizeof(version.revision));
+                src = (char *)&s;
+                std::copy(src, src + sizeof(version.revision), data);
                 data += sizeof(version.revision);
 
                 i = htole32(options);
-                memcpy(data, &i, sizeof(options));
+                src = (char *)&i;
+                std::copy(src, src + sizeof(options), data);
                 data += sizeof(options);
 
                 i = htole32(chunk_size);
-                memcpy(data, &i, sizeof(chunk_size));
+                src = (char *)&i;
+                std::copy(src, src + sizeof(chunk_size), data);
                 data += sizeof(chunk_size);
 
                 ll = htole64(num_points);
-                memcpy(data, &ll, sizeof(num_points));
+                src = (char *)&ll;
+                std::copy(src, src + sizeof(num_points), data);
                 data += sizeof(num_points);
 
                 ll = htole64(num_bytes);
-                memcpy(data, &ll, sizeof(num_bytes));
+                src = (char *)&ll;
+                std::copy(src, src + sizeof(num_bytes), data);
                 data += sizeof(num_bytes);
 
                 s = htole16(num_items);
-                memcpy(data, &s, sizeof(num_items));
+                src = (char *)&s;
+                std::copy(src, src + sizeof(num_items), data);
                 data += sizeof(num_items);
 
                 for (int i = 0 ; i < num_items ; i ++) {
                     laz_item& item = items[i];
 
                     s = htole16(item.type);
-                    memcpy(data, &s, sizeof(item.type));
+                    src = (char *)&s;
+                    std::copy(src, src + sizeof(item.type), data);
                     data += sizeof(item.type);
 
                     s = htole16(item.size);
-                    memcpy(data, &s, sizeof(item.size));
+                    src = (char *)&s;
+                    std::copy(src, src + sizeof(item.size), data);
                     data += sizeof(item.size);
 
                     s = htole16(item.version);
-                    memcpy(data, &s, sizeof(item.version));
+                    src = (char *)&s;
+                    std::copy(src, src + sizeof(item.version), data);
                     data += sizeof(item.version);
                 }
             }
@@ -380,13 +392,11 @@ namespace laszip {
 			__ifstream_wrapper& operator = (const __ifstream_wrapper<StreamType>&) = delete;
 
 			inline void fillit_() {
-				if (offset >= have) {
-					offset = 0;
-					f_.read(buf_, BUF_SIZE);
-					have = f_.gcount();
-					if (have == 0)
-						throw end_of_file(); // this is an exception since we shouldn't be hitting eof
-				}
+				offset = 0;
+				f_.read(buf_, BUF_SIZE);
+				have = f_.gcount();
+				if (have == 0)
+					throw end_of_file(); // this is an exception since we shouldn't be hitting eof
 			}
 
 			inline void reset() {
@@ -394,15 +404,26 @@ namespace laszip {
 			}
 
 			inline unsigned char getByte() {
-				fillit_();
+                if (offset >= have)
+                    fillit_();
 				return static_cast<unsigned char>(buf_[offset++]);
 			}
 
-			inline void getBytes(unsigned char *buf, size_t len) {
-				fillit_();
+			inline void getBytes(unsigned char *buf, size_t request) {
+                // Use what's left in the buffer, if anything.
+                size_t fetchable = std::min((size_t)(have - offset), request);
+				std::copy(buf_ + offset, buf_ + offset + fetchable, buf);
+                offset += fetchable;
+                request -= fetchable;
 
-				std::copy(buf_ + offset, buf_ + offset + len, buf);
-				offset += len;
+                // If we couldn't fetch everything requested, fill buffer
+                // and go again.  We assume fillit_() satisfies any request.
+                if (request)
+                {
+                    fillit_();
+				    std::copy(buf_ + offset, buf_ + offset + request, buf);
+				    offset += request;
+                }
 			}
 
 			StreamType& f_;
