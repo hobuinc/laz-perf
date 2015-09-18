@@ -8,7 +8,7 @@ Homepage: https://github.com/verma/laz-perf
 
 Package: laz-perf
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}
 Description: Emscripten laz
  This laz-perf package was desgined for use in PDAL's (http://pdal.io)
  continuous integration. This Debian packaging is likely incomplete and/or
