@@ -1,3 +1,35 @@
+laz-perf (1.0.0-1) precise; urgency=medium
+
+  [ Pete Gadomski ]
+  * Fix small cmakelists typo
+
+  [ Uday Verma ]
+  * Cleanup in classes exported to JS land, allocate around 100MB
+    for JS mem heap
+
+  [ Andrew Bell ]
+  * Allow access to LAZ VLR. Ensure byte-ordering of LAZ VLR data.
+  * Build schema from VLR.
+  * Provide access to packed laz_vlr data. Move setting some VLR
+    values into from_schema. Use template for __ofstream_wrapper
+    to match __ifstream_wrapper.
+
+  [ Pete Gadomski ]
+  * Add debian directory
+  * Add const qualifier to the char cast
+
+  [ Andrew Bell ]
+  * More careful getBytes(). Replace memcpy with std::copy.
+
+  [ Pete Gadomski ]
+  * Add gbp.conf
+  * Update standards version to 3.9.5
+  * Remove shlibs:Depends from control
+  * Remove debian directory from main line
+  * Update debian tag to v1.0.0
+
+ -- Pete Gadomski <pete.gadomski@gmail.com>  Mon, 21 Sep 2015 11:25:17 -0500
+
 laz-perf (0.0.1-1) precise; urgency=low
 
   * Initial release. verma/laz-perf @ 3eaec2f143361b7ef9e9ee64fb9900ae256a7b37
