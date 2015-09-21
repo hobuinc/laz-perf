@@ -230,11 +230,11 @@ TEST(io_tests, can_open_large_files) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	checkExists(testFile("autzen.laz"));
+	checkExists(testFile("autzen_trim.laz"));
 
 	{
 		auto func = []() {
-			std::ifstream file(testFile("autzen.laz"));
+			std::ifstream file(testFile("autzen_trim.laz"));
 			io::reader::file f(file);
 		};
 
@@ -246,13 +246,13 @@ TEST(io_tests, can_decode_large_files) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	checkExists(testFile("autzen.laz"));
-	checkExists(testFile("autzen.las"));
+	checkExists(testFile("autzen_trim.laz"));
+	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen.laz"));
+		std::ifstream file(testFile("autzen_trim.laz"));
 		io::reader::file f(file);
-		reader fin(testFile("autzen.las"));
+		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = f.get_header().point_count;
 
@@ -304,8 +304,8 @@ TEST(io_tests, can_encode_large_files) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	checkExists(testFile("autzen.laz"));
-	checkExists(testFile("autzen.las"));
+	checkExists(testFile("autzen_trim.laz"));
+	checkExists(testFile("autzen_trim.las"));
 
 	// write stuff to a temp file
 
@@ -325,11 +325,11 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen.laz", schema,
+		io::writer::file f("/tmp/autzen_trim.laz", schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
-		reader fin(testFile("autzen.las"));
+		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = fin.count_;
 		point p;
@@ -347,7 +347,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	checkExists(testFile("autzen.las"));
+	checkExists(testFile("autzen_trim.las"));
 	{
 		// this is the format the autzen has points in
 		struct point {
@@ -364,11 +364,11 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen.laz", schema,
+		io::writer::file f("/tmp/autzen_trim.laz", schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
-		reader fin(testFile("autzen.las"));
+		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = fin.count_;
 		point p;
@@ -397,9 +397,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		std::ifstream file("/tmp/autzen.laz");
+		std::ifstream file("/tmp/autzen_trim.laz");
 		io::reader::file f(file);
-		reader fin(testFile("autzen.las"));
+		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = fin.count_;
 		point p1, p2;
@@ -444,11 +444,11 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-	checkExists(testFile("autzen.laz"));
-	checkExists(testFile("autzen.las"));
+	checkExists(testFile("autzen_trim.laz"));
+	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen.laz"));
+		std::ifstream file(testFile("autzen_trim.laz"));
 		EXPECT_EQ(file.good(), true);
 
 		file.seekg(0, std::ios::end);
@@ -463,7 +463,7 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 		streams::memory_stream ms(buf, file_size);
 
 		io::reader::basic_file<streams::memory_stream> f(ms);
-		reader fin(testFile("autzen.las"));
+		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = f.get_header().point_count;
 
