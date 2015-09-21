@@ -1,7 +1,0 @@
-laz-perf (0.0.1-1) precise; urgency=low
-
-  * Initial release. verma/laz-perf @ 3eaec2f143361b7ef9e9ee64fb9900ae256a7b37
-    The v0.0.1 tag was completely made up by me, there are no real tags in
-    laz-perf. The tag, as of this writing, only exists in gadomski/laz-perf.
-
- -- Pete Gadomski <pete.gadomski@gmail.com>  Mon, 06 Apr 2015 13:20:08 +0000
