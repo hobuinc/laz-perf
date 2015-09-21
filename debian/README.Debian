@@ -4,5 +4,4 @@ This is a Debian package for https://github.com/verma/laz-perf,
 specifically created for use in PDAL's (http://pdal.io) Travis CI
 (https://travis-ci.org/PDAL/PDAL).
 
-The Debian packaging configuration is available in the following fork:
-https://github.com/gadomski/laz-perf/tree/debian
+This packaging is available at https://github.com/verma/tree/debian/precise.
