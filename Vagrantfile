@@ -21,7 +21,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #
   ppaRepos = [
 	  "ppa:ubuntu-toolchain-r/test",
-	  "ppa:boost-latest/ppa"
   ]
 
   packageList = [
@@ -29,7 +28,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  "build-essential",
 	  "gcc-4.8",
 	  "g++-4.8",
-	  "libboost1.55-all-dev",
 	  "cmake",
 	  "lcov"
   ];

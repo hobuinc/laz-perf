@@ -6,7 +6,6 @@ sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 16126D3A3E5C1192
 sudo apt-get update -y
 sudo apt-get install software-properties-common -y
 sudo apt-get install python-software-properties -y
-sudo add-apt-repository ppa:boost-latest/ppa -y
 
 # g++4.8.1
 if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
@@ -16,8 +15,7 @@ if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm;
 
 sudo apt-get update -qq
 sudo apt-get install \
-	cmake \
-	libboost1.55-all-dev
+	cmake
 
 # g++4.8.1
 if [ "$CXX" = "g++" ]; then 
