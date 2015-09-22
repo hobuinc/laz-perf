@@ -1357,10 +1357,6 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             g = randushort();
             b = randushort();
             data.c = las::rgb(r, g, b);
-            r = randushort();
-            g = randushort();
-            b = randushort();
-            data.c = las::rgb(r, g, b);
             data.a = randshort();
             data.b = randushort();
             data.d =  rand();
