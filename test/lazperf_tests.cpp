@@ -1330,9 +1330,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         struct {
             las::gpstime t;
             las::rgb c;
-            short a;
-            unsigned short b;
-            int d;
+            int16_t a;
+            uint16_t b;
+            int32_t d;
         } data;
 #pragma pack(pop)
 
@@ -1347,9 +1347,20 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         time_t seed = time(NULL);
         srand(seed);
 
+        uint16_t r, g, b;
+        int t1, t2;
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            data.t = las::gpstime(makegps(rand(), rand()));
-            data.c = las::rgb(randushort(), randushort(), randushort());
+            t1 = rand();
+            t2 = rand();
+            data.t = las::gpstime(makegps(t1, t2));
+            r = randushort();
+            g = randushort();
+            b = randushort();
+            data.c = las::rgb(r, g, b);
+            r = randushort();
+            g = randushort();
+            b = randushort();
+            data.c = las::rgb(r, g, b);
             data.a = randshort();
             data.b = randushort();
             data.d =  rand();
@@ -1370,8 +1381,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         srand(seed);
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&data);
-
-            EXPECT_EQ(data.t.value, makegps(rand(), rand()));
+            int t1 = rand();
+            int t2 = rand();
+            EXPECT_EQ(data.t.value, makegps(t1, t2));
             EXPECT_EQ(data.c.r, randushort());
             EXPECT_EQ(data.c.g, randushort());
             EXPECT_EQ(data.c.b, randushort());
