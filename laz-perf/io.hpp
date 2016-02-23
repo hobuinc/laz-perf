@@ -32,6 +32,7 @@
 #define __io_hpp__
 
 #include <fstream>
+#include <limits>
 #include <string.h>
 #include <mutex>
 
@@ -757,6 +758,8 @@ namespace laszip {
 
 				header to_header() const {
 					header h; memset(&h, 0, sizeof(h)); // clear out header
+					h.min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+					h.max = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
 
 					h.offset.x = offset.x;
 					h.offset.y = offset.y;
