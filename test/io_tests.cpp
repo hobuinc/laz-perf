@@ -513,3 +513,37 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 	}
 }
 
+TEST(io_tests, issue22)
+{
+    using namespace laszip;
+    using namespace laszip::formats;
+
+    std::string infile(testFile("classification.txt"));
+    std::string tempfile(testFile("classification.laz"));
+
+    std::ifstream ifs(infile);
+    std::istream_iterator<int> it{ifs};
+    std::vector<int> cls(it, std::istream_iterator<int>());
+
+    factory::record_schema schema;
+    schema(factory::record_item::POINT10);
+    io::writer::file out(tempfile, schema,
+            io::writer::config({0.01,0.01,0.01}, {0.0,0.0,0.0}));
+
+    las::point10 p10;
+    for(const int& cl : cls) {
+        p10.classification = static_cast<unsigned char>(cl);
+        out.writePoint((char *)&p10);
+    }
+    out.close();
+
+    std::ifstream instream(tempfile, std::ios::binary);
+    io::reader::file in(instream);
+
+    EXPECT_EQ(in.get_header().point_count, cls.size());
+    for (size_t i = 0; i < in.get_header().point_count; i++)
+    {
+        in.readPoint((char *)&p10);
+        EXPECT_EQ(cls[i], p10.classification);
+    }
+}
