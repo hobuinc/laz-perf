@@ -6,6 +6,10 @@ language: cpp
 compiler:
     - g++
 
+branches:
+    except:
+        - debian/precise
+
 before_install: ./scripts/ci/pre.sh
 
 script: ./scripts/ci/run.sh

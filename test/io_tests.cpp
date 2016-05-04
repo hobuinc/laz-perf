@@ -513,6 +513,38 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 	}
 }
 
+TEST(io_tests, writes_bbox_to_header) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	factory::record_schema schema;
+	schema(factory::record_item::POINT10);
+
+	// First write a few points
+	std::string filename = "/tmp/header__bbox.laz";
+	io::writer::file f(filename, schema,
+			io::writer::config(vector3<double>(0.01, 0.01, 0.01),
+							   vector3<double>(0.0, 0.0, 0.0)));
+	las::point10 p1, p2;
+	p1.x = 100; p2.x = 200;
+	p1.y = -200; p2.y = -300;
+	p1.z = 300; p2.z = -400;
+
+	f.writePoint((char*)&p1);
+	f.writePoint((char*)&p2);
+	f.close();
+
+	// Now check that the file has correct bounding box
+  std::ifstream ifs(filename);
+  io::reader::file reader(ifs);
+  EXPECT_EQ(reader.get_header().min.x, 1.0);
+  EXPECT_EQ(reader.get_header().max.x, 2.0);
+  EXPECT_EQ(reader.get_header().min.y, -3.0);
+  EXPECT_EQ(reader.get_header().max.y, -2.0);
+  EXPECT_EQ(reader.get_header().min.z, -4.0);
+  EXPECT_EQ(reader.get_header().max.z, 3.0);
+}
+
 TEST(io_tests, issue22)
 {
     using namespace laszip;
