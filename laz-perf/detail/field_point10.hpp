@@ -103,8 +103,7 @@ namespace laszip {
 				p.x = packers<int>::unpack(in);						in += sizeof(int);
 				p.y = packers<int>::unpack(in);						in += sizeof(int);
 				p.z = packers<int>::unpack(in);						in += sizeof(int);
-				p.intensity = packers<unsigned short>::unpack(in);
-                in += sizeof(unsigned short);
+				p.intensity = packers<unsigned short>::unpack(in);  in += sizeof(unsigned short);
 
 				unsigned char d =
 					packers<unsigned char>::unpack(in);				in += sizeof(unsigned char);
@@ -112,8 +111,8 @@ namespace laszip {
 				// unpack read bitfields into p
 				detail::char_to_bitfields(d, p);
 
-				p.classification = packers<unsigned char>::unpack(in);
-                in += sizeof(unsigned char);
+				p.classification =
+                    packers<unsigned char>::unpack(in);             in += sizeof(unsigned char);
 
 				p.scan_angle_rank = packers<char>::unpack(in);		in += sizeof(char);
 				p.user_data = packers<char>::unpack(in);			in += sizeof(char);
@@ -135,8 +134,7 @@ namespace laszip {
 
 				packers<unsigned char>::pack(e, buffer);			buffer += sizeof(unsigned char);
 				packers<unsigned char>::pack(
-						p.classification, buffer);
-                buffer += sizeof(unsigned char);
+                    p.classification, buffer);                      buffer += sizeof(unsigned char);
 
 				packers<char>::pack(p.scan_angle_rank, buffer);		buffer += sizeof(char);
 				packers<char>::pack(p.user_data, buffer);			buffer += sizeof(char);
@@ -213,7 +211,7 @@ namespace laszip {
 
 				// if the scan angle rank has changed, compress it
 				if (changed_values & (1 << 2)) {
-               					enc.encodeSymbol(*common_.m_scan_angle_rank[this_val.scan_direction_flag],
+               	    enc.encodeSymbol(*common_.m_scan_angle_rank[this_val.scan_direction_flag],
 							U8_FOLD(this_val.scan_angle_rank - common_.last_.scan_angle_rank));
 				}
 
