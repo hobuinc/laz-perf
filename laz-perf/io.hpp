@@ -791,7 +791,7 @@ namespace laszip {
 				void open(const std::string& filename, const factory::record_schema& s, const config& c) {
 					// open the file and move to offset of data, we'll write
 					// headers and all other things on file close
-					f_.open(filename, std::ios::binary);
+					f_.open(filename, std::ios::binary | std::ios::trunc);
 					if (!f_.good())
 						throw write_open_failed();
 
