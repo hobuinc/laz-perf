@@ -104,19 +104,19 @@ namespace laszip {
 			std::string hash = make_token(schema);
 
 #define __c(x) (hash.compare(x) == 0)
-			if (__c("v2t6s20")) {
+			if (__c("v2t6s20")) {       // format 0
 				// just point 10
 				return make_dynamic_decompressor(dec,
 						new formats::record_decompressor<field<las::point10> >());
 			}
-			else if (__c("v2t6s20v2t7s8")) {
+			else if (__c("v2t6s20v2t7s8")) {   // format 1
 				// point 10, gpstime
 				return make_dynamic_decompressor(dec,
 						new formats::record_decompressor<
 							field<las::point10>,
 							field<las::gpstime> >());
 			}
-			else if (__c("v2t6s20v2t8s6")) {
+			else if (__c("v2t6s20v2t8s6")) {   // format 2
 				// point 10, gpstime
 				return make_dynamic_decompressor(dec,
 						new formats::record_decompressor<
@@ -124,7 +124,7 @@ namespace laszip {
 							field<las::rgb> >());
 			}
 
-			else if (__c("v2t6s20v2t7s8v2t8s6")) {
+			else if (__c("v2t6s20v2t7s8v2t8s6")) {    // format 2
 				// point10, gpstime, color
 				return make_dynamic_decompressor(dec,
 						new formats::record_decompressor<
@@ -148,12 +148,26 @@ namespace laszip {
 			std::string hash = make_token(schema);
 #define __c(x) (hash.compare(x) == 0)
 
-			if (__c("v2t6s20")) {
+			if (__c("v2t6s20")) {  // format 0;
 				// just point 10
 				return make_dynamic_compressor(enc,
 						new formats::record_compressor<field<las::point10> >());
 			}
-			else if (__c("v2t6s20v2t7s8v2t8s6")) {
+			else if (__c("v2t6s20v2t7s8")) { // format 1
+				// point10, gpstime
+				return make_dynamic_compressor(enc,
+						new formats::record_compressor<
+							field<las::point10>,
+							field<las::gpstime>>());
+            }
+			else if (__c("v2t6s20v2t8s6")) {    // format 2
+				// point10, gpstime, color
+				return make_dynamic_compressor(enc,
+						new formats::record_compressor<
+							field<las::point10>,
+							field<las::rgb> >());
+			}
+			else if (__c("v2t6s20v2t7s8v2t8s6")) { // format 3
 				// point10, gpstime, color
 				return make_dynamic_compressor(enc,
 						new formats::record_compressor<
