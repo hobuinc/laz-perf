@@ -32,7 +32,8 @@
 #define __util_hpp__
 
 #include <array>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 
 namespace laszip {
 	namespace utils {
@@ -40,7 +41,7 @@ namespace laszip {
 
 		static inline void *aligned_malloc(int size) {
 			void *mem = malloc(size+ALIGN+sizeof(void*));
-			void **ptr = (void**)((long)(((char*)mem)+ALIGN+sizeof(void*)) & ~(ALIGN-1));
+			void **ptr = (void**)(( ((uintptr_t)mem)+ALIGN+sizeof(void*) ) & ~(uintptr_t)(ALIGN-1) );
 			ptr[-1] = mem;
 			return ptr;
 		}
