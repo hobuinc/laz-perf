@@ -15,12 +15,6 @@
 
 #include "PyLazperfTypes.hpp"
 
-#define PY_ARRAY_UNIQUE_SYMBOL LIBPDALPYTHON_ARRAY_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
 
 namespace pylazperf
 {

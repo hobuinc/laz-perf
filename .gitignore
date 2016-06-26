@@ -47,4 +47,7 @@ test/raw-sets/haloe.laz
 python/VERSION.txt
 python/build
 python/lazperf.egg-info
-python/*.pyc
+python/lazperf/*.pyc
+python/lazperf/pylazperfapi.cpp
+python/lazperf/pylazperfapi.so
+python/test/*.pyc
