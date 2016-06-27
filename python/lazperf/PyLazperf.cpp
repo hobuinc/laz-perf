@@ -45,16 +45,14 @@ size_t addDimension(LasZipEngine& engine, pylazperf::Type t)
     return pylazperf::size(t);
 }
 
-LAZEngine::LAZEngine( std::string const& json)
-    : m_json(json)
-    , m_pointSize(0)
+LAZEngine::LAZEngine()
+    : m_pointSize(0)
 {
 }
 
 
-Decompressor::Decompressor( std::vector<uint8_t>& compressed,
-                            std::string const& json)
-    : LAZEngine(json)
+Decompressor::Decompressor( std::vector<uint8_t>& compressed)
+    : LAZEngine()
     , m_stream(compressed)
     , m_decoder(m_stream)
     , m_decompressor(laszip::formats::make_dynamic_decompressor(m_decoder))
@@ -85,9 +83,8 @@ size_t Decompressor::decompress(char* output, size_t buffer_size)
 }
 
 
-Compressor::Compressor( std::vector<uint8_t>& uncompressed,
-                            std::string const& json)
-    : LAZEngine(json)
+Compressor::Compressor( std::vector<uint8_t>& uncompressed)
+    : LAZEngine()
     , m_stream(uncompressed)
     , m_encoder(m_stream)
     , m_compressor(laszip::formats::make_dynamic_compressor(m_encoder))

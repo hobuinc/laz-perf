@@ -63,6 +63,27 @@ def buildNumpyDescription(schema):
         formats.append(f)
     return np.dtype({'names': names, 'formats': formats})
 
+def buildGreyhoundDescription(dtype):
+    """Given a numpy dtype, return a Greyhound schema"""
+    output = []
+    for t in dtype.descr:
+        name = t[0]
+        dt = dtype.fields[name]
+        size = dt[0].itemsize
+        tname = dt[0].name
+
+        entry = {}
+        if 'float' in tname:
+            entry['type'] = 'floating'
+        elif 'uint' in tname:
+            entry['type'] = 'unsigned'
+        else:
+            entry['type'] = 'signed'
+
+        entry['size'] = size
+        entry['name'] = name
+        output.append(entry)
+    return output
 
 cdef extern from "PyLazperftypes.hpp" namespace "pylazperf":
     enum LazPerfType "pylazperf::Type":
@@ -80,24 +101,23 @@ cdef extern from "PyLazperftypes.hpp" namespace "pylazperf":
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass Decompressor:
-        Decompressor(vector[uint8_t]& arr, const char*) except +
+        Decompressor(vector[uint8_t]& arr) except +
         size_t decompress(char* buffer, size_t length)
         size_t getPointSize()
-        const char* getJSON()
         void add_dimension(LazPerfType t)
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass Compressor:
-        Compressor(vector[uint8_t]& arr, const char*) except +
+        Compressor(vector[uint8_t]& arr) except +
         size_t compress(const char* buffer, size_t length)
         size_t getPointSize()
-        const char* getJSON()
         void add_dimension(LazPerfType t)
         void done()
         const vector[uint8_t]* data()
 
 cdef class PyCompressor:
     cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef public str jsondata
 
     def add_dimensions(self, jsondata):
 
@@ -134,35 +154,29 @@ cdef class PyCompressor:
         self.thisptr.done()
 
     def _init(self):
-        self.add_dimensions(self.json)
+        self.add_dimensions(self.jsondata)
 
-    def __cinit__(self, str jsondata):
+    def __cinit__(self, object schema):
         cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
 
         v = new vector[uint8_t]()
 
-        if PY_MAJOR_VERSION >= 3:
-            py_byte_string = jsondata.encode('UTF-8')
-            x = py_byte_string
-            self.thisptr = new Compressor(v[0], x)
-        else:
-            j = jsondata.decode('UTF-8')
-            self.thisptr = new Compressor(v[0], j)
-
+        self.thisptr = new Compressor(v[0])
+        try:
+            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
+        except AttributeError:
+            self.jsondata = schema
         self._init()
 
     def __dealloc__(self):
         del self.thisptr
 
 
-    property json:
-        def __get__(self):
-            return self.thisptr.getJSON().decode('UTF-8')
-
 cdef class PyDecompressor:
     cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef public str jsondata
 
     def add_dimensions(self, jsondata):
 
@@ -178,41 +192,35 @@ cdef class PyDecompressor:
             self.thisptr.add_dimension(t)
 
 
-    def decompress(self, length):
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr
-        arr = np.zeros(length, dtype=np.uint8)
-        point_count = self.thisptr.decompress(arr.data, arr.shape[0])
-        output = np.resize(arr, self.thisptr.getPointSize() * point_count)
-        view = output.view(dtype=buildNumpyDescription(self.json))
-        return view
+    def decompress(self, np.ndarray data):
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] view
+
+        view = data.view(dtype=np.uint8)
+        point_count = self.thisptr.decompress(view.data, view.shape[0])
+        output = np.resize(view, self.thisptr.getPointSize() * point_count)
+        view2 = output.view(dtype=buildNumpyDescription(self.jsondata))
+        return view2
 
     def _init(self):
-        self.add_dimensions(self.json)
+        self.add_dimensions(self.jsondata)
 
-    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  arr not None, str jsondata):
+    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None, object schema):
         cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
 
-        buf = <uint8_t*> arr.data;
+        buf = <uint8_t*> data.data;
         v = new vector[uint8_t]()
-        v.assign(buf, buf + len(arr))
+        v.assign(buf, buf + len(data))
 
-        if PY_MAJOR_VERSION >= 3:
-            py_byte_string = jsondata.encode('UTF-8')
-            x = py_byte_string
-            self.thisptr = new Decompressor(v[0], x)
-        else:
-            j = jsondata.decode('UTF-8')
-            self.thisptr = new Decompressor(v[0], j)
+        try:
+            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
+        except AttributeError:
+            self.jsondata = schema
 
+        self.thisptr = new Decompressor(v[0])
         self._init()
 
     def __dealloc__(self):
         del self.thisptr
-
-
-    property json:
-        def __get__(self):
-            return self.thisptr.getJSON().decode('UTF-8')
 

@@ -50,20 +50,17 @@ public:
 class LAZEngine
 {
 public:
-    LAZEngine(const std::string& json);
+    LAZEngine();
     virtual ~LAZEngine() {};
     virtual size_t getPointSize() const { return m_pointSize; }
-    virtual const char* getJSON() const { return m_json.c_str(); }
 
 protected:
-    std::string m_json;
     size_t m_pointSize;
 };
 
 class Decompressor : public LAZEngine {
 public:
-    Decompressor(std::vector<uint8_t>&,
-                 std::string const& schema_json);
+    Decompressor(std::vector<uint8_t>&);
     ~Decompressor(){};
     void add_dimension(pylazperf::Type t);
     size_t decompress(char* out, size_t buffer_size);
@@ -84,8 +81,7 @@ private:
 class Compressor : public LAZEngine
 {
 public:
-    Compressor(std::vector<uint8_t>&,
-                 std::string const& schema_json);
+    Compressor(std::vector<uint8_t>&);
     ~Compressor(){};
     void done();
     void add_dimension(pylazperf::Type t);
