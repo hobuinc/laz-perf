@@ -21,25 +21,32 @@ class TestLazPerf(unittest.TestCase):
         with open('test/uncompressed.bin','rb') as f:
             original = f.read()
 
-        self.assertEqual(len(data), len_compressed, "compressed file length is correct")
-        self.assertEqual(len(original), len_uncompressed, "uncompressed file length is correct")
+        self.assertEqual(len(data),
+                         len_compressed,
+                         "compressed file length is correct")
+        self.assertEqual(len(original),
+                         len_uncompressed,
+                         "uncompressed file length is correct")
 
         # last four bytes are the point count
         compressed_point_count = struct.unpack('<L',data[-4:])[0]
         uncompressed_point_count = struct.unpack('<L',original[-4:])[0]
 
-        self.assertEqual(compressed_point_count, uncompressed_point_count, "compressed point count matches expected")
-        self.assertEqual(uncompressed_point_count, expected_point_count,"uncompressed point count matches expected")
+        self.assertEqual(compressed_point_count,
+                         uncompressed_point_count,
+                         "compressed point count matches expected")
+        self.assertEqual(uncompressed_point_count,
+                         expected_point_count,
+                         "uncompressed point count matches expected")
 
-        arr = np.frombuffer(data, dtype=np.uint8)
-        dtype=buildNumpyDescription(json.loads(s))
+        arr = np.frombuffer(data, dtype = np.uint8)
+        dtype = buildNumpyDescription(json.loads(s))
         self.assertEqual(dtype.itemsize, 54)
 
         d = Decompressor(arr, s)
-#         self.assertEqual((len(d.jsondata)), len(s))
-
-        decompressed = d.decompress(np.zeros(compressed_point_count * dtype.itemsize, dtype=np.uint8))
-        uncompressed = np.frombuffer(original[0:-4], dtype=dtype)
+        output = np.zeros(compressed_point_count * dtype.itemsize, dtype=np.uint8)
+        decompressed = d.decompress(output)
+        uncompressed = np.frombuffer(original[0:-4], dtype = dtype)
 
         self.assertEqual(uncompressed.shape[0], expected_point_count)
         self.assertEqual(decompressed.shape[0], expected_point_count)
@@ -54,30 +61,38 @@ class TestLazPerf(unittest.TestCase):
 
         with open('test/uncompressed.bin','rb') as f:
             original = f.read()
-        self.assertEqual(len(data), len_compressed, "compressed file length is correct")
-        self.assertEqual(len(original), len_uncompressed, "uncompressed file length is correct")
+
+        self.assertEqual(len(data),
+                         len_compressed,
+                         "compressed file length is correct")
+        self.assertEqual(len(original),
+                         len_uncompressed,
+                         "uncompressed file length is correct")
 
         # last four bytes are the point count
         compressed_point_count = struct.unpack('<L',data[-4:])[0]
         uncompressed_point_count = struct.unpack('<L',original[-4:])[0]
 
-        self.assertEqual(compressed_point_count, uncompressed_point_count, "compressed point count matches expected")
-        self.assertEqual(uncompressed_point_count, expected_point_count,"uncompressed point count matches expected")
+        self.assertEqual(compressed_point_count,
+                         uncompressed_point_count,
+                         "compressed point count matches expected")
+        self.assertEqual(uncompressed_point_count,
+                         expected_point_count,
+                         "uncompressed point count matches expected")
 
-        dtype=buildNumpyDescription(json.loads(s))
+        dtype = buildNumpyDescription(json.loads(s))
 
-        uncompressed = np.frombuffer(original[0:-4], dtype=dtype)
+        uncompressed = np.frombuffer(original[0:-4], dtype = dtype)
         self.assertEqual(uncompressed.shape[0], expected_point_count)
 
-        point_data = np.frombuffer(original[:-4], dtype=dtype)
-        empty = np.zeros(uncompressed_point_count, dtype=np.uint8)
+        point_data = np.frombuffer(original[:-4], dtype = dtype)
+        empty = np.zeros(uncompressed_point_count, dtype = np.uint8)
 
         c = Compressor(s)
-#         self.assertEqual((len(c.json)), len(s), "confirm Compressor didn't muck with our JSON")
 
         compressed = c.compress(point_data)
 
-        original_compressed = np.frombuffer(data[0:-4], dtype=np.uint8)
+        original_compressed = np.frombuffer(data[0:-4], dtype = np.uint8)
         self.assertEqual(len(original_compressed), len_compressed - 4)
         for i in range(len(compressed)):
             self.assertEqual(compressed[i], original_compressed[i])
@@ -88,14 +103,15 @@ class TestLazPerf(unittest.TestCase):
         with open('test/uncompressed.bin','rb') as f:
             original = f.read()
 
-        dtype=buildNumpyDescription(json.loads(s))
-        uncompressed = np.frombuffer(original[0:-4], dtype=dtype)
+        dtype = buildNumpyDescription(json.loads(s))
+        uncompressed = np.frombuffer(original[0:-4], dtype = dtype)
 
         c = Compressor(s)
         compressed = c.compress(uncompressed)
 
         d = Decompressor(compressed, s)
-        decompressed = d.decompress(np.zeros(expected_point_count * dtype.itemsize, dtype=np.uint8))
+        output = np.zeros(expected_point_count * dtype.itemsize, dtype = np.uint8)
+        decompressed = d.decompress(output)
         self.assertEqual(len(decompressed), len(uncompressed))
         for i in range(len(decompressed)):
             self.assertEqual(decompressed[i], uncompressed[i])
