@@ -51,3 +51,4 @@ python/lazperf/*.pyc
 python/lazperf/pylazperfapi.cpp
 python/lazperf/pylazperfapi.so
 python/test/*.pyc
+*__pycache__*

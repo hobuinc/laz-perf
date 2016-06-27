@@ -136,11 +136,10 @@ cdef class PyCompressor:
     def _init(self):
         self.add_dimensions(self.json)
 
-    def __cinit__(self, unicode jsondata):
+    def __cinit__(self, str jsondata):
         cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
-
 
         v = new vector[uint8_t]()
 
@@ -149,7 +148,8 @@ cdef class PyCompressor:
             x = py_byte_string
             self.thisptr = new Compressor(v[0], x)
         else:
-            self.thisptr = new Compressor(v[0], jsondata)
+            j = jsondata.decode('UTF-8')
+            self.thisptr = new Compressor(v[0], j)
 
         self._init()
 
@@ -189,7 +189,7 @@ cdef class PyDecompressor:
     def _init(self):
         self.add_dimensions(self.json)
 
-    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  arr not None, unicode jsondata):
+    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  arr not None, str jsondata):
         cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
@@ -203,7 +203,8 @@ cdef class PyDecompressor:
             x = py_byte_string
             self.thisptr = new Decompressor(v[0], x)
         else:
-            self.thisptr = new Decompressor(v[0], jsondata)
+            j = jsondata.decode('UTF-8')
+            self.thisptr = new Decompressor(v[0], j)
 
         self._init()
 

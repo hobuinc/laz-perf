@@ -13,10 +13,15 @@ expected_point_count = 1002
 class TestLazPerf(unittest.TestCase):
 
     def test_decompressor(self):
-        s = json.dumps(schema).decode('UTF-8')
+        s = json.dumps(schema)
 
-        data = file('test/compressed.bin','rb').read()
-        original = file('test/uncompressed.bin','rb').read()
+
+        with open('test/compressed.bin', 'rb') as f:
+            data = f.read()
+
+        with open('test/uncompressed.bin','rb') as f:
+            original = f.read()
+
         self.assertEqual(len(data), len_compressed, "compressed file length is correct")
         self.assertEqual(len(original), len_uncompressed, "uncompressed file length is correct")
 
@@ -43,10 +48,13 @@ class TestLazPerf(unittest.TestCase):
             self.assertEqual(uncompressed[i], decompressed[i])
 
     def test_compressor(self):
-        s = json.dumps(schema).decode('UTF-8')
+        s = json.dumps(schema)
 
-        data = file('test/compressed.bin','rb').read()
-        original = file('test/uncompressed.bin','rb').read()
+        with open('test/compressed.bin', 'rb') as f:
+            data = f.read()
+
+        with open('test/uncompressed.bin','rb') as f:
+            original = f.read()
         self.assertEqual(len(data), len_compressed, "compressed file length is correct")
         self.assertEqual(len(original), len_uncompressed, "uncompressed file length is correct")
 
@@ -76,9 +84,10 @@ class TestLazPerf(unittest.TestCase):
             self.assertEqual(compressed[i], original_compressed[i])
 
     def test_full_loop(self):
-        s = json.dumps(schema).decode('UTF-8')
+        s = json.dumps(schema)
 
-        original = file('test/uncompressed.bin','rb').read()
+        with open('test/uncompressed.bin','rb') as f:
+            original = f.read()
 
         dtype=buildNumpyDescription(json.loads(s))
         uncompressed = np.frombuffer(original[0:-4], dtype=dtype)
