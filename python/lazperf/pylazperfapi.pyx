@@ -86,6 +86,81 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         const char* getJSON()
         void add_dimension(LazPerfType t)
 
+cdef extern from "PyLazperf.hpp" namespace "pylazperf":
+    cdef cppclass Compressor:
+        Compressor(vector[uint8_t]& arr, const char*) except +
+        size_t compress(const char* buffer, size_t length)
+        size_t getPointSize()
+        const char* getJSON()
+        void add_dimension(LazPerfType t)
+        void done()
+        const vector[uint8_t]* data()
+
+cdef class PyCompressor:
+    cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
+
+    def add_dimensions(self, jsondata):
+
+        data = None
+        try:
+            jsondata[0]['type']
+            data = jsondata
+        except:
+            data = jsonlib.loads(jsondata)
+
+        for dim in data:
+            t = get_lazperf_type(dim['size'], dim['type'])
+            self.thisptr.add_dimension(t)
+
+    cdef get_data(self):
+        cdef const vector[uint8_t]* v = self.thisptr.data()
+        cdef size_t size = v.size()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(size, dtype=np.uint8)
+
+        arr.data = <char*>v[0].data()
+        return arr
+
+    def compress(self, np.ndarray arr not None):
+
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] view
+        view = arr.view(dtype=np.uint8)
+
+        point_count = self.thisptr.compress(view.data, view.shape[0])
+        self.done()
+        return self.get_data()
+
+
+    def done(self):
+        self.thisptr.done()
+
+    def _init(self):
+        self.add_dimensions(self.json)
+
+    def __cinit__(self, unicode jsondata):
+        cdef char* x
+        cdef uint8_t* buf
+        cdef vector[uint8_t]* v
+
+
+        v = new vector[uint8_t]()
+
+        if PY_MAJOR_VERSION >= 3:
+            py_byte_string = jsondata.encode('UTF-8')
+            x = py_byte_string
+            self.thisptr = new Compressor(v[0], x)
+        else:
+            self.thisptr = new Compressor(v[0], jsondata)
+
+        self._init()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+
+    property json:
+        def __get__(self):
+            return self.thisptr.getJSON().decode('UTF-8')
+
 cdef class PyDecompressor:
     cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
 

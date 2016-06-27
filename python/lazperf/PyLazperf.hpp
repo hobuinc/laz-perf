@@ -23,12 +23,11 @@ template <typename CTYPE = unsigned char>
 class TypedLazPerfBuf
 {
     typedef std::vector<CTYPE> LazPerfRawBuf;
-private:
 
+public:
     LazPerfRawBuf& m_buf;
     size_t m_idx;
 
-public:
     TypedLazPerfBuf(LazPerfRawBuf& buf) : m_buf(buf), m_idx(0)
     {}
 
@@ -47,16 +46,28 @@ public:
     }
 };
 
-class Decompressor {
+
+class LAZEngine
+{
+public:
+    LAZEngine(const std::string& json);
+    virtual ~LAZEngine() {};
+    virtual size_t getPointSize() const { return m_pointSize; }
+    virtual const char* getJSON() const { return m_json.c_str(); }
+
+protected:
+    std::string m_json;
+    size_t m_pointSize;
+};
+
+class Decompressor : public LAZEngine {
 public:
     Decompressor(std::vector<uint8_t>&,
                  std::string const& schema_json);
     ~Decompressor(){};
     void add_dimension(pylazperf::Type t);
     size_t decompress(char* out, size_t buffer_size);
-    inline size_t getPointSize() { return m_pointSize; }
 
-    const char* getJSON() const;
 
 private:
 
@@ -64,11 +75,33 @@ private:
     typedef typename laszip::formats::dynamic_field_decompressor<Decoder>::ptr
         Engine;
 
-    std::string m_json;
     TypedLazPerfBuf<uint8_t> m_stream;
     Decoder m_decoder;
     Engine m_decompressor;
-    size_t m_pointSize;
+};
+
+
+class Compressor : public LAZEngine
+{
+public:
+    Compressor(std::vector<uint8_t>&,
+                 std::string const& schema_json);
+    ~Compressor(){};
+    void done();
+    void add_dimension(pylazperf::Type t);
+    size_t compress(const char* input, size_t buffer_size);
+    const std::vector<uint8_t>* data() const;
+
+private:
+
+    typedef laszip::encoders::arithmetic<TypedLazPerfBuf<uint8_t>> Encoder;
+    typedef typename laszip::formats::dynamic_field_compressor<Encoder>::ptr
+            Engine;
+
+    TypedLazPerfBuf<uint8_t> m_stream;
+    Encoder m_encoder;
+    Engine m_compressor;
+    bool m_done;
 };
 
 }

@@ -1,4 +1,5 @@
 #include "PyLazperf.hpp"
+#include <stdexcept>
 
 
 namespace pylazperf
@@ -44,20 +45,20 @@ size_t addDimension(LasZipEngine& engine, pylazperf::Type t)
     return pylazperf::size(t);
 }
 
-
-Decompressor::Decompressor( std::vector<uint8_t>& compressed,
-                            std::string const& json)
+LAZEngine::LAZEngine( std::string const& json)
     : m_json(json)
-    , m_stream(compressed)
-    , m_decoder(m_stream)
-    , m_decompressor(laszip::formats::make_dynamic_decompressor(m_decoder))
     , m_pointSize(0)
 {
 }
 
-const char* Decompressor::getJSON() const
+
+Decompressor::Decompressor( std::vector<uint8_t>& compressed,
+                            std::string const& json)
+    : LAZEngine(json)
+    , m_stream(compressed)
+    , m_decoder(m_stream)
+    , m_decompressor(laszip::formats::make_dynamic_decompressor(m_decoder))
 {
-    return m_json.c_str();
 }
 
 void Decompressor::add_dimension(pylazperf::Type t)
@@ -81,6 +82,51 @@ size_t Decompressor::decompress(char* output, size_t buffer_size)
     }
     return count;
 
+}
+
+
+Compressor::Compressor( std::vector<uint8_t>& uncompressed,
+                            std::string const& json)
+    : LAZEngine(json)
+    , m_stream(uncompressed)
+    , m_encoder(m_stream)
+    , m_compressor(laszip::formats::make_dynamic_compressor(m_encoder))
+    , m_done(false)
+{
+}
+
+void Compressor::done()
+{
+    if (!m_done)
+       m_encoder.done();
+    m_done = true;
+}
+
+size_t Compressor::compress(const char *inbuf, size_t bufsize)
+{
+    size_t numRead = 0;
+
+    if (m_done)
+        throw std::runtime_error("Encoder has finished, unable to compress!");
+
+    const char *end = inbuf + bufsize;
+    while (inbuf + m_pointSize <= end)
+    {
+        m_compressor->compress(inbuf);
+        inbuf += m_pointSize;
+        numRead++;
+    }
+    return numRead;
+}
+
+void Compressor::add_dimension(pylazperf::Type t)
+{
+    m_pointSize = m_pointSize + addDimension(m_compressor, t);
+}
+
+const std::vector<uint8_t>* Compressor::data() const
+{
+    return &m_stream.m_buf;
 }
 
 }
