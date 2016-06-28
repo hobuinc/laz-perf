@@ -65,7 +65,7 @@ with open('CHANGES.rst', 'r', **open_kwds) as fp:
 
 long_description = readme + '\n\n' +  changes
 
-include_dirs = ['../']
+include_dirs = ['.']
 library_dirs = []
 libraries = []
 extra_link_args = []
@@ -104,6 +104,7 @@ setup_args = dict(
     url                 = 'https://github.com/hobu/laz-perf',
     long_description    = long_description,
     test_suite          = 'test',
+    include_package_data=True,
     packages            = [
         'lazperf',
     ],
