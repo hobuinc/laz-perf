@@ -15,9 +15,8 @@ try:
 
     from Cython.Build import cythonize
     import cython
-    if StrictVersion(cython.__version__) < StrictVersion('0.24'):
-        raise Exception('cython version is too old!')
-    USE_CYTHON = True
+    if not StrictVersion(cython.__version__) < StrictVersion('0.24'):
+        USE_CYTHON = True
 
 except ImportError:
     pass
@@ -25,7 +24,6 @@ except ImportError:
 ext = '.pyx' if USE_CYTHON else '.cpp'
 
 from setuptools import setup
-from packaging.version import Version
 
 
 logging.basicConfig()
@@ -42,7 +40,7 @@ with open('lazperf/__init__.py', 'r') as fp:
     for line in fp:
         if line.startswith("__version__"):
 
-            module_version = Version(
+            module_version = StrictVersion(
                 line.split("=")[1].strip().strip("\"'"))
             break
 
@@ -93,7 +91,7 @@ if USE_CYTHON and "clean" not in sys.argv:
 setup_args = dict(
     name                = 'lazperf',
     version             = str(module_version),
-    requires    = ['packaging','cython (>=0.23)','numpy (>=1.11)'],
+    install_requires    = ['cython >=0.23','numpy >=1.11'],
     description         = 'Point cloud data compression',
     license             = 'LGPL',
     keywords            = 'point cloud compression',
