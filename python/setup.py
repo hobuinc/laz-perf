@@ -8,19 +8,19 @@ import os
 import platform
 import sys
 import numpy
-from Cython.Build import cythonize
+from distutils.version import StrictVersion
 
-USE_CYTHON = True
+USE_CYTHON = False
 try:
 
     from Cython.Build import cythonize
-    from distutils.version import StrictVersion
     import cython
     if StrictVersion(cython.__version__) < StrictVersion('0.24'):
         raise Exception('cython version is too old!')
+    USE_CYTHON = True
 
 except ImportError:
-    USE_CYTHON = False
+    pass
 
 ext = '.pyx' if USE_CYTHON else '.cpp'
 
@@ -93,7 +93,7 @@ if USE_CYTHON and "clean" not in sys.argv:
 setup_args = dict(
     name                = 'lazperf',
     version             = str(module_version),
-    requires            = ['Python (>=2.7)', ],
+    requires    = ['packaging','cython (>=0.23)','numpy (>=1.11)'],
     description         = 'Point cloud data compression',
     license             = 'LGPL',
     keywords            = 'point cloud compression',
@@ -118,7 +118,6 @@ setup_args = dict(
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: GIS',
     ],
-    cmdclass           = {},
 )
 setup(ext_modules=extensions, **setup_args)
 

@@ -85,7 +85,7 @@ def buildGreyhoundDescription(dtype):
         output.append(entry)
     return output
 
-cdef extern from "PyLazperftypes.hpp" namespace "pylazperf":
+cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
     enum LazPerfType "pylazperf::Type":
         Double
         Float
