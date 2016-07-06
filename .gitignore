@@ -44,3 +44,11 @@ test/raw-sets/haloe.laz
 *.vcxproj.user
 *.dll
 *.js.mem
+python/VERSION.txt
+python/build
+python/lazperf.egg-info
+python/lazperf/*.pyc
+python/lazperf/pylazperfapi.cpp
+python/lazperf/pylazperfapi.so
+python/test/*.pyc
+*__pycache__*
