@@ -346,9 +346,8 @@ namespace laszip {
 			dynamic_compressor1(const dynamic_compressor1<TEncoder , TRecordCompressor>&) = delete;
 			dynamic_compressor1<TEncoder, TRecordCompressor>& operator=(dynamic_compressor1<TEncoder, TRecordCompressor>&) = delete;
 
-
 			TEncoder& enc_;
-			TRecordCompressor* compressor_;
+			std::unique_ptr<TRecordCompressor> compressor_;
 		};
 
 		template<
@@ -372,15 +371,11 @@ namespace laszip {
 				decompressor_->decompressWith(dec_, in);
 			}
 
-			~dynamic_decompressor1() {
-				delete decompressor_;
-			}
-
 			dynamic_decompressor1(const dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
 			dynamic_decompressor1<TDecoder, TRecordDecompressor>& operator=(dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
 
 			TDecoder& dec_;
-			TRecordDecompressor* decompressor_;
+			std::unique_ptr<TRecordDecompressor> decompressor_;
 		};
 
 		template<
