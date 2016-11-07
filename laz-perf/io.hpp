@@ -422,7 +422,7 @@ namespace laszip {
                 if (request)
                 {
                     fillit_();
-				    std::copy(buf_ + offset, buf_ + offset + request, buf);
+				    std::copy(buf_ + offset, buf_ + offset + request, buf + fetchable);
 				    offset += request;
                 }
 			}
