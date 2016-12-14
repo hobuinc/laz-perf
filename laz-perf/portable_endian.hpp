@@ -4,17 +4,17 @@
 
 #pragma once
 
-#if (USE_WINDOWS)
+#if (defined(_WIN16) || defined(_WIN32) || defined(_WIN64) || defined(EMSCRIPTEN_WINDOWS)) && !defined(__WINDOWS__)
 
 #   define __WINDOWS__
 
 #endif
 
-#if defined(USE_LINUX)
+#if defined(__linux__) || defined(__CYGWIN__)|| defined(EMSCRIPTEN_LINUX)
 
 #   include <endian.h>
 
-#elif defined(USE_APPLE)
+#elif defined(__APPLE__) || defined(EMSCRIPTEN_APPLE)
 
 #   include <machine/endian.h>
 #   include <libkern/OSByteOrder.h>
@@ -41,11 +41,11 @@
 #   define __PDP_ENDIAN    PDP_ENDIAN
 **/
 
-#elif defined(USE_OPEN_BSD)
+#elif defined(__OpenBSD__) || defined(EMSCRIPTEN_OPEN_BSD)
 
 #   include <sys/endian.h>
 
-#elif defined(USE_BSD)
+#elif defined(__NetBSD__) || defined(__FreeBSD__) || defined(__DragonFly__) || defined(EMSCRIPTEN_BSD)
 
 #   include <sys/endian.h>
 
@@ -58,7 +58,7 @@
 #   define be64toh betoh64
 #   define le64toh letoh64
 
-#elif defined(USE_WINDOWS)
+#elif defined(__WINDOWS__)
 
 #   include <winsock2.h>
 
