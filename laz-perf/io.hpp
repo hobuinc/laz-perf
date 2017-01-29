@@ -307,8 +307,8 @@ namespace laszip {
                 std::copy(src, src + sizeof(num_items), data);
                 data += sizeof(num_items);
 
-                for (int i = 0 ; i < num_items ; i ++) {
-                    laz_item& item = items[i];
+                for (int k = 0 ; k < num_items ; k ++) {
+                    laz_item& item = items[k];
 
                     s = htole16(item.type);
                     src = (char *)&s;

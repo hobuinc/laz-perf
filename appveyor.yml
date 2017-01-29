@@ -1,0 +1,38 @@
+version: 1.0.{build}
+
+os: Visual Studio 2015
+
+platform: x64
+
+configuration: Release
+
+matrix:
+  fast_finish: true
+
+
+# Should speed up repository cloning
+shallow_clone: true
+clone_depth: 5
+
+# Uncomment if you need to debug AppVeyor session (https://www.appveyor.com/docs/how-to/rdp-to-build-worker)
+# on_finish:
+# - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+init:
+  - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+
+install:
+  - ps: mkdir C:\pdalbin | out-null
+  # call our PDAL install script
+  - call .\\scripts\\appveyor\\config.cmd
+
+build:
+  parallel: false
+  project: LAZPERF.sln
+  verbosity: minimal
+
+
+test_script:
+  - ctest -V --output-on-failure -C Release
+
+
