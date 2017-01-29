@@ -20,6 +20,7 @@ clone_depth: 5
 
 init:
   - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+  - ps: (new-object net.webclient).DownloadFile("http://www.liblas.org/samples/autzen/autzen.laz", "C:\projects\laz-perf\test\raw-sets")
 
 install:
   - ps: mkdir C:\pdalbin | out-null
