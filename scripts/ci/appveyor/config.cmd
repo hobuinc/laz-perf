@@ -8,5 +8,5 @@ cmake -G %GENERATOR% ^
     -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
     -DCMAKE_VERBOSE_MAKEFILE=OFF ^
 	-DBUILD_SHARED_LIBS=ON ^
-    -Dgtest_force_shared_crt=ON ^	
+    -Dgtest_force_shared_crt=ON ^
     .
