@@ -19,7 +19,7 @@ clone_depth: 5
 # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 init:
-  - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;c:\projects\laz-perf\gtest-1.7.0\Release;%PATH%
+  - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;c:\projects\laz-perf\test\gtest\gtest-1.7.0\Release;%PATH%
 
 
 install:
