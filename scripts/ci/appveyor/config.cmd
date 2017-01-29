@@ -1,5 +1,5 @@
 @echo off
-set GENERATOR="Visual Studio 15 Win64"
+set GENERATOR="Visual Studio 14 2015 Win64"
 
 set BUILD_TYPE=Release
 
