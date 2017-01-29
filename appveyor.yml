@@ -24,7 +24,7 @@ init:
 install:
   - ps: mkdir C:\pdalbin | out-null
   # call our PDAL install script
-  - call .\\scripts\\appveyor\\config.cmd
+  - call .\\scripts\\ci\\appveyor\\config.cmd
 
 build:
   parallel: false
