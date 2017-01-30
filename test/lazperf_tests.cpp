@@ -1399,7 +1399,7 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 #pragma pack(push, 1)
     struct {
         double x, y, z;
-        float  r, g, b;
+        float r, g, b;
     } p1, p2;
 #pragma pack(pop)
 
@@ -1417,15 +1417,15 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 
         time_t seed = time(NULL);
         srand(seed);
-
+		int rvalue = rand();
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rand());
-            p1.y = static_cast<double>(rand());
-            p1.z = static_cast<double>(rand());
+            p1.x = static_cast<double>(rvalue);
+            p1.y = static_cast<double>(rvalue);
+            p1.z = static_cast<double>(rvalue);
 
-            p1.r = static_cast<float>(rand());
-            p1.g = static_cast<float>(rand());
-            p1.b = static_cast<float>(rand());
+            p1.r = static_cast<float>(rvalue);
+            p1.g = static_cast<float>(rvalue);
+            p1.b = static_cast<float>(rvalue);
 
             comp->compress((const char*)&p1);
         }
@@ -1445,12 +1445,12 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            EXPECT_EQ(p2.x, static_cast<double>(rand()));
-            EXPECT_EQ(p2.y, static_cast<double>(rand()));
-            EXPECT_EQ(p2.z, static_cast<double>(rand()));
-            EXPECT_EQ(p2.r, static_cast<float>(rand()));
-            EXPECT_EQ(p2.g, static_cast<float>(rand()));
-            EXPECT_EQ(p2.b, static_cast<float>(rand()));
+            EXPECT_EQ(p2.x, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.y, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.z, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.r, static_cast<float>(rvalue));
+            EXPECT_EQ(p2.g, static_cast<float>(rvalue));
+            EXPECT_EQ(p2.b, static_cast<float>(rvalue));
         }
     }
     {
@@ -1467,15 +1467,16 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 
         time_t seed = time(NULL);
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rand()) / static_cast<double>(rand());
-            p1.y = static_cast<double>(rand()) / static_cast<double>(rand());
-            p1.z = static_cast<double>(rand()) / static_cast<double>(rand());
+            p1.x = static_cast<double>(rvalue) / static_cast<double>(rvalue);
+            p1.y = static_cast<double>(rvalue) / static_cast<double>(rvalue);
+            p1.z = static_cast<double>(rvalue) / static_cast<double>(rvalue);
 
-            p1.r = static_cast<float>(rand()) / static_cast<double>(rand());
-            p1.g = static_cast<float>(rand()) / static_cast<double>(rand());
-            p1.b = static_cast<float>(rand()) / static_cast<double>(rand());
+            p1.r = static_cast<float>(rvalue) / static_cast<double>(rvalue);
+            p1.g = static_cast<float>(rvalue) / static_cast<double>(rvalue);
+            p1.b = static_cast<float>(rvalue) / static_cast<double>(rvalue);
 
             comp->compress((const char*)&p1);
         }
@@ -1495,12 +1496,12 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rand()) / static_cast<double>(rand()));
+            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rvalue) / static_cast<double>(rvalue));
         }
     }
 }

@@ -34,6 +34,7 @@
 #include <laz-perf/streams.hpp>
 
 #include "reader.hpp"
+#include <stdio.h>
 
 TEST(io_tests, io_structs_are_of_correct_size) {
 	using namespace laszip::io;
@@ -182,14 +183,19 @@ TEST(io_tests, decodes_single_chunk_files_correctly) {
 	using namespace laszip::formats;
 
 	{
-		std::ifstream file(testFile("point10.las.laz"));
+		std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
 		io::reader::file f(file);
 		std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
 
 		if (!fin.good())
 			FAIL() << "Raw LAS file not available.";
 
+		if (!file.good())
+			FAIL() << "LAZ file not available.";
+
+
 		size_t pointCount = f.get_header().point_count;
+		EXPECT_EQ(pointCount, 1065u);
 
 		for (size_t i = 0 ; i < pointCount ; i ++) {
 
@@ -251,13 +257,15 @@ TEST(io_tests, can_decode_large_files) {
 
 	{
 		std::ifstream file(testFile("autzen_trim.laz"));
+		std::cout << "read laz file" << std::endl;
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
+		std::cout << "read las file " << std::endl;
 
 		size_t pointCount = f.get_header().point_count;
 
 		EXPECT_EQ(pointCount, fin.count_);
-
+		EXPECT_EQ( fin.count_, 110000u);
 		struct pnt {
 			las::point10 p;
 			las::gpstime t;
@@ -267,8 +275,26 @@ TEST(io_tests, can_decode_large_files) {
 		for (size_t i = 0 ; i < pointCount ; i ++) {
 			pnt p1, p2;
 
-			f.readPoint((char*)&p1);
-			fin.record((char*)&p2);
+			try
+			{
+				fin.record((char*)&p2);
+			}
+			catch (std::runtime_error& e)
+			{
+				std::cout << "fail reading LAS at point" << i << std::endl;
+				throw e;
+			}
+			try
+			{
+				f.readPoint((char*)&p1);
+			}
+			catch (std::runtime_error& e)
+			{
+				std::cout << "fail reading LAZ at point" << i << " " << e.what() << std::endl;
+				throw e;
+			}
+
+
 
 			// Make sure the points match
 			{
@@ -325,7 +351,9 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen_trim.laz", schema,
+		char fname[L_tmpnam];
+		tmpnam(fname);
+		io::writer::file f(fname, schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
@@ -364,7 +392,10 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen_trim.laz", schema,
+		char fname[L_tmpnam];
+		tmpnam(fname);
+
+		io::writer::file f(fname, schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
@@ -397,7 +428,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		std::ifstream file("/tmp/autzen_trim.laz");
+		char fname[L_tmpnam];
+		tmpnam(fname);
+		std::ifstream file(fname);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
 
@@ -451,9 +484,10 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 		std::ifstream file(testFile("autzen_trim.laz"));
 		EXPECT_EQ(file.good(), true);
 
-		file.seekg(0, std::ios::end);
-		std::streamsize file_size = file.tellg();
-		file.seekg(0);
+		file.ignore(std::numeric_limits<std::streamsize>::max());
+		std::streamsize file_size = file.gcount();
+		file.clear();   //  Since ignore will have set eof.
+		file.seekg(0, std::ios_base::beg);
 
 		char *buf = (char *)malloc(static_cast<size_t>(file_size));
 		file.read(buf, file_size);
@@ -521,7 +555,9 @@ TEST(io_tests, writes_bbox_to_header) {
 	schema(factory::record_item::POINT10);
 
 	// First write a few points
-	std::string filename = "/tmp/header__bbox.laz";
+	char fname[L_tmpnam];
+	tmpnam(fname);
+	std::string filename(fname);
 	io::writer::file f(filename, schema,
 			io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 							   vector3<double>(0.0, 0.0, 0.0)));

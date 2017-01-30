@@ -77,7 +77,7 @@ namespace laszip {
 					outstream.putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
 				}
 
-				U32 buffer_size = outbyte - outbuffer;
+				I64 buffer_size = outbyte - outbuffer;
 				if (buffer_size) outstream.putBytes(outbuffer, buffer_size);
 
 				// write two or three zero bytes to be in sync with the decoder's byte reads
