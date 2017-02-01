@@ -771,12 +771,13 @@ TEST(lazperf_tests, can_compress_decompress_random_gpstime) {
 	const size_t S = 1000;
 
 	srand((unsigned int)std::time(NULL));
+	int rvalue = rand();
 	std::vector<int64_t> vs(S);
 	for (size_t i = 0 ; i < S ; i ++) {
-		int64_t a = rand() & 0xFFFF,
-				b = rand() & 0xFFFF,
-				c = rand() & 0xFFFF,
-				d = rand() & 0xFFFF;
+		int64_t a = rvalue & 0xFFFF,
+				b = rvalue & 0xFFFF,
+				c = rvalue & 0xFFFF,
+				d = rvalue & 0xFFFF;
 
 		las::gpstime t((a << 48) | (b << 32) | (c << 16) | d);
 		vs[i] = t.value;
@@ -860,8 +861,9 @@ TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
 	std::vector<unsigned short> cols(S);
 
 	srand((unsigned int)time(NULL));
+	int rvalue = rand();
 	for (size_t i = 0 ; i < S ; i++) {
-		unsigned short col = rand() % (1 << 16);
+		unsigned short col = rvalue % (1 << 16);
 		cols[i] = col;
 
 		las::rgb c(col, col, col);
@@ -1162,13 +1164,13 @@ TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
 
 	encoders::arithmetic<SuchStream> encoder(s);
 
-    time_t seed = time(NULL);
-
+    unsigned int seed = static_cast<unsigned int>(time(NULL));
     srand(seed);
+	int rvalue = rand();
 	for (int i = 0 ; i < POINT_COUNT; i ++) {
-        input.x = rand();
-        input.y = rand();
-        input.z = rand();
+        input.x = rvalue;
+        input.y = rvalue;
+        input.z = rvalue;
 
 		compressor.compressWith(encoder, (const char*)&input);
 	}
@@ -1185,9 +1187,9 @@ TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
 	for (int i = 0 ; i < POINT_COUNT ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&input);
 
-		EXPECT_EQ(input.x, rand());
-		EXPECT_EQ(input.y, rand());
-		EXPECT_EQ(input.z, rand());
+		EXPECT_EQ(input.x, rvalue);
+		EXPECT_EQ(input.y, rvalue);
+		EXPECT_EQ(input.z, rvalue);
 	}
 }
 
@@ -1205,11 +1207,12 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         comp->add_field<int>();
 
 
-        time_t seed = time(NULL);
+		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            int a = rand();
+            int a = rvalue;
             comp->compress((const char*)&a);
         }
         encoder.done();
@@ -1224,7 +1227,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             int a = 0;
             decomp->decompress((char *)&a);
 
-            EXPECT_EQ(a, rand());
+            EXPECT_EQ(a, rvalue);
         }
     }
 
@@ -1247,12 +1250,13 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         int arr[10];
 
 
-        time_t seed = time(NULL);
+		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
             for (int j = 0 ; j < 10 ; j ++) {
-                arr[j] = rand();
+                arr[j] = rvalue;
             }
 
             comp->compress((const char*)arr);
@@ -1273,12 +1277,11 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         decomp->add_field<int>();
         decomp->add_field<int>();
 
-        srand(seed);
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)arr);
 
             for (int j = 0 ; j < 10 ; j ++) {
-                EXPECT_EQ(arr[j], rand());
+                EXPECT_EQ(arr[j], rvalue);
             }
         }
     }
@@ -1291,11 +1294,12 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         comp->add_field<las::gpstime>();
 
 
-        time_t seed = time(NULL);
+		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            las::gpstime g(makegps(rand(), rand()));
+            las::gpstime g(makegps(rvalue, rvalue));
             comp->compress((const char*)&g);
         }
         encoder.done();
@@ -1310,7 +1314,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             las::gpstime a;
             decomp->decompress((char *)&a);
 
-            EXPECT_EQ(a.value, makegps(rand(), rand()));
+            EXPECT_EQ(a.value, makegps(rvalue, rvalue));
         }
     }
 
@@ -1336,22 +1340,24 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         } data;
 #pragma pack(pop)
 
-        auto randshort = []() -> short {
-            return rand() % std::numeric_limits<short>::max();
+		int rvalue = rand();
+        auto randshort = [rvalue]() -> short {
+            return rvalue % std::numeric_limits<short>::max();
         };
 
-        auto randushort = []() -> unsigned short {
-            return rand() % std::numeric_limits<unsigned short>::max();
+        auto randushort = [rvalue]() -> unsigned short {
+            return rvalue % std::numeric_limits<unsigned short>::max();
         };
 
-        time_t seed = time(NULL);
+		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+
 
         uint16_t r, g, b;
         int t1, t2;
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            t1 = rand();
-            t2 = rand();
+            t1 = rvalue;
+            t2 = rvalue;
             data.t = las::gpstime(makegps(t1, t2));
             r = randushort();
             g = randushort();
@@ -1359,7 +1365,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             data.c = las::rgb(r, g, b);
             data.a = randshort();
             data.b = randushort();
-            data.d =  rand();
+            data.d =  rvalue;
 
             comp->compress((const char*)&data);
         }
@@ -1374,18 +1380,17 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         decomp->add_field<unsigned short>();
         decomp->add_field<int>();
 
-        srand(seed);
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&data);
-            int t1 = rand();
-            int t2 = rand();
-            EXPECT_EQ(data.t.value, makegps(t1, t2));
+            int t3 = rvalue;
+            int t4 = rvalue;
+            EXPECT_EQ(data.t.value, makegps(t3, t4));
             EXPECT_EQ(data.c.r, randushort());
             EXPECT_EQ(data.c.g, randushort());
             EXPECT_EQ(data.c.b, randushort());
             EXPECT_EQ(data.a, randshort());
             EXPECT_EQ(data.b, randushort());
-            EXPECT_EQ(data.d, rand());
+            EXPECT_EQ(data.d, rvalue);
         }
     }
 }
@@ -1415,17 +1420,18 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         comp->add_field<int>();
         comp->add_field<int>();
 
-        time_t seed = time(NULL);
+        unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rand());
-            p1.y = static_cast<double>(rand());
-            p1.z = static_cast<double>(rand());
+            p1.x = static_cast<double>(rvalue);
+            p1.y = static_cast<double>(rvalue);
+            p1.z = static_cast<double>(rvalue);
 
-            p1.r = static_cast<float>(rand());
-            p1.g = static_cast<float>(rand());
-            p1.b = static_cast<float>(rand());
+            p1.r = static_cast<float>(rvalue);
+            p1.g = static_cast<float>(rvalue);
+            p1.b = static_cast<float>(rvalue);
 
             comp->compress((const char*)&p1);
         }
@@ -1441,16 +1447,15 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         decomp->add_field<int>();
         decomp->add_field<int>();
 
-        srand(seed);
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            EXPECT_EQ(p2.x, static_cast<double>(rand()));
-            EXPECT_EQ(p2.y, static_cast<double>(rand()));
-            EXPECT_EQ(p2.z, static_cast<double>(rand()));
-            EXPECT_EQ(p2.r, static_cast<float>(rand()));
-            EXPECT_EQ(p2.g, static_cast<float>(rand()));
-            EXPECT_EQ(p2.b, static_cast<float>(rand()));
+            EXPECT_EQ(p2.x, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.y, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.z, static_cast<double>(rvalue));
+            EXPECT_EQ(p2.r, static_cast<float>(rvalue));
+            EXPECT_EQ(p2.g, static_cast<float>(rvalue));
+            EXPECT_EQ(p2.b, static_cast<float>(rvalue));
         }
     }
     {
@@ -1465,17 +1470,18 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         comp->add_field<int>();
         comp->add_field<int>();
 
-        time_t seed = time(NULL);
+		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
+		int rvalue = rand();
 
         for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rand()) / static_cast<double>(rand());
-            p1.y = static_cast<double>(rand()) / static_cast<double>(rand());
-            p1.z = static_cast<double>(rand()) / static_cast<double>(rand());
+            p1.x = static_cast<double>(rvalue) / static_cast<double>(rvalue);
+            p1.y = static_cast<double>(rvalue) / static_cast<double>(rvalue);
+            p1.z = static_cast<double>(rvalue) / static_cast<double>(rvalue);
 
-            p1.r = static_cast<float>(rand()) / static_cast<double>(rand());
-            p1.g = static_cast<float>(rand()) / static_cast<double>(rand());
-            p1.b = static_cast<float>(rand()) / static_cast<double>(rand());
+            p1.r = static_cast<float>(rvalue) / static_cast<double>(rvalue);
+            p1.g = static_cast<float>(rvalue) / static_cast<double>(rvalue);
+            p1.b = static_cast<float>(rvalue) / static_cast<double>(rvalue);
 
             comp->compress((const char*)&p1);
         }
@@ -1495,12 +1501,12 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         for (int i = 0 ; i < POINT_COUNT ; i ++) {
             decomp->decompress((char *)&p2);
 
-            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rand()) / static_cast<double>(rand()));
-            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rand()) / static_cast<double>(rand()));
+            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rvalue) / static_cast<double>(rvalue));
         }
     }
 }

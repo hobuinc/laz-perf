@@ -42,7 +42,7 @@ std::string makeTempFileName()
 #ifdef _WIN32
     char *fnTemplate = "fnXXXXXX";
     char name[9];
-    int size = strnlen(fnTemplate) + 1;
+    int size = strnlen(fnTemplate, 9) + 1;
     int err = _mktemp_s(name, size);
     return std::string(name, 8);
 #else

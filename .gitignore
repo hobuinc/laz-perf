@@ -52,3 +52,7 @@ python/lazperf/pylazperfapi.cpp
 python/lazperf/pylazperfapi.so
 python/test/*.pyc
 *__pycache__*
+test/test_main.hpp
+x64/Release/ALL_BUILD/ALL_BUILD.vcxprojResolveAssemblyReference.cache
+test/gtest/gtest-1.7.0/Release/gtest_main.lib
+LAZPERF.VC.VC.opendb
