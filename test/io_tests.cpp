@@ -375,6 +375,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
+		char fname[L_tmpnam];
+		tmpnam(fname);
+
 	checkExists(testFile("autzen_trim.las"));
 	{
 		// this is the format the autzen has points in
@@ -392,8 +395,6 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		char fname[L_tmpnam];
-		tmpnam(fname);
 
 		io::writer::file f(fname, schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
@@ -428,8 +429,6 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		char fname[L_tmpnam];
-		tmpnam(fname);
 		std::ifstream file(fname);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
