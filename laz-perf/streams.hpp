@@ -29,6 +29,8 @@
 #ifndef __streams_hpp__
 #define __streams_hpp__
 
+#include <algorithm>
+
 namespace laszip {
 	namespace streams {
 		struct memory_stream {
