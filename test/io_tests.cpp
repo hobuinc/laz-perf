@@ -33,8 +33,25 @@
 #include <laz-perf/io.hpp>
 #include <laz-perf/streams.hpp>
 
+#include <cstdio>
 #include "reader.hpp"
 #include <stdio.h>
+
+std::string makeTempFileName()
+{
+#ifdef _WIN32
+    char *fnTemplate = "fnXXXXXX";
+    char name[9];
+    int size = strnlen(fnTemplate) + 1;
+    int err = _mktemp_s(name, size);
+    return std::string(name, 8);
+#else
+    char name[L_tmpnam];
+    std::tmpnam(name);
+
+    return std::string(name);
+#endif
+}
 
 TEST(io_tests, io_structs_are_of_correct_size) {
 	using namespace laszip::io;
@@ -351,9 +368,7 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		char fname[L_tmpnam];
-		tmpnam(fname);
-		io::writer::file f(fname, schema,
+		io::writer::file f(makeTempFileName(), schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
@@ -375,8 +390,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-		char fname[L_tmpnam];
-		tmpnam(fname);
+    std::string fname = makeTempFileName();
 
 	checkExists(testFile("autzen_trim.las"));
 	{
@@ -554,9 +568,7 @@ TEST(io_tests, writes_bbox_to_header) {
 	schema(factory::record_item::POINT10);
 
 	// First write a few points
-	char fname[L_tmpnam];
-	tmpnam(fname);
-	std::string filename(fname);
+	std::string filename(makeTempFileName());
 	io::writer::file f(filename, schema,
 			io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 							   vector3<double>(0.0, 0.0, 0.0)));
