@@ -42,9 +42,13 @@ std::string makeTempFileName()
 #ifdef _WIN32
     char *fnTemplate = "fnXXXXXX";
     char name[9];
-    int size = strnlen(fnTemplate, 9) + 1;
+	strcpy_s(name, sizeof(name), fnTemplate);
+    int size = strnlen(name, 9) + 1;
     int err = _mktemp_s(name, size);
-    return std::string(name, 8);
+	char path[MAX_PATH];
+	GetTempPath(MAX_PATH, path);
+
+    return std::string(path) + std::string(name, 8);
 #else
     char name[L_tmpnam];
     std::tmpnam(name);
@@ -273,16 +277,15 @@ TEST(io_tests, can_decode_large_files) {
 	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen_trim.laz"));
-		std::cout << "read laz file" << std::endl;
+		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
-		std::cout << "read las file " << std::endl;
 
 		size_t pointCount = f.get_header().point_count;
 
 		EXPECT_EQ(pointCount, fin.count_);
 		EXPECT_EQ( fin.count_, 110000u);
+
 		struct pnt {
 			las::point10 p;
 			las::gpstime t;
@@ -367,8 +370,8 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::POINT10)
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
-
-		io::writer::file f(makeTempFileName(), schema,
+		std::string fname = makeTempFileName();
+		io::writer::file f(fname, schema,
 				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 								   vector3<double>(0.0, 0.0, 0.0)));
 
@@ -403,7 +406,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		factory::record_schema schema;
 
-		// make schema
+		// make schema	
 		schema
 			(factory::record_item::POINT10)
 			(factory::record_item::GPSTIME)
@@ -443,7 +446,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		std::ifstream file(fname);
+		std::ifstream file(fname, std::ios::binary);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
 
@@ -494,7 +497,7 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen_trim.laz"));
+		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
 		EXPECT_EQ(file.good(), true);
 
 		file.ignore(std::numeric_limits<std::streamsize>::max());
