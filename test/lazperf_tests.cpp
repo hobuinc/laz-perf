@@ -27,7 +27,9 @@
 ===============================================================================
 */
 
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 
 #include "test_main.hpp"
 
@@ -735,7 +737,7 @@ TEST(lazperf_tests, can_compress_decompress_gpstime) {
 
 	for (size_t i = 0 ; i < il ; i ++) {
 		for (size_t j = 0 ; j < jl ; j ++) {
-			las::gpstime t(makegps((i > 0 ? 1ll << i : 0), (j << 16) + j));
+			las::gpstime t(makegps((unsigned int)(i > 0 ? 1ll << i : 0), (unsigned int)((j << 16) + j)));
 			comp.compressWith(encoder, (const char*)&t);
 		}
 	}
@@ -748,7 +750,7 @@ TEST(lazperf_tests, can_compress_decompress_gpstime) {
 
 	for (size_t i = 0 ; i < il ; i ++) {
 		for (size_t j = 0 ; j < jl ; j ++) {
-			las::gpstime t(makegps((i > 0 ? 1ll << i : 0), (j << 16) + j));
+			las::gpstime t(makegps((unsigned int)((i > 0 ? 1ll << i : 0)), (unsigned int)( (j << 16) + j)));
 			las::gpstime out;
 			decomp.decompressWith(decoder, (char *)&out);
 
@@ -903,7 +905,7 @@ TEST(lazperf_tests, can_compress_decompress_real_gpstime) {
 		field<las::gpstime>
 	> comp;
 
-	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
+//	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
 
 	struct {
 		las::point10 p;
@@ -944,7 +946,7 @@ TEST(lazperf_tests, can_compress_decompress_real_color) {
 		field<las::rgb>
 	> comp;
 
-	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
+//	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
 
 	struct {
 		las::point10 p;
@@ -1000,7 +1002,7 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 	}
 	encoder.done();
 
-	std::cout << "buffer size: " << s.buf.size() << std::endl;
+//	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
@@ -1037,7 +1039,7 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 	}
 	encoder.done();
 
-	std::cout << "buffer size: " << s.buf.size() << std::endl;
+//	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
@@ -1479,9 +1481,9 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
             p1.y = static_cast<double>(rvalue) / static_cast<double>(rvalue);
             p1.z = static_cast<double>(rvalue) / static_cast<double>(rvalue);
 
-            p1.r = static_cast<float>(rvalue) / static_cast<double>(rvalue);
-            p1.g = static_cast<float>(rvalue) / static_cast<double>(rvalue);
-            p1.b = static_cast<float>(rvalue) / static_cast<double>(rvalue);
+            p1.r = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            p1.g = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
+            p1.b = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
 
             comp->compress((const char*)&p1);
         }
@@ -1504,9 +1506,9 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
             EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rvalue) / static_cast<double>(rvalue));
             EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rvalue) / static_cast<double>(rvalue));
             EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rvalue) / static_cast<double>(rvalue));
+            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rvalue) / static_cast<float>(rvalue));
+            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rvalue) / static_cast<float>(rvalue));
+            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rvalue) / static_cast<float>(rvalue));
         }
     }
 }

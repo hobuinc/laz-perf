@@ -895,7 +895,7 @@ namespace laszip {
 					header_.version.minor = 2;
 
 					header_.header_size = sizeof(header_);
-					header_.point_offset = sizeof(header) + 54 + (34 + schema_.records.size() * 6); // 54 is the size of one vlr header
+					header_.point_offset = sizeof(header) + 54 + (34 + static_cast<unsigned int>(schema_.records.size()) * 6); // 54 is the size of one vlr header
 					header_.vlr_count = 1;
 
 					header_.point_format_id = factory::schema_to_point_format(schema_);

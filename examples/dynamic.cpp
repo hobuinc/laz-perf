@@ -76,7 +76,7 @@ int main() {
         data.p.z = i;
         data.a = i + 50000;
         data.b = i + 10;
-        data.c = i + 10000;
+        data.c = static_cast<short>( i + 10000 );
 
         // All compressor cares about is your data as a pointer, it will unpack data
         // automatically based on the fields that were specified and compress them

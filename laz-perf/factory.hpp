@@ -136,7 +136,9 @@ namespace laszip {
 
 			// we got a schema we don't know how to build
 			throw unknown_schema_type();
+#ifndef _WIN32
 			return dynamic_decompressor::ptr(); // avoid warning
+#endif
 		}
 
 		template<
@@ -179,7 +181,9 @@ namespace laszip {
 
 			// we got a schema we don't know how to build
 			throw unknown_schema_type();
+#ifndef _WIN32
 			return dynamic_compressor::ptr(); // avoid warning
+#endif
 		}
 
 		static inline unsigned char schema_to_point_format(const record_schema& schema) {

@@ -26,7 +26,9 @@
 ===============================================================================
 */
 
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 
 #include "test_main.hpp"
 
@@ -43,8 +45,8 @@ std::string makeTempFileName()
     char *fnTemplate = "fnXXXXXX";
     char name[9];
 	strcpy_s(name, sizeof(name), fnTemplate);
-    int size = strnlen(name, 9) + 1;
-    int err = _mktemp_s(name, size);
+    size_t size = strnlen(name, 9) + 1;
+    _mktemp_s(name, size);
 	char path[MAX_PATH];
 	GetTempPath(MAX_PATH, path);
 
@@ -295,26 +297,8 @@ TEST(io_tests, can_decode_large_files) {
 		for (size_t i = 0 ; i < pointCount ; i ++) {
 			pnt p1, p2;
 
-			try
-			{
-				fin.record((char*)&p2);
-			}
-			catch (std::runtime_error& e)
-			{
-				std::cout << "fail reading LAS at point" << i << std::endl;
-				throw e;
-			}
-			try
-			{
-				f.readPoint((char*)&p1);
-			}
-			catch (std::runtime_error& e)
-			{
-				std::cout << "fail reading LAZ at point" << i << " " << e.what() << std::endl;
-				throw e;
-			}
-
-
+			fin.record((char*)&p2);
+			f.readPoint((char*)&p1);
 
 			// Make sure the points match
 			{
