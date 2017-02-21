@@ -100,4 +100,55 @@ private:
     bool m_done;
 };
 
+
+class VlrDecompressor
+{
+public:
+    VlrDecompressor(std::vector<uint8_t>& data, std::vector<uint8_t>& vlr) :
+        m_stream(data), m_chunksize(0), m_chunkPointsRead(0)
+    {
+        laszip::io::laz_vlr zipvlr((const char*)vlr.data());
+        m_chunksize = zipvlr.chunk_size;
+        std::cout << "chunk size: "<< m_chunksize << std::endl;
+        m_schema = laszip::io::laz_vlr::to_schema(zipvlr);
+    }
+
+    size_t getPointSize() const
+        { return (size_t)m_schema.size_in_bytes(); }
+
+    void decompress(char* out)
+    {
+        if (m_chunkPointsRead == m_chunksize || !m_decoder || !m_decompressor)
+        {
+            resetDecompressor();
+            m_chunkPointsRead = 0;
+        }
+        m_decompressor->decompress(out);
+        m_chunkPointsRead++;
+    }
+
+private:
+    void resetDecompressor()
+    {
+        m_decoder.reset(new Decoder(m_stream));
+        m_decompressor =
+            laszip::factory::build_decompressor(*m_decoder, m_schema);
+    }
+
+
+    typedef laszip::formats::dynamic_decompressor Decompressor;
+    typedef laszip::factory::record_schema Schema;
+    typedef laszip::decoders::arithmetic<TypedLazPerfBuf<uint8_t>> Decoder;
+
+    TypedLazPerfBuf<uint8_t> m_stream;
+
+    std::unique_ptr<Decoder> m_decoder;
+    Decompressor::ptr m_decompressor;
+    Schema m_schema;
+    uint32_t m_chunksize;
+    uint32_t m_chunkPointsRead;
+};
+
+
+
 }

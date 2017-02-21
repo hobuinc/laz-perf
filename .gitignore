@@ -51,6 +51,8 @@ python/lazperf/*.pyc
 python/lazperf/pylazperfapi.cpp
 python/lazperf/pylazperfapi.so
 python/test/*.pyc
+python/dist
+python/.eggs/
 *__pycache__*
 test/test_main.hpp
 x64/Release/ALL_BUILD/ALL_BUILD.vcxprojResolveAssemblyReference.cache

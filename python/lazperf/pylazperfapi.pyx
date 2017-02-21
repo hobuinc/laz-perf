@@ -102,14 +102,21 @@ cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass Decompressor:
         Decompressor(vector[uint8_t]& arr) except +
-        size_t decompress(char* buffer, size_t length)
+        size_t decompress(char* buffer, size_t length)  except +
         size_t getPointSize()
         void add_dimension(LazPerfType t)
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
+    cdef cppclass VlrDecompressor:
+        VlrDecompressor(vector[uint8_t]& data, vector[uint8_t]& vlr) except +
+        size_t decompress(char* buffer)  except +
+        size_t getPointSize()
+
+
+cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass Compressor:
         Compressor(vector[uint8_t]& arr) except +
-        size_t compress(const char* buffer, size_t length)
+        size_t compress(const char* buffer, size_t length)  except +
         size_t getPointSize()
         void add_dimension(LazPerfType t)
         void done()
@@ -220,6 +227,40 @@ cdef class PyDecompressor:
 
         self.thisptr = new Decompressor(v[0])
         self._init()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+
+cdef class PyVLRDecompressor:
+    cdef VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
+
+    def decompress(self, np.ndarray data):
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] data_view
+        cdef size_t pointSize
+
+        data_view = data.view(dtype=np.uint8)
+        self.thisptr.decompress(data_view.data)
+#        output = np.resize(data_view, self.thisptr.getPointSize() * point_count)
+#        view2 = output.view(dtype=buildNumpyDescription(self.jsondata))
+        return data_view
+
+    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None,
+                        np.ndarray[uint8_t, ndim=1, mode="c"]  vlr not None):
+        cdef uint8_t* data_buf
+        cdef vector[uint8_t]* data_v
+        cdef uint8_t* vlr_buf
+        cdef vector[uint8_t]* vlr_v
+
+        data_buf = <uint8_t*> data.data;
+        data_v = new vector[uint8_t]()
+        data_v.assign(data_buf, data_buf + len(data))
+
+        vlr_buf = <uint8_t*> vlr.data;
+        vlr_v = new vector[uint8_t]()
+        vlr_v.assign(vlr_buf, vlr_buf + len(vlr))
+
+        self.thisptr = new VlrDecompressor(data_v[0], vlr_v[0])
 
     def __dealloc__(self):
         del self.thisptr
