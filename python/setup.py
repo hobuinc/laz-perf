@@ -91,7 +91,7 @@ if USE_CYTHON and "clean" not in sys.argv:
 setup_args = dict(
     name                = 'lazperf',
     version             = str(module_version),
-    install_requires    = ['cython >=0.23','numpy >=1.11'],
+    install_requires    = ['numpy >=1.11'],
     description         = 'Point cloud data compression',
     license             = 'LGPL',
     keywords            = 'point cloud compression',
