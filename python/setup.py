@@ -78,7 +78,7 @@ if DEBUG:
     extra_compile_args += ['-g','-O0']
 
 sources=['lazperf/pylazperfapi'+ext,"lazperf/PyLazperf.cpp",  ]
-extensions = [DistutilsExtension("*",
+extensions = [DistutilsExtension("lazperf.pylazperfapi",
                                    sources,
                                    include_dirs=include_dirs,
                                    library_dirs=library_dirs,
@@ -91,7 +91,7 @@ if USE_CYTHON and "clean" not in sys.argv:
 setup_args = dict(
     name                = 'lazperf',
     version             = str(module_version),
-    install_requires    = ['cython >=0.23','numpy >=1.11'],
+    install_requires    = ['numpy >=1.11'],
     description         = 'Point cloud data compression',
     license             = 'LGPL',
     keywords            = 'point cloud compression',
