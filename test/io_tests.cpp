@@ -612,4 +612,5 @@ TEST(io_tests, issue22)
         in.readPoint((char *)&p10);
         EXPECT_EQ(cls[i], p10.classification);
     }
+    std::remove(tempfile.c_str());
 }
