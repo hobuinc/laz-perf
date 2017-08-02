@@ -1,4 +1,4 @@
-__version__='0.0.8'
+__version__='1.1.0'
 from .pylazperfapi import PyDecompressor as Decompressor
 from .pylazperfapi import PyCompressor as Compressor
 from .pylazperfapi import PyVLRDecompressor as VLRDecompressor
