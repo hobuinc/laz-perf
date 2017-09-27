@@ -32,6 +32,7 @@
 #define __io_hpp__
 
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <string.h>
 #include <mutex>
