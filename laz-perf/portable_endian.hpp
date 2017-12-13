@@ -10,11 +10,13 @@
 
 #endif
 
-#if defined(__linux__) || defined(__CYGWIN__)|| defined(EMSCRIPTEN_LINUX)
+// use standard posix style headers for apple emscripten builds as well since emscripten sdk now ships its own
+// libc headers
+#if defined(__linux__) || defined(__CYGWIN__)|| defined(EMSCRIPTEN_LINUX) || defined(EMSCRIPTEN_APPLE)
 
 #   include <endian.h>
 
-#elif defined(__APPLE__) || defined(EMSCRIPTEN_APPLE)
+#elif defined(__APPLE__)
 
 #   include <machine/endian.h>
 #   include <libkern/OSByteOrder.h>
