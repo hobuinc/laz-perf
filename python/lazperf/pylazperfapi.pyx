@@ -1,4 +1,4 @@
-# distutils: language = c++
+# distutils: language = c++ 
 
 from libcpp.vector cimport vector
 from libcpp.string cimport string
@@ -234,6 +234,27 @@ cdef class PyDecompressor:
 
 cdef class PyVLRDecompressor:
     cdef VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
+
+    def decompress_points(self, size_t point_count):
+        cdef size_t point_size = self.thisptr.getPointSize()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] data = np.zeros(point_size, dtype=np.uint8)
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] point_uncompressed = np.zeros(point_count * point_size, dtype=np.uint8)
+        cdef size_t i = 0
+        cdef size_t begin = 0
+        cdef size_t end = 0
+
+        # Cython's memory views are needed to get the true C speed when slicing
+        cdef uint8_t [:] point_view  = point_uncompressed
+        cdef uint8_t [:] data_view = data
+
+        for _ in range(point_count):
+            self.thisptr.decompress(data.data)
+            end = begin + point_size
+            point_view[begin:end] = data_view
+            begin = end
+      
+        return point_uncompressed
+
 
     def decompress(self, np.ndarray data):
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] data_view
