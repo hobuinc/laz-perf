@@ -126,4 +126,6 @@ const std::vector<uint8_t>* Compressor::data() const
     return &m_stream.m_buf;
 }
 
-}
+} //Namespace
+
+

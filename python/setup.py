@@ -77,7 +77,7 @@ DEBUG=True
 if DEBUG:
     extra_compile_args += ['-g','-O0']
 
-sources=['lazperf/pylazperfapi'+ext,"lazperf/PyLazperf.cpp",  ]
+sources=['lazperf/pylazperfapi'+ext,"lazperf/PyLazperf.cpp",  "lazperf/PyVlrCompressor.cpp"]
 extensions = [DistutilsExtension("lazperf.pylazperfapi",
                                    sources,
                                    include_dirs=include_dirs,
