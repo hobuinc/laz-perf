@@ -44,6 +44,8 @@ public:
         memcpy(b, m_buf.data() + m_idx, len);
         m_idx += len;
     }
+
+    
 };
 
 
@@ -151,4 +153,55 @@ private:
 
 
 
-}
+typedef laszip::factory::record_schema Schema;
+class VlrCompressor
+{
+public:
+    VlrCompressor(std::vector<uint8_t>&out, Schema s, uint64_t offset_to_data)
+    : m_stream(out)
+    , m_encoder(nullptr)
+    , m_chunkPointsWritten(0)
+    , m_offsetToData(offset_to_data)
+    , m_chunkInfoPos(0)
+    , m_chunkOffset(0)
+    , m_schema(s)
+    , m_vlr(laszip::io::laz_vlr::from_schema(m_schema))
+    , m_chunksize(m_vlr.chunk_size)
+    {
+    }
+
+    const std::vector<uint8_t>* data() const;
+    void compress(const char *inbuf);
+    void done();
+
+    size_t vlrDataSize() const
+        { return m_vlr.size(); }
+    void extractVlrData(char *out_data)
+        { return m_vlr.extract(out_data); }
+    
+    size_t getPointSize() const
+        { return (size_t)m_schema.size_in_bytes(); }
+
+
+private:
+    typedef laszip::encoders::arithmetic<TypedLazPerfBuf<uint8_t>> Encoder;
+    typedef laszip::formats::dynamic_compressor Compressor;
+
+    void resetCompressor();
+    void newChunk();
+
+    TypedLazPerfBuf<uint8_t> m_stream;
+    std::unique_ptr<Encoder> m_encoder;
+    Compressor::ptr m_compressor;
+    uint32_t m_chunkPointsWritten;
+    uint64_t m_offsetToData;
+    uint64_t m_chunkInfoPos;
+    uint64_t m_chunkOffset;
+    Schema m_schema;
+    laszip::io::laz_vlr m_vlr;
+    uint32_t m_chunksize;
+    std::vector<uint32_t> m_chunkTable;
+};
+
+
+} // pylazperf namespace

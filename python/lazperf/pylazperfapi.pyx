@@ -2,7 +2,7 @@
 
 from libcpp.vector cimport vector
 from libcpp.string cimport string
-from libc.stdint cimport uint8_t, int32_t
+from libc.stdint cimport uint8_t, int32_t, uint64_t
 from cpython.version cimport PY_MAJOR_VERSION
 cimport numpy as np
 import numpy as np
@@ -122,6 +122,42 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         void done()
         const vector[uint8_t]* data()
 
+cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory::record_item":
+    cdef enum record_item "laszip::factory::record_item":
+        POINT10,
+        GPSTIME,
+        RGB12
+
+cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory":
+    cdef cppclass record_schema:
+        record_schema()
+        void push(record_item)
+
+cdef extern from "PyLazperf.hpp" namespace "pylazperf":
+    cdef cppclass VlrCompressor:
+        VlrCompressor(vector[uint8_t]& out, record_schema, uint64_t offset) except +
+        size_t compress(const char *inbuf) except +
+        void done()
+        const vector[uint8_t]* data()
+        size_t getPointSize()
+        size_t vlrDataSize() const
+        void extractVlrData(char* out)
+
+
+    
+cdef class PyRecordSchema:
+    cdef record_schema schema
+
+    def __cinit__(self):
+        self.schema.push(POINT10)
+
+    def add_gps_time(self):
+        self.schema.push(GPSTIME)
+
+    def add_rgb(self):
+        self.schema.push(RGB12)
+
+
 cdef class PyCompressor:
     cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
     cdef public str jsondata
@@ -143,8 +179,10 @@ cdef class PyCompressor:
         cdef const vector[uint8_t]* v = self.thisptr.data()
         cdef size_t size = v.size()
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(size, dtype=np.uint8)
+        cdef size_t i = 0
 
-        arr.data = <char*>v[0].data()
+        for i in range(size):
+            arr[i] = v[0][i]
         return arr
 
     def compress(self, np.ndarray arr not None):
@@ -286,3 +324,54 @@ cdef class PyVLRDecompressor:
     def __dealloc__(self):
         del self.thisptr
 
+cdef class PyVLRCompressor:
+    cdef VlrCompressor *thisptr;
+
+    def __cinit__(self, PyRecordSchema py_record_schema, uint64_t offset):
+        cdef char *x
+        cdef uint8_t buf
+        cdef vector[uint8_t]* v
+
+        v = new vector[uint8_t]()
+
+        self.thisptr = new VlrCompressor(v[0], py_record_schema.schema, offset)
+
+    def get_vlr_data(self):
+        cdef size_t vlr_size = self.thisptr.vlrDataSize()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
+
+        self.thisptr.extractVlrData(arr.data)
+        return arr
+
+    def get_data(self):
+        cdef const vector[uint8_t]* v = self.thisptr.data()
+        cdef size_t size = v.size()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(size, dtype=np.uint8)
+        cdef size_t i = 0
+
+        for i in range(size):
+            arr[i] = v[0][i]
+        return arr
+
+    def compress(self, np.ndarray arr, size_t point_count):
+        cdef np.ndarray[char, ndim=1, mode="c"] view
+        view = arr.view(np.uint8)
+
+        cdef char *ptr = arr.data
+        cdef size_t point_size = self.thisptr.getPointSize()
+
+        for i in range(point_count):
+            self.thisptr.compress(ptr)
+            ptr += point_size
+
+        self.thisptr.done()
+        return self.get_data()
+
+
+    def __dealloc__(self):
+        del self.thisptr
+
+
+
+
+    
