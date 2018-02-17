@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from lazperf import VLRDecompressor, VLRCompressor, RecordSchema
+from lazperf import VLRDecompressor, VLRCompressor, RecordSchema, LazVLR
 
 
 
@@ -27,7 +27,7 @@ class TestVLRDecompress(unittest.TestCase):
         laszip_vlr_data = raw_data[
             offset_to_laszip_vlr_data: offset_to_laszip_vlr_data + laszip_vlr_data_size ]
 
-        raw_points = raw_data[offset_to_point_data:] 
+        raw_points = raw_data[offset_to_point_data:]
 
         laszip_vlr_data = np.frombuffer(laszip_vlr_data, dtype=np.uint8)
         compressed_points = np.frombuffer(raw_points, dtype=np.uint8)
@@ -60,11 +60,14 @@ class TestVLRCompress(unittest.TestCase):
         rs.add_gps_time()
         rs.add_rgb()
 
-        compressor = VLRCompressor(rs, offset_to_laszip_vlr_data + laszip_vlr_data_size)
-        compressed = compressor.compress(points_to_compress, point_count)
-        vlr_data = compressor.get_vlr_data()
+        vlr = LazVLR(rs)
+        vlr_data = vlr.data()
 
         self.assertTrue(np.all(vlr_data == gt_vlr_data))
+        self.assertEqual(vlr.data_size(), laszip_vlr_data_size)
+
+        compressor = VLRCompressor(rs, offset_to_laszip_vlr_data + vlr.data_size())
+        compressed = compressor.compress(points_to_compress, point_count)
 
         chunk_table_offset = compressed[:8].tobytes()
         chunk_table = compressed[:-8].tobytes()

@@ -143,8 +143,15 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         size_t vlrDataSize() const
         void extractVlrData(char* out)
 
+cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
+    cdef cppclass laz_vlr:
+        laz_vlr()
+        void extract(char *data)
+        size_t size() const
+        @staticmethod
+        laz_vlr from_schema(const record_schema)
 
-    
+
 cdef class PyRecordSchema:
     cdef record_schema schema
 
@@ -156,6 +163,25 @@ cdef class PyRecordSchema:
 
     def add_rgb(self):
         self.schema.push(RGB12)
+
+cdef class PyLazVlr:
+    cdef laz_vlr vlr
+    cdef public PyRecordSchema schema
+
+    def __init__(self, PyRecordSchema schema):
+        self.schema = schema
+        self.vlr = laz_vlr.from_schema(schema.schema)
+
+    def data(self):
+        cdef size_t vlr_size = self.vlr.size()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
+
+        self.vlr.extract(arr.data)
+        return arr
+
+    def data_size(self):
+        return self.vlr.size()
+
 
 
 cdef class PyCompressor:
