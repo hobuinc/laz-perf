@@ -135,7 +135,7 @@ cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory":
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass VlrCompressor:
-        VlrCompressor(vector[uint8_t]& out, record_schema, uint64_t offset) except +
+        VlrCompressor(record_schema, uint64_t offset) except +
         size_t compress(const char *inbuf) except +
         void done()
         const vector[uint8_t]* data()
@@ -328,13 +328,7 @@ cdef class PyVLRCompressor:
     cdef VlrCompressor *thisptr;
 
     def __cinit__(self, PyRecordSchema py_record_schema, uint64_t offset):
-        cdef char *x
-        cdef uint8_t buf
-        cdef vector[uint8_t]* v
-
-        v = new vector[uint8_t]()
-
-        self.thisptr = new VlrCompressor(v[0], py_record_schema.schema, offset)
+        self.thisptr = new VlrCompressor(py_record_schema.schema, offset)
 
     def get_vlr_data(self):
         cdef size_t vlr_size = self.thisptr.vlrDataSize()
@@ -371,7 +365,3 @@ cdef class PyVLRCompressor:
     def __dealloc__(self):
         del self.thisptr
 
-
-
-
-    

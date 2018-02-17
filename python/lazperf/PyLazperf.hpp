@@ -157,8 +157,8 @@ typedef laszip::factory::record_schema Schema;
 class VlrCompressor
 {
 public:
-    VlrCompressor(std::vector<uint8_t>&out, Schema s, uint64_t offset_to_data)
-    : m_stream(out)
+    VlrCompressor(Schema s, uint64_t offset_to_data)
+    : m_stream(m_data_vec)
     , m_encoder(nullptr)
     , m_chunkPointsWritten(0)
     , m_offsetToData(offset_to_data)
@@ -176,9 +176,10 @@ public:
 
     size_t vlrDataSize() const
         { return m_vlr.size(); }
+
     void extractVlrData(char *out_data)
         { return m_vlr.extract(out_data); }
-    
+
     size_t getPointSize() const
         { return (size_t)m_schema.size_in_bytes(); }
 
@@ -190,6 +191,7 @@ private:
     void resetCompressor();
     void newChunk();
 
+    std::vector<uint8_t> m_data_vec;
     TypedLazPerfBuf<uint8_t> m_stream;
     std::unique_ptr<Encoder> m_encoder;
     Compressor::ptr m_compressor;
