@@ -17,7 +17,7 @@ void VlrCompressor::compress(const char *inbuf)
         // Seek over the chunk info offset value
         unsigned char skip[sizeof(uint64_t)] = {0};
         m_stream.putBytes(skip, sizeof(skip));
-        m_chunkOffset = m_offsetToData + m_chunkInfoPos + sizeof(uint64_t);
+        m_chunkOffset = m_chunkInfoPos + sizeof(uint64_t);
 
         resetCompressor();
     }
@@ -41,10 +41,10 @@ void VlrCompressor::done()
 
     // Save our current position.  Go to the location where we need
     // to write the chunk table offset at the beginning of the point data.
-    
+
     uint64_t chunkTablePos = htole64((uint64_t) m_stream.m_buf.size());
     // We need to add the offset given a construction time since
-    // we did not use a stream to write the headers and vlrs
+    // we did not use a stream to write the header and vlrs
     uint64_t trueChunkTablePos = htole64((uint64_t) m_stream.m_buf.size() +  m_offsetToData);
 
     // Equivalent of stream.seekp(m_chunkInfoPos); stream << chunkTablePos
@@ -58,7 +58,6 @@ void VlrCompressor::done()
     // 2. memcpy the data into the pushed bytes
     unsigned char skip[2 * sizeof(uint32_t)] = {0};
     m_stream.putBytes(skip, sizeof(skip));
-    
     uint32_t version = htole32(0);
     uint32_t chunkTableSize = htole32((uint32_t) m_chunkTable.size());
 
@@ -73,11 +72,11 @@ void VlrCompressor::done()
     compressor.init();
 
     uint32_t predictor = 0;
-    for (uint32_t offset : m_chunkTable)
+    for (uint32_t chunkSize : m_chunkTable)
     {
-        offset = htole32(offset + m_offsetToData);
-        compressor.compress(encoder, predictor, offset, 1);
-        predictor = offset;
+        chunkSize = htole32(chunkSize);
+        compressor.compress(encoder, predictor, chunkSize, 1);
+        predictor = chunkSize;
     }
     encoder.done();
 }
