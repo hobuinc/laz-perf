@@ -34,7 +34,7 @@ class TestVLRDecompress(unittest.TestCase):
 
         decompressor = VLRDecompressor(compressed_points, laszip_vlr_data)
         points_decompressed = decompressor.decompress_points(point_count)
-        
+
         points_decompressed = np.frombuffer(points_decompressed, dtype=point_dtype)
         points_groud_truth = np.frombuffer(groud_truth, dtype=point_dtype)
 
@@ -63,11 +63,11 @@ class TestVLRCompress(unittest.TestCase):
         vlr = LazVLR(rs)
         vlr_data = vlr.data()
 
-        self.assertTrue(np.all(vlr_data == gt_vlr_data))
         self.assertEqual(vlr.data_size(), laszip_vlr_data_size)
+        self.assertTrue(np.all(vlr_data == gt_vlr_data))
 
         compressor = VLRCompressor(rs, offset_to_laszip_vlr_data + vlr.data_size())
-        compressed = compressor.compress(points_to_compress, point_count)
+        compressed = compressor.compress(points_to_compress)
 
         chunk_table_offset = compressed[:8].tobytes()
         chunk_table = compressed[:-8].tobytes()
@@ -83,6 +83,3 @@ class TestVLRCompress(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-        
-
-        

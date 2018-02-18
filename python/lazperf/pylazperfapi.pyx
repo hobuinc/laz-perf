@@ -373,12 +373,18 @@ cdef class PyVLRCompressor:
             arr[i] = v[0][i]
         return arr
 
-    def compress(self, np.ndarray arr, size_t point_count):
+    def compress(self, np.ndarray arr):
         cdef np.ndarray[char, ndim=1, mode="c"] view
         view = arr.view(np.uint8)
 
         cdef char *ptr = arr.data
         cdef size_t point_size = self.thisptr.getPointSize()
+        cdef size_t num_bytes = arr.shape[0]
+        cdef size_t point_count = num_bytes / point_size
+
+        if arr.shape[0] % point_size != 0:
+            raise ValueError("The number of bytes ({}) is not divisible by the point size ({})"
+            " it gives {} points".format(num_bytes, point_size, <float>num_bytes / point_size))
 
         for i in range(point_count):
             self.thisptr.compress(ptr)
