@@ -228,7 +228,6 @@ cdef class PyCompressor:
         self.add_dimensions(self.jsondata)
 
     def __cinit__(self, object schema):
-        cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
 
@@ -263,20 +262,17 @@ cdef class PyDecompressor:
             self.thisptr.add_dimension(t)
 
 
-    def decompress(self, np.ndarray data):
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] view
+    def decompress(self, size_t num_points):
+        cdef size_t point_size = self.thisptr.getPointSize()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] out = np.zeros(num_points * point_size, np.uint8)
 
-        view = data.view(dtype=np.uint8)
-        point_count = self.thisptr.decompress(view.data, view.shape[0])
-        output = np.resize(view, self.thisptr.getPointSize() * point_count)
-        view2 = output.view(dtype=buildNumpyDescription(self.jsondata))
-        return view2
+        point_count = self.thisptr.decompress(out.data, out.shape[0])
+        return out.view(dtype=buildNumpyDescription(self.jsondata))
 
     def _init(self):
         self.add_dimensions(self.jsondata)
 
     def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None, object schema):
-        cdef char* x
         cdef uint8_t* buf
         cdef vector[uint8_t]* v
 
