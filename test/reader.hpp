@@ -33,7 +33,7 @@
 // A simple classes that offsets to the data for us
 struct reader {
 	reader(const std::string& f) :
-		f_(f, std::ios::binary) {
+		f_(f, std::ios::binary | std::ios::in) {
 #define good_or_bail(msg) if(!f_.good()) { f_.close(); throw std::runtime_error(f + std::string(" : ") + msg);}
 
 			good_or_bail("Could not open file");

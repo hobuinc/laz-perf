@@ -77,7 +77,7 @@ namespace laszip {
 					outstream.putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
 				}
 
-				U32 buffer_size = outbyte - outbuffer;
+				I64 buffer_size = outbyte - outbuffer;
 				if (buffer_size) outstream.putBytes(outbuffer, buffer_size);
 
 				// write two or three zero bytes to be in sync with the decoder's byte reads
@@ -209,23 +209,23 @@ namespace laszip {
 
 		private:
 			void propagate_carry() {
-				U8 * p;
+				U8 * b;
 				if (outbyte == outbuffer)
-					p = endbuffer - 1;
+					b = endbuffer - 1;
 				else
-					p = outbyte - 1;
-				while (*p == 0xFFU)
+					b = outbyte - 1;
+				while (*b== 0xFFU)
 				{
-					*p = 0;
-					if (p == outbuffer)
-						p = endbuffer - 1;
+					*b = 0;
+					if (b == outbuffer)
+						b= endbuffer - 1;
 					else
-						p--;
-					assert(outbuffer <= p);
-					assert(p < endbuffer);
+						b--;
+					assert(outbuffer <= b);
+					assert(b < endbuffer);
 					assert(outbyte < endbuffer);
 				}
-				++*p;
+				++*b;
 			}
 
 			void renorm_enc_interval() {

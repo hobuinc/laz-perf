@@ -26,7 +26,9 @@
 ===============================================================================
 */
 
+#ifndef _WIN32
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 
 #include <memory>
 
@@ -35,7 +37,29 @@
 #include <laz-perf/io.hpp>
 #include <laz-perf/streams.hpp>
 
+#include <cstdio>
 #include "reader.hpp"
+#include <stdio.h>
+
+std::string makeTempFileName()
+{
+#ifdef _WIN32
+    char *fnTemplate = "fnXXXXXX";
+    char name[9];
+	strcpy_s(name, sizeof(name), fnTemplate);
+    size_t size = strnlen(name, 9) + 1;
+    _mktemp_s(name, size);
+	char path[MAX_PATH];
+	GetTempPath(MAX_PATH, path);
+
+    return std::string(path) + std::string(name, 8);
+#else
+    char name[L_tmpnam];
+    std::tmpnam(name);
+
+    return std::string(name);
+#endif
+}
 
 TEST(io_tests, io_structs_are_of_correct_size) {
 	using namespace laszip::io;
@@ -321,8 +345,9 @@ TEST(io_tests, issue44)
     compare(testFile("1815.laz"), testFile("1815.las"));
 
     // Encode to a temp laz file and compare.
-    encode(testFile("1815.las"), "/tmp/1815.laz");
-    compare("/tmp/1815.laz", testFile("1815.las"));
+    std::string outLaz(makeTempFileName());
+    encode(testFile("1815.las"), outLaz);
+    compare(outLaz, testFile("1815.las"));
 }
 
 void checkExists(const std::string& filename) {
@@ -361,13 +386,14 @@ TEST(io_tests, can_decode_large_files) {
 	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen_trim.laz"));
+		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
 
 		size_t pointCount = f.get_header().point_count;
 
 		EXPECT_EQ(pointCount, fin.count_);
+		EXPECT_EQ( fin.count_, 110000u);
 
 		struct pnt {
 			las::point10 p;
@@ -378,8 +404,8 @@ TEST(io_tests, can_decode_large_files) {
 		for (size_t i = 0 ; i < pointCount ; i ++) {
 			pnt p1, p2;
 
-			f.readPoint((char*)&p1);
 			fin.record((char*)&p2);
+			f.readPoint((char*)&p1);
 
 			// Make sure the points match
 			{
@@ -436,7 +462,7 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen_trim.laz", schema,
+		io::writer::file f(makeTempFileName(), schema,
 				io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
 		reader fin(testFile("autzen_trim.las"));
@@ -457,6 +483,8 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 	using namespace laszip;
 	using namespace laszip::formats;
 
+    std::string fname = makeTempFileName();
+
 	checkExists(testFile("autzen_trim.las"));
 	{
 		// this is the format the autzen has points in
@@ -474,7 +502,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		io::writer::file f("/tmp/autzen_trim.laz", schema,
+		io::writer::file f(fname, schema,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
 		reader fin(testFile("autzen_trim.las"));
@@ -506,7 +534,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-		std::ifstream file("/tmp/autzen_trim.laz");
+		std::ifstream file(fname, std::ios::binary);
 		io::reader::file f(file);
 		reader fin(testFile("autzen_trim.las"));
 
@@ -557,12 +585,13 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 	checkExists(testFile("autzen_trim.las"));
 
 	{
-		std::ifstream file(testFile("autzen_trim.laz"));
+		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
 		EXPECT_EQ(file.good(), true);
 
-		file.seekg(0, std::ios::end);
-		std::streamsize file_size = file.tellg();
-		file.seekg(0);
+		file.ignore(std::numeric_limits<std::streamsize>::max());
+		std::streamsize file_size = file.gcount();
+		file.clear();   //  Since ignore will have set eof.
+		file.seekg(0, std::ios_base::beg);
 
 		char *buf = (char *)malloc(static_cast<size_t>(file_size));
 		file.read(buf, file_size);
@@ -630,7 +659,7 @@ TEST(io_tests, writes_bbox_to_header) {
 	schema(factory::record_item::POINT10);
 
 	// First write a few points
-	std::string filename = "/tmp/header__bbox.laz";
+	std::string filename(makeTempFileName());
 	io::writer::file f(filename, schema,
 			io::writer::config(vector3<double>(0.01, 0.01, 0.01),
 							   vector3<double>(0.0, 0.0, 0.0)));
@@ -687,4 +716,5 @@ TEST(io_tests, issue22)
         in.readPoint((char *)&p10);
         EXPECT_EQ(cls[i], p10.classification);
     }
+    std::remove(tempfile.c_str());
 }

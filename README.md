@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/hobu/laz-perf.svg?branch=master)](https://travis-ci.org/hobu/laz-perf)
+[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/o3qv0njdw5hvk47f)](https://ci.appveyor.com/project/hobu/laz-perf/)
 
 # What is this?
 Alternative [LAZ](http://laszip.org) implementation. It supports compilation and usage

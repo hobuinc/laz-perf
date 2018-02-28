@@ -45,6 +45,9 @@ typedef unsigned char      U8;
 #if defined(_WIN32) && ! defined (__MINGW32__) // 64 byte integer under Windows 
 typedef unsigned __int64   U64;
 typedef __int64            I64;
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #else                                          // 64 byte integer elsewhere ... 
 typedef unsigned long long U64;
 typedef long long          I64;
@@ -53,7 +56,7 @@ typedef long long          I64;
 typedef float              F32;
 typedef double             F64;
 
-#if defined(_MSC_VER) && (_MSC_VER < 1300)
+#if defined(_MSC_VER)
 typedef int                BOOL;
 #else
 typedef bool               BOOL;
