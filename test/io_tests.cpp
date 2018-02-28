@@ -272,7 +272,7 @@ void compare(const std::string& compressed, const std::string& uncompressed)
 {
     using namespace laszip;
 
-    std::ifstream cStream(compressed);
+    std::ifstream cStream(compressed, std::ios::binary);
     std::ifstream ucStream(uncompressed, std::ios::binary);
 
     io::reader::file c(cStream);
