@@ -30,6 +30,8 @@
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #endif
 
+#include <memory>
+
 #include "test_main.hpp"
 
 #include <laz-perf/io.hpp>
@@ -201,46 +203,151 @@ TEST(io_tests, parses_laszip_vlr_correctly) {
 	}
 }
 
-TEST(io_tests, decodes_single_chunk_files_correctly) {
-	using namespace laszip;
-	using namespace laszip::formats;
+void testPoint(laszip::formats::las::point10& p1,
+    laszip::formats::las::point10& p2)
+{
+    EXPECT_EQ(p1.x, p2.x);
+    EXPECT_EQ(p1.y, p2.y);
+    EXPECT_EQ(p1.z, p2.z);
+    EXPECT_EQ(p1.intensity, p2.intensity);
+    EXPECT_EQ(p1.return_number, p2.return_number);
+    EXPECT_EQ(p1.number_of_returns_of_given_pulse,
+        p2.number_of_returns_of_given_pulse);
+    EXPECT_EQ(p1.scan_direction_flag, p2.scan_direction_flag);
+    EXPECT_EQ(p1.edge_of_flight_line, p2.edge_of_flight_line);
+    EXPECT_EQ(p1.classification, p2.classification);
+    EXPECT_EQ(p1.scan_angle_rank, p2.scan_angle_rank);
+    EXPECT_EQ(p1.user_data, p2.user_data);
+    EXPECT_EQ(p1.point_source_ID, p2.point_source_ID);
+}
 
-	{
-		std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
-		io::reader::file f(file);
-		std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
+void testPoint(laszip::formats::las::gpstime& p1,
+    laszip::formats::las::gpstime& p2)
+{
+    EXPECT_EQ(p1.value, p2.value);
+}
 
-		if (!fin.good())
-			FAIL() << "Raw LAS file not available.";
+void testPoint(laszip::formats::las::rgb& p1, laszip::formats::las::rgb& p2)
+{
+    EXPECT_EQ(p1.r, p2.r);
+    EXPECT_EQ(p1.g, p2.g);
+    EXPECT_EQ(p1.b, p2.b);
+}
 
-		if (!file.good())
-			FAIL() << "LAZ file not available.";
+void testPoint(unsigned char format, char *p1, char *p2)
+{
+    using namespace laszip;
+    using namespace laszip::formats;
 
+    if (format > 4)
+        return;
 
-		size_t pointCount = f.get_header().point_count;
-		EXPECT_EQ(pointCount, 1065u);
+    testPoint(*(las::point10 *)p1, *(las::point10 *)p2);
+    switch (format)
+    {
+    case 0:
+        break;
+    case 1:
+        p1 += sizeof(las::point10);
+        p2 += sizeof(las::point10);
+        testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
+        break;
+    case 2:
+        p1 += sizeof(las::point10);
+        p2 += sizeof(las::point10);
+        testPoint(*(las::rgb *)p1, *(las::rgb *)p2);
+        break;
+    case 3:
+        p1 += sizeof(las::point10);
+        p2 += sizeof(las::point10);
+        testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
+        p1 += sizeof(las::gpstime);
+        p2 += sizeof(las::gpstime);
+        testPoint(*(las::rgb *)p1, *(las::rgb *)p2);
+        break;
+    }
+}
 
-		for (size_t i = 0 ; i < pointCount ; i ++) {
+void compare(const std::string& compressed, const std::string& uncompressed)
+{
+    using namespace laszip;
 
-			las::point10 p, pout;
+    std::ifstream cStream(compressed, std::ios::binary);
+    std::ifstream ucStream(uncompressed, std::ios::binary);
 
-			fin.read((char*)&p, sizeof(p));
-			f.readPoint((char*)&pout);
+    io::reader::file c(cStream);
+    if (!ucStream.good())
+        FAIL() << "Unable to open uncompressed file '" << uncompressed << "'.";
 
-			EXPECT_EQ(p.x, pout.x);
-			EXPECT_EQ(p.y, pout.y);
-			EXPECT_EQ(p.z, pout.z);
-			EXPECT_EQ(p.intensity, pout.intensity);
-			EXPECT_EQ(p.return_number, pout.return_number);
-			EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-			EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
-			EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
-			EXPECT_EQ(p.classification, pout.classification);
-			EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
-			EXPECT_EQ(p.user_data, pout.user_data);
-			EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
-		}
-	}
+    io::header header;
+    ucStream.read((char *)&header, sizeof(io::header));
+    ucStream.seekg(header.point_offset);
+    unsigned short pointLen = header.point_record_length;
+
+    char ucBuf[1000];
+    char cBuf[1000];
+    size_t pointCount = c.get_header().point_count;
+    for (size_t i = 0; i < pointCount; ++i)
+    {
+        ucStream.read(ucBuf, pointLen);
+        c.readPoint(cBuf);
+        testPoint(header.point_format_id, ucBuf, cBuf);
+    }
+}
+
+using SchemaPtr = std::unique_ptr<laszip::factory::record_schema>;
+
+SchemaPtr makeSchema(unsigned char format)
+{
+    using namespace laszip;
+
+    SchemaPtr schema(new factory::record_schema);
+
+    (*schema)(factory::record_item::POINT10);
+    if (format == 1 || format == 3)
+        (*schema)(factory::record_item::GPSTIME);
+    else if (format == 2 || format == 3)
+        (*schema)(factory::record_item::RGB12);
+    return schema;
+}
+
+void encode(const std::string& lasFilename, const std::string& lazFilename)
+{
+    using namespace laszip;
+
+    io::header header;
+    std::ifstream lasStream(lasFilename, std::ios::binary);
+    if (!lasStream.good())
+        FAIL() << "Unable to open uncompressed file '" << lasFilename << "'.";
+
+    lasStream.read((char *)&header, sizeof(io::header));
+    lasStream.seekg(header.point_offset);
+
+    SchemaPtr schema = makeSchema(header.point_format_id);
+    io::writer::file f(lazFilename, *schema, io::writer::config(header));
+    char buf[1000];
+    for (size_t i = 0; i < header.point_count; ++i)
+    {
+        lasStream.read(buf, header.point_record_length);
+        f.writePoint(buf);
+    }
+    f.close();
+}
+
+TEST(io_tests, decodes_single_chunk_files_correctly)
+{
+    compare(testFile("point10.las.laz"), testFile("point10.las"));
+}
+
+TEST(io_tests, issue44)
+{
+    // First make sure that we work on the laszip encoded file.
+    compare(testFile("1815.laz"), testFile("1815.las"));
+
+    // Encode to a temp laz file and compare.
+    std::string outLaz(makeTempFileName());
+    encode(testFile("1815.las"), outLaz);
+    compare(outLaz, testFile("1815.las"));
 }
 
 void checkExists(const std::string& filename) {
@@ -354,10 +461,9 @@ TEST(io_tests, can_encode_large_files) {
 			(factory::record_item::POINT10)
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
-		std::string fname = makeTempFileName();
-		io::writer::file f(fname, schema,
-				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
-								   vector3<double>(0.0, 0.0, 0.0)));
+
+		io::writer::file f(makeTempFileName(), schema,
+				io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
 		reader fin(testFile("autzen_trim.las"));
 
@@ -390,16 +496,14 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		factory::record_schema schema;
 
-		// make schema	
+		// make schema
 		schema
 			(factory::record_item::POINT10)
 			(factory::record_item::GPSTIME)
 			(factory::record_item::RGB12);
 
-
 		io::writer::file f(fname, schema,
-				io::writer::config(vector3<double>(0.01, 0.01, 0.01),
-								   vector3<double>(0.0, 0.0, 0.0)));
+            io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
 		reader fin(testFile("autzen_trim.las"));
 
