@@ -753,8 +753,10 @@ namespace laszip {
 				unsigned int chunk_size;
 
 				explicit config() : scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0), chunk_size(DefaultChunkSize) {}
-				explicit config(const vector3<double>& s, const vector3<double>& o, unsigned int cs = DefaultChunkSize) :
+				config(const vector3<double>& s, const vector3<double>& o, unsigned int cs = DefaultChunkSize) :
 					scale(s), offset(o), chunk_size(cs) {}
+                config(const header& h) : scale(h.scale.x, h.scale.y, h.scale.z), offset(h.offset.x, h.offset.y, h.offset.z),
+                    chunk_size(DefaultChunkSize) {}
 
 				header to_header() const {
 					header h; memset(&h, 0, sizeof(h)); // clear out header

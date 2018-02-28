@@ -2,17 +2,17 @@
 ===============================================================================
 
   FILE:  field_gpstime.hpp
-  
+
   CONTENTS:
-    
+
 
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-  
+
   COPYRIGHT:
-  
+
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
@@ -22,9 +22,9 @@
 
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  
+
   CHANGE HISTORY:
-  
+
 ===============================================================================
 */
 
@@ -37,7 +37,7 @@
 #define LASZIP_GPSTIME_MULTI_UNCHANGED (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 1)
 #define LASZIP_GPSTIME_MULTI_CODE_FULL (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 2)
 
-#define LASZIP_GPSTIME_MULTI_TOTAL (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 6) 
+#define LASZIP_GPSTIME_MULTI_TOTAL (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 6)
 
 namespace laszip {
 	namespace formats {
@@ -74,7 +74,7 @@ namespace laszip {
 					compressors_.init();
 					compressor_inited_ = true;
 				}
-				
+
 				if (!common_.have_last_) {
 					// don't have the first data yet, just push it to our have last stuff and move on
 					common_.have_last_ = true;
@@ -105,7 +105,7 @@ namespace laszip {
 							enc.encodeSymbol(common_.m_gpstime_0diff, 1);
 							compressors_.ic_gpstime.compress(enc, 0, curr_gpstime_diff, 0);
 							common_.last_gpstime_diff[common_.last] = curr_gpstime_diff;
-							common_.multi_extreme_counter[common_.last] = 0; 
+							common_.multi_extreme_counter[common_.last] = 0;
 						}
 						else { // the difference is huge
 							U32 i;
@@ -118,14 +118,9 @@ namespace laszip {
 								int other_gpstime_diff = static_cast<int>(other_gpstime_diff_64);
 
 								if (other_gpstime_diff_64 == static_cast<int64_t>(other_gpstime_diff)) {
-									enc.encodeSymbol(common_.m_gpstime_0diff, i+2); // it belongs to another sequence 
+									enc.encodeSymbol(common_.m_gpstime_0diff, i+2); // it belongs to another sequence
 									common_.last = (common_.last+i)&3;
-
-									// write this item as it is
-									char buffer[sizeof(las::gpstime)];
-									packers<las::gpstime>::pack(this_val, buffer);
-									enc.getOutStream().putBytes((unsigned char*)buffer, sizeof(buffer));
-
+                                    compressWith(enc, this_val);
 									return;
 								}
 							}
@@ -141,7 +136,7 @@ namespace laszip {
 							common_.next = (common_.next+1)&3;
 							common_.last = common_.next;
 							common_.last_gpstime_diff[common_.last] = 0;
-							common_.multi_extreme_counter[common_.last] = 0; 
+							common_.multi_extreme_counter[common_.last] = 0;
 						}
 						common_.last_gpstime[common_.last] = this_val;
 					}
@@ -171,7 +166,7 @@ namespace laszip {
 								enc.encodeSymbol(common_.m_gpstime_multi, 1);
 								compressors_.ic_gpstime.compress(enc,
 										common_.last_gpstime_diff[common_.last], curr_gpstime_diff, 1);
-								common_.multi_extreme_counter[common_.last] = 0; 
+								common_.multi_extreme_counter[common_.last] = 0;
 							}
 							else if (multi > 0) {
 								if (multi < LASZIP_GPSTIME_MULTI) {
@@ -241,15 +236,10 @@ namespace laszip {
 								int other_gpstime_diff = static_cast<int>(other_gpstime_diff_64);
 
 								if (other_gpstime_diff_64 == static_cast<int64_t>(other_gpstime_diff)) {
-									// it belongs to this sequence 
+									// it belongs to this sequence
 									enc.encodeSymbol(common_.m_gpstime_multi, LASZIP_GPSTIME_MULTI_CODE_FULL+i);
 									common_.last = (common_.last+i)&3;
-
-									// write this out to the encoder as it is
-									char buffer[sizeof(las::gpstime)];
-									packers<las::gpstime>::pack(this_val, buffer);
-
-									enc.getOutStream().putBytes((unsigned char*)buffer, sizeof(buffer));
+                                    compressWith(enc, this_val);
 									return;
 								}
 							}
@@ -264,7 +254,7 @@ namespace laszip {
 							common_.next = (common_.next+1)&3;
 							common_.last = common_.next;
 							common_.last_gpstime_diff[common_.last] = 0;
-							common_.multi_extreme_counter[common_.last] = 0; 
+							common_.multi_extreme_counter[common_.last] = 0;
 						}
 
 						common_.last_gpstime[common_.last] = this_val;
@@ -301,7 +291,7 @@ namespace laszip {
 					if (multi == 1) { // the difference can be represented with 32 bits
 						common_.last_gpstime_diff[common_.last] = decompressors_.ic_gpstime.decompress(dec, 0, 0);
 						common_.last_gpstime[common_.last].value += common_.last_gpstime_diff[common_.last];
-						common_.multi_extreme_counter[common_.last] = 0; 
+						common_.multi_extreme_counter[common_.last] = 0;
 					}
 					else if (multi == 2) { // the difference is huge
 						common_.next = (common_.next+1)&3;
@@ -312,7 +302,7 @@ namespace laszip {
 						common_.last_gpstime[common_.next].value |= dec.readInt();
 						common_.last = common_.next;
 						common_.last_gpstime_diff[common_.last] = 0;
-						common_.multi_extreme_counter[common_.last] = 0; 
+						common_.multi_extreme_counter[common_.last] = 0;
 					}
 					else if (multi > 2) { // we switch to another sequence
 						common_.last = (common_.last+multi-2)&3;
@@ -384,7 +374,7 @@ namespace laszip {
 						common_.last_gpstime[common_.next].value |= dec.readInt();
 						common_.last = common_.next;
 						common_.last_gpstime_diff[common_.last] = 0;
-						common_.multi_extreme_counter[common_.last] = 0; 
+						common_.multi_extreme_counter[common_.last] = 0;
 					}
 					else if (multi >=  LASZIP_GPSTIME_MULTI_CODE_FULL) {
 						common_.last = (common_.last+multi-LASZIP_GPSTIME_MULTI_CODE_FULL)&3;
