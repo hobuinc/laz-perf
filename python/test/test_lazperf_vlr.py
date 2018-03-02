@@ -44,6 +44,7 @@ class TestVLRDecompress(unittest.TestCase):
 
 class TestVLRCompress(unittest.TestCase):
 
+
     def test_compression(self):
         with open('test/simple_points_uncompressed.bin', mode='rb') as fin:
             points_to_compress = np.frombuffer(fin.read(), dtype=np.uint8)
@@ -88,6 +89,24 @@ class TestVLRCompress(unittest.TestCase):
         gt_points_compressed = ground_truth[gt_offset_to_point_data + sizeof_chunk_table_offset:]
         self.assertEqual(points_compressed, gt_points_compressed)
 
+    def test_raises(self):
+        with open('test/simple_points_uncompressed.bin', mode='rb') as fin:
+            point_buffer = fin.read()
+
+        rs = RecordSchema()
+        rs.add_gps_time()
+        rs.add_rgb()
+
+        vlr = LazVLR(rs)
+        vlr_data = vlr.data()
+
+        # Cut off point data to check if exception is properly raised
+        points_to_compress = np.frombuffer(point_buffer[:-12], dtype=np.uint8)
+        offset_to_data = offset_to_laszip_vlr_data + vlr.data_size()
+        compressor = VLRCompressor(rs, offset_to_data)
+
+        with self.assertRaises(ValueError):
+            points_compressed = compressor.compress(points_to_compress)
 
 if __name__ == '__main__':
     unittest.main()
