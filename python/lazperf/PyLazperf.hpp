@@ -111,7 +111,6 @@ public:
     {
         laszip::io::laz_vlr zipvlr((const char*)vlr.data());
         m_chunksize = zipvlr.chunk_size;
-        std::cout << "chunk size: "<< m_chunksize << std::endl;
         m_schema = laszip::io::laz_vlr::to_schema(zipvlr);
     }
 

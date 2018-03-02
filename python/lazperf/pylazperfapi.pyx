@@ -187,6 +187,7 @@ cdef class PyLazVlr:
 cdef class PyCompressor:
     cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
     cdef public str jsondata
+    cdef vector[uint8_t] *v
 
     def add_dimensions(self, jsondata):
 
@@ -208,7 +209,7 @@ cdef class PyCompressor:
         cdef size_t i = 0
 
         for i in range(size):
-            arr[i] = v[0][i]
+            arr[i] = self.v[0][i]
         return arr
 
     def compress(self, np.ndarray arr not None):
@@ -229,11 +230,10 @@ cdef class PyCompressor:
 
     def __cinit__(self, object schema):
         cdef uint8_t* buf
-        cdef vector[uint8_t]* v
 
-        v = new vector[uint8_t]()
+        self.v = new vector[uint8_t]()
 
-        self.thisptr = new Compressor(v[0])
+        self.thisptr = new Compressor(self.v[0])
         try:
             self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
         except AttributeError:
@@ -241,11 +241,13 @@ cdef class PyCompressor:
         self._init()
 
     def __dealloc__(self):
+        del self.v
         del self.thisptr
 
 
 cdef class PyDecompressor:
     cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef vector[uint8_t] *v
     cdef public str jsondata
 
     def add_dimensions(self, jsondata):
@@ -274,26 +276,28 @@ cdef class PyDecompressor:
 
     def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None, object schema):
         cdef uint8_t* buf
-        cdef vector[uint8_t]* v
 
         buf = <uint8_t*> data.data;
-        v = new vector[uint8_t]()
-        v.assign(buf, buf + len(data))
+        self.v = new vector[uint8_t]()
+        self.v.assign(buf, buf + len(data))
 
         try:
             self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
         except AttributeError:
             self.jsondata = schema
 
-        self.thisptr = new Decompressor(v[0])
+        self.thisptr = new Decompressor(self.v[0])
         self._init()
 
     def __dealloc__(self):
+        del self.v
         del self.thisptr
 
 
 cdef class PyVLRDecompressor:
     cdef VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef vector[uint8_t] *data_v;
+    cdef vector[uint8_t] *vlr_v;
 
     def decompress_points(self, size_t point_count):
         cdef size_t point_size = self.thisptr.getPointSize()
@@ -316,34 +320,24 @@ cdef class PyVLRDecompressor:
         return point_uncompressed
 
 
-    def decompress(self, np.ndarray data):
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] data_view
-        cdef size_t pointSize
-
-        data_view = data.view(dtype=np.uint8)
-        self.thisptr.decompress(data_view.data)
-#        output = np.resize(data_view, self.thisptr.getPointSize() * point_count)
-#        view2 = output.view(dtype=buildNumpyDescription(self.jsondata))
-        return data_view
-
     def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None,
                         np.ndarray[uint8_t, ndim=1, mode="c"]  vlr not None):
         cdef uint8_t* data_buf
-        cdef vector[uint8_t]* data_v
         cdef uint8_t* vlr_buf
-        cdef vector[uint8_t]* vlr_v
 
         data_buf = <uint8_t*> data.data;
-        data_v = new vector[uint8_t]()
-        data_v.assign(data_buf, data_buf + len(data))
+        self.data_v = new vector[uint8_t]()
+        self.data_v.assign(data_buf, data_buf + len(data))
 
         vlr_buf = <uint8_t*> vlr.data;
-        vlr_v = new vector[uint8_t]()
-        vlr_v.assign(vlr_buf, vlr_buf + len(vlr))
+        self.vlr_v = new vector[uint8_t]()
+        self.vlr_v.assign(vlr_buf, vlr_buf + len(vlr))
 
-        self.thisptr = new VlrDecompressor(data_v[0], vlr_v[0])
+        self.thisptr = new VlrDecompressor(self.data_v[0], self.vlr_v[0])
 
     def __dealloc__(self):
+        del self.vlr_v
+        del self.data_v
         del self.thisptr
 
 cdef class PyVLRCompressor:
@@ -351,13 +345,6 @@ cdef class PyVLRCompressor:
 
     def __cinit__(self, PyRecordSchema py_record_schema, uint64_t offset):
         self.thisptr = new VlrCompressor(py_record_schema.schema, offset)
-
-    def get_vlr_data(self):
-        cdef size_t vlr_size = self.thisptr.vlrDataSize()
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
-
-        self.thisptr.extractVlrData(arr.data)
-        return arr
 
     def get_data(self):
         cdef const vector[uint8_t]* v = self.thisptr.data()
@@ -377,10 +364,11 @@ cdef class PyVLRCompressor:
         cdef size_t point_size = self.thisptr.getPointSize()
         cdef size_t num_bytes = arr.shape[0]
         cdef size_t point_count = num_bytes / point_size
+        cdef double float_count = <double> num_bytes / point_size
 
         if arr.shape[0] % point_size != 0:
             raise ValueError("The number of bytes ({}) is not divisible by the point size ({})"
-            " it gives {} points".format(num_bytes, point_size, <float>num_bytes / point_size))
+            " it gives {} points".format(num_bytes, point_size, float_count))
 
         for i in range(point_count):
             self.thisptr.compress(ptr)
