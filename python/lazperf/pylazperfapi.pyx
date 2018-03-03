@@ -1,14 +1,17 @@
-# distutils: language = c++ 
+# distutils: language = c++
 
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libc.stdint cimport uint8_t, int32_t, uint64_t
+from libc.string cimport memcpy
 from cpython.version cimport PY_MAJOR_VERSION
-cimport numpy as np
-import numpy as np
-np.import_array()
 from cpython.array cimport array, clone
+
 import json as jsonlib
+import numpy as np
+
+cimport numpy as np
+np.import_array()
 
 def get_lazperf_type(size, t):
     if t == 'floating':
@@ -101,14 +104,14 @@ cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass Decompressor:
-        Decompressor(vector[uint8_t]& arr) except +
+        Decompressor(const uint8_t *data, size_t dataLen) except +
         size_t decompress(char* buffer, size_t length)  except +
         size_t getPointSize()
         void add_dimension(LazPerfType t)
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass VlrDecompressor:
-        VlrDecompressor(vector[uint8_t]& data, vector[uint8_t]& vlr) except +
+        VlrDecompressor(const unsigned char* compressed_data, size_t dataLength, const char *vlr) except +
         size_t decompress(char* buffer)  except +
         size_t getPointSize()
 
@@ -121,6 +124,7 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         void add_dimension(LazPerfType t)
         void done()
         const vector[uint8_t]* data()
+        void copy_data_to(uint8_t *dest) const
 
 cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory::record_item":
     cdef enum record_item "laszip::factory::record_item":
@@ -142,6 +146,7 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         size_t getPointSize()
         size_t vlrDataSize() const
         void extractVlrData(char* out)
+        void copy_data_to(uint8_t *dst) const
 
 cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
     cdef cppclass laz_vlr:
@@ -153,6 +158,10 @@ cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
 
 
 cdef class PyRecordSchema:
+    """ This class is used to represent a LAS record schema
+    This RecordSchema is nessecary for the LazVlr to be able to compress
+    points meant to be written in a LAZ file.
+    """
     cdef record_schema schema
 
     def __cinit__(self):
@@ -165,6 +174,10 @@ cdef class PyRecordSchema:
         self.schema.push(RGB12)
 
 cdef class PyLazVlr:
+    """ Wraps a Lazperf's LazVlr class.
+    This class is meant to give access to the Laszip's vlr raw record_data
+    to allow writers to write LAZ files with its corresponding laszip vlr.
+    """
     cdef laz_vlr vlr
     cdef public PyRecordSchema schema
 
@@ -173,6 +186,9 @@ cdef class PyLazVlr:
         self.vlr = laz_vlr.from_schema(schema.schema)
 
     def data(self):
+        """ returns the laszip vlr record_data as a numpy array of bytes
+        to be written in the VLR section of a LAZ compressed file.
+        """
         cdef size_t vlr_size = self.vlr.size()
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
 
@@ -180,39 +196,36 @@ cdef class PyLazVlr:
         return arr
 
     def data_size(self):
+        """ Returns the number of bytes in the lazvlr record_data
+        """
         return self.vlr.size()
 
 
 
 cdef class PyCompressor:
+    """ Class to compress points in the laz format using a json schema or numpy dtype
+    to describe the point format
+    """
     cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
     cdef public str jsondata
     cdef vector[uint8_t] *v
 
-    def add_dimensions(self, jsondata):
+    def __cinit__(self, object schema):
+        """
+        schema: numpy dtype or json string of the point schema
+        """
+        self.v = new vector[uint8_t]()
+        self.thisptr = new Compressor(self.v[0])
 
-        data = None
         try:
-            jsondata[0]['type']
-            data = jsondata
-        except:
-            data = jsonlib.loads(jsondata)
-
-        for dim in data:
-            t = get_lazperf_type(dim['size'], dim['type'])
-            self.thisptr.add_dimension(t)
-
-    cdef get_data(self):
-        cdef const vector[uint8_t]* v = self.thisptr.data()
-        cdef size_t size = v.size()
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(size, dtype=np.uint8)
-        cdef size_t i = 0
-
-        for i in range(size):
-            arr[i] = self.v[0][i]
-        return arr
+            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
+        except AttributeError:
+            self.jsondata = schema
+        self.add_dimensions(self.jsondata)
 
     def compress(self, np.ndarray arr not None):
+        """ Compresses points and return the result as a numpy array of bytes
+        """
 
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] view
         view = arr.view(dtype=np.uint8)
@@ -221,34 +234,15 @@ cdef class PyCompressor:
         self.done()
         return self.get_data()
 
+    cdef get_data(self):
+        cdef const vector[uint8_t]* v = self.thisptr.data()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.zeros(v.size(), dtype=np.uint8)
+
+        self.thisptr.copy_data_to(<uint8_t*> arr.data)
+        return arr
 
     def done(self):
         self.thisptr.done()
-
-    def _init(self):
-        self.add_dimensions(self.jsondata)
-
-    def __cinit__(self, object schema):
-        cdef uint8_t* buf
-
-        self.v = new vector[uint8_t]()
-
-        self.thisptr = new Compressor(self.v[0])
-        try:
-            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
-        except AttributeError:
-            self.jsondata = schema
-        self._init()
-
-    def __dealloc__(self):
-        del self.v
-        del self.thisptr
-
-
-cdef class PyDecompressor:
-    cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
-    cdef vector[uint8_t] *v
-    cdef public str jsondata
 
     def add_dimensions(self, jsondata):
 
@@ -263,100 +257,124 @@ cdef class PyDecompressor:
             t = get_lazperf_type(dim['size'], dim['type'])
             self.thisptr.add_dimension(t)
 
+    def __dealloc__(self):
+        del self.v
+        del self.thisptr
+
+
+cdef class PyDecompressor:
+    """ Class to decompress laz points using a json schema/numpy dtype to
+    describe the point format
+    """
+    cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef public str jsondata
+
+    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None, object schema):
+        """
+        compressed_points: buffer of compressed_points
+        schema: numpy dtype or json string of the point schema
+        """
+        try:
+            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
+        except AttributeError:
+            self.jsondata = schema
+
+        self.thisptr = new Decompressor(<const uint8_t*>compressed_points.data, compressed_points.shape[0])
+        self.add_dimensions(self.jsondata)
 
     def decompress(self, size_t num_points):
+        """ decompress points
+
+        returns the numpy structured array of the decompressed points
+        """
         cdef size_t point_size = self.thisptr.getPointSize()
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] out = np.zeros(num_points * point_size, np.uint8)
 
         point_count = self.thisptr.decompress(out.data, out.shape[0])
         return out.view(dtype=buildNumpyDescription(self.jsondata))
 
-    def _init(self):
-        self.add_dimensions(self.jsondata)
-
-    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None, object schema):
-        cdef uint8_t* buf
-
-        buf = <uint8_t*> data.data;
-        self.v = new vector[uint8_t]()
-        self.v.assign(buf, buf + len(data))
-
+    def add_dimensions(self, jsondata):
+        data = None
         try:
-            self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
-        except AttributeError:
-            self.jsondata = schema
+            jsondata[0]['type']
+            data = jsondata
+        except:
+            data = jsonlib.loads(jsondata)
 
-        self.thisptr = new Decompressor(self.v[0])
-        self._init()
+        for dim in data:
+            t = get_lazperf_type(dim['size'], dim['type'])
+            self.thisptr.add_dimension(t)
+
 
     def __dealloc__(self):
-        del self.v
         del self.thisptr
 
 
 cdef class PyVLRDecompressor:
+    """ Class to decompress laz points stored in a .laz file using the
+    Laszip vlr's record_data
+    """
     cdef VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
-    cdef vector[uint8_t] *data_v;
-    cdef vector[uint8_t] *vlr_v;
+
+    def __cinit__(
+            self,
+            np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None,
+            np.ndarray[uint8_t, ndim=1, mode="c"] vlr not None
+        ):
+        """
+        compressed_points: buffer of points to be decompressed
+        vlr: laszip vlr's record_data as an array of bytes
+        """
+        cdef const uint8_t *p_compressed =  <const uint8_t*> compressed_points.data
+        self.thisptr = new VlrDecompressor(p_compressed, compressed_points.shape[0], vlr.data)
 
     def decompress_points(self, size_t point_count):
+        """ decompress the points
+
+        returns the decompressed data as an array of bytes
+        """
         cdef size_t point_size = self.thisptr.getPointSize()
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] data = np.zeros(point_size, dtype=np.uint8)
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] point_uncompressed = np.zeros(point_count * point_size, dtype=np.uint8)
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] point_out = np.zeros(point_size, dtype=np.uint8)
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] points_uncompressed = np.zeros(point_count * point_size, dtype=np.uint8)
         cdef size_t i = 0
         cdef size_t begin = 0
         cdef size_t end = 0
 
         # Cython's memory views are needed to get the true C speed when slicing
-        cdef uint8_t [:] point_view  = point_uncompressed
-        cdef uint8_t [:] data_view = data
+        cdef uint8_t [:] points_view  = points_uncompressed
+        cdef uint8_t [:] out_view = point_out
 
         for _ in range(point_count):
-            self.thisptr.decompress(data.data)
+            self.thisptr.decompress(point_out.data)
             end = begin + point_size
-            point_view[begin:end] = data_view
+            points_view[begin:end] = out_view
             begin = end
-      
-        return point_uncompressed
 
-
-    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"]  data not None,
-                        np.ndarray[uint8_t, ndim=1, mode="c"]  vlr not None):
-        cdef uint8_t* data_buf
-        cdef uint8_t* vlr_buf
-
-        data_buf = <uint8_t*> data.data;
-        self.data_v = new vector[uint8_t]()
-        self.data_v.assign(data_buf, data_buf + len(data))
-
-        vlr_buf = <uint8_t*> vlr.data;
-        self.vlr_v = new vector[uint8_t]()
-        self.vlr_v.assign(vlr_buf, vlr_buf + len(vlr))
-
-        self.thisptr = new VlrDecompressor(self.data_v[0], self.vlr_v[0])
+        return points_uncompressed
 
     def __dealloc__(self):
-        del self.vlr_v
-        del self.data_v
         del self.thisptr
 
 cdef class PyVLRCompressor:
+    """ Class to compress las points into laz format with the record schema
+    from a laszip vlr, this is meant to be used by LAZ file writers
+    """
     cdef VlrCompressor *thisptr;
 
     def __cinit__(self, PyRecordSchema py_record_schema, uint64_t offset):
+        """
+        py_record_schema: The schema of the point format
+        offset: offset to the point data (same as the las header field).
+        This is needed because the first 8 bytes of the compressed points is an offset to the
+        chunk table relative to the start of Las file. (Or you could pass in offset=0 and modify the
+        8 bytes yourself)
+        """
         self.thisptr = new VlrCompressor(py_record_schema.schema, offset)
 
-    def get_data(self):
-        cdef const vector[uint8_t]* v = self.thisptr.data()
-        cdef size_t size = v.size()
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(size, dtype=np.uint8)
-        cdef size_t i = 0
-
-        for i in range(size):
-            arr[i] = v[0][i]
-        return arr
 
     def compress(self, np.ndarray arr):
+        """ Returns the compressed points as a numpy array of bytes
+        """
         cdef np.ndarray[char, ndim=1, mode="c"] view
         view = arr.view(np.uint8)
 
@@ -377,6 +395,11 @@ cdef class PyVLRCompressor:
         self.thisptr.done()
         return self.get_data()
 
+    def get_data(self):
+        cdef const vector[uint8_t]* v = self.thisptr.data()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(v.size(), dtype=np.uint8)
+        self.thisptr.copy_data_to(<uint8_t*>arr.data)
+        return arr
 
     def __dealloc__(self):
         del self.thisptr
