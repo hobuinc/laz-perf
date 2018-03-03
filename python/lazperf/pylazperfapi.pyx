@@ -3,47 +3,49 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libc.stdint cimport uint8_t, int32_t, uint64_t
-from libc.string cimport memcpy
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.array cimport array, clone
 
 import json as jsonlib
 import numpy as np
 
+cimport lazperf
 cimport numpy as np
 np.import_array()
 
 def get_lazperf_type(size, t):
     if t == 'floating':
         if size == 8:
-            return Double
+            return lazperf.Double
         else:
-            return Float
+            return lazperf.Float
     if t == 'unsigned':
         if size == 8:
-            return Unsigned64
+            return lazperf.Unsigned64
         elif size == 4:
-            return Unsigned32
+            return lazperf.Unsigned32
         elif size == 2:
-            return Unsigned16
+            return lazperf.Unsigned16
         elif size == 1:
-            return Unsigned8
+            return lazperf.Unsigned8
         else:
             raise Exception("Unexpected type size '%s' for unsigned type" % size)
     if t == 'signed':
         if size == 8:
-            return Signed64
+            return lazperf.Signed64
         elif size == 4:
-            return Signed32
+            return lazperf.Signed32
         elif size == 2:
-            return Signed16
+            return lazperf.Signed16
         elif size == 1:
-            return Signed8
+            return lazperf.Signed8
         else:
             raise Exception("Unexpected type size '%s' for signed type" % size)
 
 def buildNumpyDescription(schema):
-    """Given a Greyhound schema, convert it into a numpy dtype description http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html"""
+    """Given a Greyhound schema, convert it into a numpy dtype description
+    http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html
+    """
     formats = []
     names = []
 
@@ -88,134 +90,21 @@ def buildGreyhoundDescription(dtype):
         output.append(entry)
     return output
 
-cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
-    enum LazPerfType "pylazperf::Type":
-        Double
-        Float
-        Signed8
-        Signed16
-        Signed32
-        Signed64
-        Unsigned8
-        Unsigned16
-        Unsigned32
-        Unsigned64
-
-
-cdef extern from "PyLazperf.hpp" namespace "pylazperf":
-    cdef cppclass Decompressor:
-        Decompressor(const uint8_t *data, size_t dataLen) except +
-        size_t decompress(char* buffer, size_t length)  except +
-        size_t getPointSize()
-        void add_dimension(LazPerfType t)
-
-cdef extern from "PyLazperf.hpp" namespace "pylazperf":
-    cdef cppclass VlrDecompressor:
-        VlrDecompressor(const unsigned char* compressed_data, size_t dataLength, const char *vlr) except +
-        size_t decompress(char* buffer)  except +
-        size_t getPointSize()
-
-
-cdef extern from "PyLazperf.hpp" namespace "pylazperf":
-    cdef cppclass Compressor:
-        Compressor(vector[uint8_t]& arr) except +
-        size_t compress(const char* buffer, size_t length)  except +
-        size_t getPointSize()
-        void add_dimension(LazPerfType t)
-        void done()
-        const vector[uint8_t]* data()
-        void copy_data_to(uint8_t *dest) const
-
-cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory::record_item":
-    cdef enum record_item "laszip::factory::record_item":
-        POINT10,
-        GPSTIME,
-        RGB12
-
-cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory":
-    cdef cppclass record_schema:
-        record_schema()
-        void push(record_item)
-
-cdef extern from "PyLazperf.hpp" namespace "pylazperf":
-    cdef cppclass VlrCompressor:
-        VlrCompressor(record_schema, uint64_t offset) except +
-        size_t compress(const char *inbuf) except +
-        void done()
-        const vector[uint8_t]* data()
-        size_t getPointSize()
-        size_t vlrDataSize() const
-        void extractVlrData(char* out)
-        void copy_data_to(uint8_t *dst) const
-
-cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
-    cdef cppclass laz_vlr:
-        laz_vlr()
-        void extract(char *data)
-        size_t size() const
-        @staticmethod
-        laz_vlr from_schema(const record_schema)
-
-
-cdef class PyRecordSchema:
-    """ This class is used to represent a LAS record schema
-    This RecordSchema is nessecary for the LazVlr to be able to compress
-    points meant to be written in a LAZ file.
-    """
-    cdef record_schema schema
-
-    def __cinit__(self):
-        self.schema.push(POINT10)
-
-    def add_gps_time(self):
-        self.schema.push(GPSTIME)
-
-    def add_rgb(self):
-        self.schema.push(RGB12)
-
-cdef class PyLazVlr:
-    """ Wraps a Lazperf's LazVlr class.
-    This class is meant to give access to the Laszip's vlr raw record_data
-    to allow writers to write LAZ files with its corresponding laszip vlr.
-    """
-    cdef laz_vlr vlr
-    cdef public PyRecordSchema schema
-
-    def __init__(self, PyRecordSchema schema):
-        self.schema = schema
-        self.vlr = laz_vlr.from_schema(schema.schema)
-
-    def data(self):
-        """ returns the laszip vlr record_data as a numpy array of bytes
-        to be written in the VLR section of a LAZ compressed file.
-        """
-        cdef size_t vlr_size = self.vlr.size()
-        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
-
-        self.vlr.extract(arr.data)
-        return arr
-
-    def data_size(self):
-        """ Returns the number of bytes in the lazvlr record_data
-        """
-        return self.vlr.size()
-
-
 
 cdef class PyCompressor:
     """ Class to compress points in the laz format using a json schema or numpy dtype
     to describe the point format
     """
-    cdef Compressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef lazperf.Compressor *thisptr      # hold a c++ instance which we're wrapping
     cdef public str jsondata
     cdef vector[uint8_t] *v
 
-    def __cinit__(self, object schema):
+    def __init__(self, object schema):
         """
         schema: numpy dtype or json string of the point schema
         """
         self.v = new vector[uint8_t]()
-        self.thisptr = new Compressor(self.v[0])
+        self.thisptr = new lazperf.Compressor(self.v[0])
 
         try:
             self.jsondata = jsonlib.dumps(buildGreyhoundDescription(schema))
@@ -266,10 +155,10 @@ cdef class PyDecompressor:
     """ Class to decompress laz points using a json schema/numpy dtype to
     describe the point format
     """
-    cdef Decompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef lazperf.Decompressor *thisptr      # hold a c++ instance which we're wrapping
     cdef public str jsondata
 
-    def __cinit__(self, np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None, object schema):
+    def __init__(self, np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None, object schema):
         """
         compressed_points: buffer of compressed_points
         schema: numpy dtype or json string of the point schema
@@ -279,7 +168,8 @@ cdef class PyDecompressor:
         except AttributeError:
             self.jsondata = schema
 
-        self.thisptr = new Decompressor(<const uint8_t*>compressed_points.data, compressed_points.shape[0])
+        self.thisptr = new lazperf.Decompressor(
+            <const uint8_t*>compressed_points.data, compressed_points.shape[0])
         self.add_dimensions(self.jsondata)
 
     def decompress(self, size_t num_points):
@@ -309,14 +199,58 @@ cdef class PyDecompressor:
     def __dealloc__(self):
         del self.thisptr
 
+cdef class PyRecordSchema:
+    """ This class is used to represent a LAS record schema
+    This RecordSchema is nessecary for the LazVlr to be able to compress
+    points meant to be written in a LAZ file.
+    """
+    cdef lazperf.record_schema schema
+
+    def __init__(self):
+        self.schema.push(lazperf.POINT10)
+
+    def add_gps_time(self):
+        self.schema.push(lazperf.GPSTIME)
+
+    def add_rgb(self):
+        self.schema.push(lazperf.RGB12)
+
+cdef class PyLazVlr:
+    """ Wraps a Lazperf's LazVlr class.
+    This class is meant to give access to the Laszip's vlr raw record_data
+    to allow writers to write LAZ files with its corresponding laszip vlr.
+    """
+    cdef lazperf.laz_vlr vlr
+    cdef public PyRecordSchema schema
+
+    def __init__(self, PyRecordSchema schema):
+        self.schema = schema
+        self.vlr = lazperf.laz_vlr.from_schema(schema.schema)
+
+    def data(self):
+        """ returns the laszip vlr record_data as a numpy array of bytes
+        to be written in the VLR section of a LAZ compressed file.
+        """
+        cdef size_t vlr_size = self.vlr.size()
+        cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(vlr_size, dtype=np.uint8)
+
+        self.vlr.extract(arr.data)
+        return arr
+
+    def data_size(self):
+        """ Returns the number of bytes in the lazvlr record_data
+        """
+        return self.vlr.size()
+
+
 
 cdef class PyVLRDecompressor:
     """ Class to decompress laz points stored in a .laz file using the
     Laszip vlr's record_data
     """
-    cdef VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
+    cdef lazperf.VlrDecompressor *thisptr      # hold a c++ instance which we're wrapping
 
-    def __cinit__(
+    def __init__(
             self,
             np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None,
             np.ndarray[uint8_t, ndim=1, mode="c"] vlr not None
@@ -326,7 +260,8 @@ cdef class PyVLRDecompressor:
         vlr: laszip vlr's record_data as an array of bytes
         """
         cdef const uint8_t *p_compressed =  <const uint8_t*> compressed_points.data
-        self.thisptr = new VlrDecompressor(p_compressed, compressed_points.shape[0], vlr.data)
+        self.thisptr = new lazperf.VlrDecompressor(
+            p_compressed, compressed_points.shape[0], vlr.data)
 
     def decompress_points(self, size_t point_count):
         """ decompress the points
@@ -359,9 +294,9 @@ cdef class PyVLRCompressor:
     """ Class to compress las points into laz format with the record schema
     from a laszip vlr, this is meant to be used by LAZ file writers
     """
-    cdef VlrCompressor *thisptr;
+    cdef lazperf.VlrCompressor *thisptr;
 
-    def __cinit__(self, PyRecordSchema py_record_schema, uint64_t offset):
+    def __init__(self, PyRecordSchema py_record_schema, uint64_t offset):
         """
         py_record_schema: The schema of the point format
         offset: offset to the point data (same as the las header field).
@@ -369,7 +304,7 @@ cdef class PyVLRCompressor:
         chunk table relative to the start of Las file. (Or you could pass in offset=0 and modify the
         8 bytes yourself)
         """
-        self.thisptr = new VlrCompressor(py_record_schema.schema, offset)
+        self.thisptr = new lazperf.VlrCompressor(py_record_schema.schema, offset)
 
 
     def compress(self, np.ndarray arr):
@@ -395,7 +330,7 @@ cdef class PyVLRCompressor:
         self.thisptr.done()
         return self.get_data()
 
-    def get_data(self):
+    cdef get_data(self):
         cdef const vector[uint8_t]* v = self.thisptr.data()
         cdef np.ndarray[uint8_t, ndim=1, mode="c"] arr = np.ndarray(v.size(), dtype=np.uint8)
         self.thisptr.copy_data_to(<uint8_t*>arr.data)

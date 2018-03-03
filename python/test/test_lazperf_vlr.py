@@ -78,7 +78,7 @@ class TestVLRCompress(unittest.TestCase):
         gt_chunk_table_offset = struct.unpack('<Q', ground_truth[gt_offset_to_point_data:gt_offset_to_point_data + sizeof_chunk_table_offset])[0]
         self.assertEqual(chunk_table_offset, gt_chunk_table_offset)
 
-        # This is the chunkt table offset relative to the point data
+        # This is the chunk table offset relative to the point data
         # without las header and vlrs
         relative_chunk_table_offset = chunk_table_offset - offset_to_data
         chunk_table = points_compressed[relative_chunk_table_offset:].tobytes()
