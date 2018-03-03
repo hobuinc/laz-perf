@@ -44,10 +44,44 @@ public:
         memcpy(b, m_buf.data() + m_idx, len);
         m_idx += len;
     }
-
-    
 };
 
+/*
+ * Provides a read only wrapper around a buffer to allow lazperf's decoders to read from it.
+ * This is used to avoid having to copy uncompressed points data (potentially huge)
+ * from a numpy array to a std::vector
+*/
+class ReadOnlyStream
+{
+public:
+    const uint8_t *m_data;
+    size_t m_dataLength;
+    size_t m_idx;
+
+    ReadOnlyStream(const uint8_t *data, size_t dataLen)
+    : m_data(data)
+    , m_dataLength(dataLen)
+    , m_idx(0)
+    {}
+
+
+    unsigned char getByte()
+    {
+        if (m_idx >= m_dataLength) {
+            throw std::runtime_error("access out of bounds");
+        }
+        return (unsigned char) m_data[m_idx++];
+    }
+
+    void getBytes(unsigned char *b, int len)
+    {
+        if (m_idx + len > m_dataLength) {
+            throw std::runtime_error("access out of bounds");
+        }
+        memcpy(b, (unsigned char*) &m_data[m_idx], len);
+        m_idx += len;
+    }
+};
 
 class LAZEngine
 {
@@ -62,7 +96,7 @@ protected:
 
 class Decompressor : public LAZEngine {
 public:
-    Decompressor(std::vector<uint8_t>&);
+    Decompressor(const uint8_t *data, size_t dataLen);
     ~Decompressor(){};
     void add_dimension(pylazperf::Type t);
     size_t decompress(char* out, size_t buffer_size);
@@ -70,11 +104,11 @@ public:
 
 private:
 
-    typedef laszip::decoders::arithmetic<TypedLazPerfBuf<uint8_t>> Decoder;
+    typedef laszip::decoders::arithmetic<ReadOnlyStream> Decoder;
     typedef typename laszip::formats::dynamic_field_decompressor<Decoder>::ptr
         Engine;
 
-    TypedLazPerfBuf<uint8_t> m_stream;
+    ReadOnlyStream m_stream;
     Decoder m_decoder;
     Engine m_decompressor;
 };
@@ -89,12 +123,12 @@ public:
     void add_dimension(pylazperf::Type t);
     size_t compress(const char* input, size_t buffer_size);
     const std::vector<uint8_t>* data() const;
+    void copy_data_to(uint8_t *destination) const;
 
 private:
 
     typedef laszip::encoders::arithmetic<TypedLazPerfBuf<uint8_t>> Encoder;
-    typedef typename laszip::formats::dynamic_field_compressor<Encoder>::ptr
-            Engine;
+    typedef typename laszip::formats::dynamic_field_compressor<Encoder>::ptr Engine;
 
     TypedLazPerfBuf<uint8_t> m_stream;
     Encoder m_encoder;
@@ -106,12 +140,16 @@ private:
 class VlrDecompressor
 {
 public:
-    VlrDecompressor(std::vector<uint8_t>& data, std::vector<uint8_t>& vlr) :
-        m_stream(data), m_chunksize(0), m_chunkPointsRead(0)
+    VlrDecompressor(
+        const uint8_t *compressedData,
+        size_t dataLength,
+        const char *vlr_data)
+        : m_stream(compressedData, dataLength)
+        , m_chunksize(0)
+        , m_chunkPointsRead(0)
     {
-        laszip::io::laz_vlr zipvlr((const char*)vlr.data());
+        laszip::io::laz_vlr zipvlr(vlr_data);
         m_chunksize = zipvlr.chunk_size;
-        std::cout << "chunk size: "<< m_chunksize << std::endl;
         m_schema = laszip::io::laz_vlr::to_schema(zipvlr);
     }
 
@@ -140,9 +178,9 @@ private:
 
     typedef laszip::formats::dynamic_decompressor Decompressor;
     typedef laszip::factory::record_schema Schema;
-    typedef laszip::decoders::arithmetic<TypedLazPerfBuf<uint8_t>> Decoder;
+    typedef laszip::decoders::arithmetic<ReadOnlyStream> Decoder;
 
-    TypedLazPerfBuf<uint8_t> m_stream;
+    ReadOnlyStream m_stream;
 
     std::unique_ptr<Decoder> m_decoder;
     Decompressor::ptr m_decompressor;
@@ -157,8 +195,8 @@ typedef laszip::factory::record_schema Schema;
 class VlrCompressor
 {
 public:
-    VlrCompressor(std::vector<uint8_t>&out, Schema s, uint64_t offset_to_data)
-    : m_stream(out)
+    VlrCompressor(Schema s, uint64_t offset_to_data)
+    : m_stream(m_data_vec)
     , m_encoder(nullptr)
     , m_chunkPointsWritten(0)
     , m_offsetToData(offset_to_data)
@@ -176,11 +214,15 @@ public:
 
     size_t vlrDataSize() const
         { return m_vlr.size(); }
+
     void extractVlrData(char *out_data)
         { return m_vlr.extract(out_data); }
-    
+
     size_t getPointSize() const
         { return (size_t)m_schema.size_in_bytes(); }
+
+    void copy_data_to(uint8_t *dst) const
+        { std::copy(m_data_vec.begin(), m_data_vec.end(), dst); }
 
 
 private:
@@ -190,6 +232,7 @@ private:
     void resetCompressor();
     void newChunk();
 
+    std::vector<uint8_t> m_data_vec;
     TypedLazPerfBuf<uint8_t> m_stream;
     std::unique_ptr<Encoder> m_encoder;
     Compressor::ptr m_compressor;
