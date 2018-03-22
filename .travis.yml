@@ -1,15 +1,26 @@
 # .travis.yml
 #
+matrix:
+    include:
+        - language: cpp
+          compiler:
+              - g++
+          branches:
+              except:
+                  - debian/precise
+          before_install: ./scripts/ci/pre.sh
+          script: ./scripts/ci/run.sh
 
-language: cpp
+    include:
+        - language: node_js
+          node_js:
+              - node
+          sudo: required
 
-compiler:
-    - g++
+          services:
+              - docker
+          before_install:
+              - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
 
-branches:
-    except:
-        - debian/precise
-
-before_install: ./scripts/ci/pre.sh
-
-script: ./scripts/ci/run.sh
+          script:
+            - docker exec -it emscripten ./emscripten-build.sh
