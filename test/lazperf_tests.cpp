@@ -106,7 +106,7 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 	using namespace laszip::formats;
 
 	{
-		las::gpstime v(std::numeric_limits<int64_t>::max());
+		las::gpstime v((std::numeric_limits<int64_t>::max)());
 		char buf[8];
 
 		packers<las::gpstime>::pack(v, buf);
@@ -117,7 +117,7 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 	}
 
 	{
-		las::gpstime v(std::numeric_limits<int64_t>::min());
+		las::gpstime v((std::numeric_limits<int64_t>::min)());
 		char buf[8];
 
 		packers<las::gpstime>::pack(v, buf);
@@ -953,7 +953,7 @@ TEST(lazperf_tests, can_compress_decompress_real_color) {
 		las::rgb c;
 	} p;
 
-	unsigned int l = std::min(10u, las.count_);
+	unsigned int l = (std::min)(10u, las.count_);
 	std::vector<las::rgb> ts;
 	for (unsigned int i = 0 ; i < l ; i ++) {
 		las.record((char*)&p);
@@ -1042,7 +1042,7 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 //	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
 	laz.skip(8); // jump past the chunk table offset
-	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
+	for (size_t i = 0 ; i < (std::min)(30u, (unsigned int)s.buf.size()); i ++) {
 		EXPECT_EQ(s.buf[i], laz.byte());
 	}
 }
@@ -1080,7 +1080,7 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	encoder.done();
 
 	laz.skip(8); // jump past the chunk table offset
-	for (size_t i = 0 ; i < std::min(30u, (unsigned int)s.buf.size()); i ++) {
+	for (size_t i = 0 ; i < (std::min)(30u, (unsigned int)s.buf.size()); i ++) {
 		EXPECT_EQ(s.buf[i], laz.byte());
 	}
 }
@@ -1344,11 +1344,11 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
 		int rvalue = rand();
         auto randshort = [rvalue]() -> short {
-            return rvalue % std::numeric_limits<short>::max();
+            return rvalue % (std::numeric_limits<short>::max)();
         };
 
         auto randushort = [rvalue]() -> unsigned short {
-            return rvalue % std::numeric_limits<unsigned short>::max();
+            return rvalue % (std::numeric_limits<unsigned short>::max)();
         };
 
 		unsigned int seed = static_cast<unsigned int>(time(NULL));
