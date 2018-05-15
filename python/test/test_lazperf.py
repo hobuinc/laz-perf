@@ -44,14 +44,13 @@ class TestLazPerf(unittest.TestCase):
         self.assertEqual(dtype.itemsize, 54)
 
         d = Decompressor(arr, s)
-        output = np.zeros(compressed_point_count * dtype.itemsize, dtype=np.uint8)
-        decompressed = d.decompress(output)
+        decompressed = d.decompress(compressed_point_count)
         uncompressed = np.frombuffer(original[0:-4], dtype = dtype)
 
         self.assertEqual(uncompressed.shape[0], expected_point_count)
         self.assertEqual(decompressed.shape[0], expected_point_count)
         for i in range(len(uncompressed)):
-            self.assertEqual(uncompressed[i], decompressed[i])
+           self.assertEqual(uncompressed[i], decompressed[i])
 
     def test_compressor(self):
         s = json.dumps(schema)
@@ -91,8 +90,8 @@ class TestLazPerf(unittest.TestCase):
         c = Compressor(s)
 
         compressed = c.compress(point_data)
-
         original_compressed = np.frombuffer(data[0:-4], dtype = np.uint8)
+
         self.assertEqual(len(original_compressed), len_compressed - 4)
         for i in range(len(compressed)):
             self.assertEqual(compressed[i], original_compressed[i])
@@ -110,8 +109,7 @@ class TestLazPerf(unittest.TestCase):
         compressed = c.compress(uncompressed)
 
         d = Decompressor(compressed, s)
-        output = np.zeros(expected_point_count * dtype.itemsize, dtype = np.uint8)
-        decompressed = d.decompress(output)
+        decompressed = d.decompress(expected_point_count)
         self.assertEqual(len(decompressed), len(uncompressed))
         for i in range(len(decompressed)):
             self.assertEqual(decompressed[i], uncompressed[i])

@@ -51,9 +51,9 @@ LAZEngine::LAZEngine()
 }
 
 
-Decompressor::Decompressor( std::vector<uint8_t>& compressed)
+Decompressor::Decompressor(const unsigned char *data, size_t dataLen)
     : LAZEngine()
-    , m_stream(compressed)
+    , m_stream(data, dataLen)
     , m_decoder(m_stream)
     , m_decompressor(laszip::formats::make_dynamic_decompressor(m_decoder))
 {
@@ -83,7 +83,7 @@ size_t Decompressor::decompress(char* output, size_t buffer_size)
 }
 
 
-Compressor::Compressor( std::vector<uint8_t>& uncompressed)
+Compressor::Compressor(std::vector<uint8_t>& uncompressed)
     : LAZEngine()
     , m_stream(uncompressed)
     , m_encoder(m_stream)
@@ -124,6 +124,11 @@ void Compressor::add_dimension(pylazperf::Type t)
 const std::vector<uint8_t>* Compressor::data() const
 {
     return &m_stream.m_buf;
+}
+
+void Compressor::copy_data_to(uint8_t *destination) const
+{
+    std::copy(m_stream.m_buf.begin(), m_stream.m_buf.end(), destination);
 }
 
 } //Namespace

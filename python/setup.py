@@ -83,7 +83,8 @@ extensions = [DistutilsExtension("lazperf.pylazperfapi",
                                    include_dirs=include_dirs,
                                    library_dirs=library_dirs,
                                    extra_compile_args=extra_compile_args,
-                                   extra_link_args=extra_link_args,)]
+                                   extra_link_args=extra_link_args,
+                                   language="c++",)]
 if USE_CYTHON and "clean" not in sys.argv:
     from Cython.Build import cythonize
     extensions= cythonize(extensions, language="c++")
