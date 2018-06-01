@@ -146,13 +146,13 @@ TEST(io_tests, parses_header_correctly) {
 		EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
 		EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
 
-		EXPECT_DOUBLE_EQ(header.min.x, 493994.87);
-		EXPECT_DOUBLE_EQ(header.min.y, 4877429.62);
-		EXPECT_DOUBLE_EQ(header.min.z, 123.93);
+		EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87);
+		EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62);
+		EXPECT_DOUBLE_EQ(header.minimum.z, 123.93);
 
-		EXPECT_DOUBLE_EQ(header.max.x, 494993.68);
-		EXPECT_DOUBLE_EQ(header.max.y, 4878817.02);
-		EXPECT_DOUBLE_EQ(header.max.z, 178.73);
+		EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68);
+		EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02);
+		EXPECT_DOUBLE_EQ(header.maximum.z, 178.73);
 /**
 		EXPECT_DOUBLE_EQ(header.scale.x, 0.01, 0.0001);
 		EXPECT_DOUBLE_EQ(header.scale.y, 0.01, 0.0001);
@@ -162,13 +162,13 @@ TEST(io_tests, parses_header_correctly) {
 		EXPECT_DOUBLE_EQ(header.offset.y, 0.0, 0.0001);
 		EXPECT_DOUBLE_EQ(header.offset.z, 0.0, 0.0001);
 
-		EXPECT_DOUBLE_EQ(header.min.x, 493994.87, 0.0001);
-		EXPECT_DOUBLE_EQ(header.min.y, 4877429.62, 0.0001);
-		EXPECT_DOUBLE_EQ(header.min.z, 123.93, 0.0001);
+		EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87, 0.0001);
+		EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62, 0.0001);
+		EXPECT_DOUBLE_EQ(header.minimum.z, 123.93, 0.0001);
 
-		EXPECT_DOUBLE_EQ(header.max.x, 494993.68, 0.0001);
-		EXPECT_DOUBLE_EQ(header.max.y, 4878817.02, 0.0001);
-		EXPECT_DOUBLE_EQ(header.max.z, 178.73, 0.0001);
+		EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68, 0.0001);
+		EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02, 0.0001);
+		EXPECT_DOUBLE_EQ(header.maximum.z, 178.73, 0.0001);
 **/
 
 		EXPECT_EQ(header.point_count, 1065u);
@@ -588,7 +588,7 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
 		EXPECT_EQ(file.good(), true);
 
-		file.ignore(std::numeric_limits<std::streamsize>::max());
+		file.ignore((std::numeric_limits<std::streamsize>::max)());
 		std::streamsize file_size = file.gcount();
 		file.clear();   //  Since ignore will have set eof.
 		file.seekg(0, std::ios_base::beg);
@@ -675,12 +675,12 @@ TEST(io_tests, writes_bbox_to_header) {
 	// Now check that the file has correct bounding box
   std::ifstream ifs(filename);
   io::reader::file reader(ifs);
-  EXPECT_EQ(reader.get_header().min.x, 1.0);
-  EXPECT_EQ(reader.get_header().max.x, 2.0);
-  EXPECT_EQ(reader.get_header().min.y, -3.0);
-  EXPECT_EQ(reader.get_header().max.y, -2.0);
-  EXPECT_EQ(reader.get_header().min.z, -4.0);
-  EXPECT_EQ(reader.get_header().max.z, 3.0);
+  EXPECT_EQ(reader.get_header().minimum.x, 1.0);
+  EXPECT_EQ(reader.get_header().maximum.x, 2.0);
+  EXPECT_EQ(reader.get_header().minimum.y, -3.0);
+  EXPECT_EQ(reader.get_header().maximum.y, -2.0);
+  EXPECT_EQ(reader.get_header().minimum.z, -4.0);
+  EXPECT_EQ(reader.get_header().maximum.z, 3.0);
 }
 
 TEST(io_tests, issue22)
