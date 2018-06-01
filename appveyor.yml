@@ -25,7 +25,7 @@ init:
 install:
   - ps: mkdir C:\pdalbin | out-null
   # call our PDAL install script
-  - ps: (new-object net.webclient).DownloadFile("http://www.liblas.org/samples/autzen/autzen.laz", "C:\projects\laz-perf\test\raw-sets\autzen.laz")
+  - ps: (new-object net.webclient).DownloadFile("https://github.com/PDAL/data/raw/master/autzen/autzen.laz", "C:\projects\laz-perf\test\raw-sets\autzen.laz")
   - call .\\scripts\\ci\\appveyor\\config.cmd
 
 build:
