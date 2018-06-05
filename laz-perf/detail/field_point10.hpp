@@ -262,7 +262,8 @@ namespace laszip {
 					// don't have the first data yet, read the whole point out of the stream
 					common_.have_last_ = true;
 
-					dec.getInStream().getBytes((unsigned char*)buf, sizeof(buf));
+					dec.getInStream().getBytes((unsigned char*)buf,
+                        sizeof(las::point10));
                     // decode this value
                     common_.last_ = packers<las::point10>::unpack(buf);
 					// we are done here
