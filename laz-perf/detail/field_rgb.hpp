@@ -103,20 +103,22 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			inline void compressWith(TEncoder& enc, const las::rgb& this_val) {
+//			inline void compressWith(TEncoder& enc, const las::rgb& this_val) {
+            inline const char *compressWith(TEncoder& enc, const char *buf)
+            {
+                las::rgb this_val;
+
+                this_val = packers<las::rgb>::unpack(buf);
 				if (!have_last_) {
-					// don't have the first data yet, just push it to our have last stuff and move on
+					// don't have the first data yet, just push it to our
+                    // have last stuff and move on
 					have_last_ = true;
 					last = this_val;
 
-					// write this out to the encoder as it is
-					char buffer[sizeof(las::rgb)];
-					packers<las::rgb>::pack(this_val, buffer);
+					enc.getOutStream().putBytes((unsigned char*)buf,
+                        sizeof(las::rgb));
 
-					enc.getOutStream().putBytes((unsigned char*)buffer, sizeof(buffer));
-
-					// we are done here
-					return;
+					return buf + sizeof(las::rgb);
 				}
 
 				// compress color
@@ -163,23 +165,24 @@ namespace laszip {
 				}
 
 				last = this_val;
+                return buf + sizeof(las::rgb);
 			}
+
 			template<
 				typename TDecoder
 			>
-			inline las::rgb decompressWith(TDecoder& dec) {
+//			inline las::rgb decompressWith(TDecoder& dec) {
+            inline char *decompressWith(TDecoder& dec, char *buf)
+            {
 				if (!have_last_) {
 					// don't have the first data yet, read the whole point out of the stream
 					have_last_ = true;
 
-					char buf[sizeof(las::rgb)];
-					dec.getInStream().getBytes((unsigned char*)buf, sizeof(buf));
+					dec.getInStream().getBytes((unsigned char*)buf,
+                        sizeof(las::rgb));
 
-					// decode this value
 					last = packers<las::rgb>::unpack(buf);
-
-					// we are done here
-					return last;
+                    return buf + sizeof(las::rgb);
 				}
 				
 				unsigned char corr;
@@ -252,7 +255,8 @@ namespace laszip {
 				}
 
 				last = this_val;
-				return this_val;
+                packers<las::rgb>::pack(last, buf);
+				return buf + sizeof(las::rgb);
 			}
 
 			// All the things we need to compress a point, group them into structs

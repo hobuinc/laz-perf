@@ -164,9 +164,10 @@ namespace laszip {
 				// hello 1996
 			}
 
-			virtual size_t field_size() = 0;
-			virtual void compressRaw(const char *) {}
-			virtual void decompressRaw(char *) {}
+			virtual const char *compressRaw(const char *buf)
+            { return buf; }
+			virtual char *decompressRaw(char *buf)
+            { return buf; }
 		};
 
 		template<typename T, typename TDiffMethod = standard_diff_method<T> >
@@ -185,7 +186,10 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			inline void compressWith(TEncoder& encoder, const T& this_val) {
+			inline const char *compressWith(TEncoder& encoder,
+                const char *buf)
+            {
+                T this_val = packers<type>::unpack(buf);
 				if (!compressor_inited_)
 					compressor_.init();
 
@@ -195,39 +199,40 @@ namespace laszip {
 					compressor_.compress(encoder, differ_.value, this_val, 0);
 				}
 				else {
-					// differ is not ready for us to start encoding values for us, so we need to write raw into
+					// differ is not ready for us to start encoding values
+                    // for us, so we need to write raw into
 					// the outputstream
 					//
-					char buf[sizeof(T)];
-					packers<T>::pack(this_val, buf);
-
-					encoder.getOutStream().putBytes((unsigned char*)buf, sizeof(T));
+					encoder.getOutStream().putBytes((unsigned char*)buf,
+                        sizeof(T));
 				}
-
 				differ_.push(this_val);
+                return buf + sizeof(T);
 			}
 
 			template<
 				typename TDecoder
 			>
-			inline T decompressWith(TDecoder& decoder) {
+			inline char *decompressWith(TDecoder& decoder, char *buffer)
+            {
 				if (!decompressor_inited_)
 					decompressor_.init();
 
 				T r;
 				if (differ_.have_value()) {
 					r = static_cast<T>(decompressor_.decompress(decoder, differ_.value, 0));
+                    packers<T>::pack(r, buffer);
 				}
 				else {
 					// this is probably the first time we're reading stuff, read the record as is
-					char buffer[sizeof(T)];
 					decoder.getInStream().getBytes((unsigned char*)buffer, sizeof(T));
 
 					r = packers<T>::unpack(buffer);
 				}
+                buffer += sizeof(T);
 
 				differ_.push(r);
-				return r;
+				return buffer;
 			}
 
 			laszip::compressors::integer compressor_;
@@ -250,7 +255,8 @@ namespace laszip {
 			template<
 				typename T
 			>
-			inline void compressWith(T&, const char *) { }
+			inline const char *compressWith(T&, const char *buf)
+            { return buf; }
 		};
 
 		template<typename T, typename... TS>
@@ -260,20 +266,20 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			inline void compressWith(TEncoder& encoder, const char *buffer) {
-				typedef typename T::type this_field_type;
-
-				this_field_type v = packers<this_field_type>::unpack(buffer);
-				field_.compressWith(encoder, v);
+			inline const char *compressWith(TEncoder& encoder,
+                const char *buffer)
+            {
+                buffer = field_.compressWith(encoder, buffer);
 
 				// Move on to the next field
-				next_.compressWith(encoder, buffer + sizeof(typename T::type));
+				return next_.compressWith(encoder, buffer);
 			}
 
-			// The field that we handle
-			T field_;
+            // The field that we handle
+            T field_;
 
-			// Our default strategy right now is to just encode diffs, but we would employ more advanced techniques soon
+			// Our default strategy right now is to just encode diffs,
+            // but we would employ more advanced techniques soon
 			record_compressor<TS...> next_;
 		};
 
@@ -283,11 +289,12 @@ namespace laszip {
 			template<
 				typename TDecoder
 			>
-			inline void decompressWith(TDecoder& decoder, char *) {
+			inline char *decompressWith(TDecoder& decoder, char *buf) {
 				if (firstDecompress) {
 					decoder.readInitBytes();
 					firstDecompress = false;
 				}
+                return buf;
 			}
 
 			bool firstDecompress;
@@ -300,18 +307,19 @@ namespace laszip {
 			template<
 				typename TDecoder
 			>
-			inline void decompressWith(TDecoder& decoder, char *buffer) {
-				typedef typename T::type this_field_type;
-
+			inline char *decompressWith(TDecoder& decoder, char *buf) {
+                buf = field_.decompressWith(decoder, buf);
+                /**
 				this_field_type v = static_cast<this_field_type>(field_.decompressWith(decoder));
 				packers<this_field_type>::pack(v, buffer);
+                **/
 
 				// Move on to the next field
-				next_.decompressWith(decoder, buffer + sizeof(typename T::type));
+				return next_.decompressWith(decoder, buf);
 			}
 
-			// The field that we handle
-			T field_;
+            // The field that we handle
+            T field_;
 
 			// Our default strategy right now is to just encode diffs, but we would employ more advanced techniques soon
 			record_decompressor<TS...> next_;
@@ -320,14 +328,14 @@ namespace laszip {
 		struct dynamic_compressor {
 			typedef std::shared_ptr<dynamic_compressor> ptr;
 
-			virtual void compress(const char *in) = 0;
+			virtual const char *compress(const char *in) = 0;
 			virtual ~dynamic_compressor() {}
 		};
 
 		struct dynamic_decompressor {
 			typedef std::shared_ptr<dynamic_decompressor> ptr;
 
-			virtual void decompress(char *in) = 0;
+			virtual char *decompress(char *in) = 0;
 			virtual ~dynamic_decompressor() {}
 		};
 
@@ -339,8 +347,8 @@ namespace laszip {
 			dynamic_compressor1(TEncoder& enc, TRecordCompressor* compressor) :
 				enc_(enc), compressor_(compressor) {}
 
-			virtual void compress(const char *in) {
-				compressor_->compressWith(enc_, in);
+			virtual const char *compress(const char *in) {
+				return compressor_->compressWith(enc_, in);
 			}
 
 			dynamic_compressor1(const dynamic_compressor1<TEncoder , TRecordCompressor>&) = delete;
@@ -367,8 +375,9 @@ namespace laszip {
 			dynamic_decompressor1(TDecoder& dec, TRecordDecompressor* decompressor) :
 				dec_(dec), decompressor_(decompressor) {}
 
-			virtual void decompress(char *in) {
-				decompressor_->decompressWith(dec_, in);
+			virtual char *decompress(char *in)
+            {
+				return decompressor_->decompressWith(dec_, in);
 			}
 
 			dynamic_decompressor1(const dynamic_decompressor1<TDecoder, TRecordDecompressor>&) = delete;
@@ -395,15 +404,8 @@ namespace laszip {
 		struct dynamic_compressor_field : base_field {
 			dynamic_compressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
 
-			virtual void compressRaw(const char *in) {
-				typedef packers<typename TField::type> p;
-
-				auto to_compress = p::unpack(in);
-				field_.compressWith(encdec_, to_compress);
-			}
-
-			virtual size_t field_size() {
-				return sizeof(typename TField::type);
+			virtual const char *compressRaw(const char *in) {
+				return field_.compressWith(encdec_, in);
 			}
 
 			TEncoderDecoder& encdec_;
@@ -417,15 +419,14 @@ namespace laszip {
 		struct dynamic_decompressor_field : base_field {
 			dynamic_decompressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
 
-			virtual void decompressRaw(char *out) {
-				typedef packers<typename TField::type> p;
+			virtual char *decompressRaw(char *buf) {
+                // typedef packers<typename TField::type> p;
 
+                return field_.decompressWith(encdec_, buf);
+                /**
 				auto decomp = field_.decompressWith(encdec_);
 				p::pack(decomp, out);
-			}
-
-			virtual size_t field_size() {
-				return sizeof(typename TField::type);
+                **/
 			}
 
 			TEncoderDecoder& encdec_;
@@ -444,15 +445,14 @@ namespace laszip {
 			template<typename TFieldType>
 			void add_field() {
 				fields_.push_back(base_field::ptr(new
-							dynamic_compressor_field<TEncoder, field<TFieldType> >(enc_)));
+                    dynamic_compressor_field<TEncoder, field<TFieldType> >(enc_)));
 			}
 
-			virtual void compress(const char *in) {
-                size_t offset = 0;
-                for (auto f: fields_) {
-                    f->compressRaw(in + offset);
-                    offset += f->field_size();
-                }
+			virtual const char *compress(const char *in)
+            {
+                for (auto f: fields_)
+                    in = f->compressRaw(in);
+                return in;
 			}
 
 			TEncoder& enc_;
@@ -475,21 +475,19 @@ namespace laszip {
 							dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
 			}
 
-			virtual void decompress(char *out) {
-				// will do soemthign with in
-                size_t offset = 0;
-                for (auto f: fields_) {
-                    f->decompressRaw(out + offset);
-                    offset += f->field_size();
-                }
+			virtual char *decompress(char *out)
+            {
+                for (auto f: fields_)
+                    out = f->decompressRaw(out);
 
-                // the decoder needs to be told that it should read the init bytes
-                // after the first record has been read
+                // the decoder needs to be told that it should read the
+                // init bytes after the first record has been read
                 //
                 if (first_decomp_) {
                     first_decomp_ = false;
                     dec_.readInitBytes();
                 }
+                return out;
 			}
 
 			TDecoder& dec_;
