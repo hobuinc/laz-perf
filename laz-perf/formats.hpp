@@ -309,10 +309,6 @@ namespace laszip {
 			>
 			inline char *decompressWith(TDecoder& decoder, char *buf) {
                 buf = field_.decompressWith(decoder, buf);
-                /**
-				this_field_type v = static_cast<this_field_type>(field_.decompressWith(decoder));
-				packers<this_field_type>::pack(v, buffer);
-                **/
 
 				// Move on to the next field
 				return next_.decompressWith(decoder, buf);
@@ -420,13 +416,7 @@ namespace laszip {
 			dynamic_decompressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
 
 			virtual char *decompressRaw(char *buf) {
-                // typedef packers<typename TField::type> p;
-
                 return field_.decompressWith(encdec_, buf);
-                /**
-				auto decomp = field_.decompressWith(encdec_);
-				p::pack(decomp, out);
-                **/
 			}
 
 			TEncoderDecoder& encdec_;

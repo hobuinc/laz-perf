@@ -69,7 +69,6 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-//			inline void compressWith(TEncoder& enc, const type& this_val) {
             inline const char *compressWith(TEncoder& enc, const char *buf)
             {
 				if (!compressor_inited_) {
@@ -118,7 +117,6 @@ namespace laszip {
 			template<
 				typename TDecoder
 			>
-//			inline las::xyz decompressWith(TDecoder& dec) {
 			inline char *decompressWith(TDecoder& dec, char *buf)
             {
 				if (!decompressors_inited_) {
