@@ -31,6 +31,8 @@
 #ifndef __decoder_hpp__
 #define __decoder_hpp__
 
+#include <cassert>
+
 #include "common/types.hpp"
 
 namespace laszip {

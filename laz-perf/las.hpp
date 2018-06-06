@@ -83,11 +83,15 @@ namespace laszip {
                 xyz() : x(0), y(0), z(0)
                 {}
             };
+
+            struct extrabytes : public std::vector<uint8_t>
+            {};
 #pragma pack(pop)
 		}
 	}
 }
 
+#include "detail/field_extrabytes.hpp"
 #include "detail/field_point10.hpp"
 #include "detail/field_gpstime.hpp"
 #include "detail/field_rgb.hpp"

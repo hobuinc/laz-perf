@@ -80,15 +80,38 @@ namespace laszip {
 				if (decoder_table) utils::aligned_free(decoder_table);
 			}
 
-			arithmetic(arithmetic&& other)
+			arithmetic(const arithmetic& other)
 				: symbols(other.symbols), compress(other.compress),
-				  distribution(other.distribution), symbol_count(other.symbol_count),
-				  decoder_table(other.decoder_table),
 				  total_count(other.total_count), update_cycle(other.update_cycle),
 				  symbols_until_update(other.symbols_until_update), last_symbol(other.last_symbol),
-				  table_size(other.table_size), table_shift(other.table_shift) {
-					  other.distribution = other.decoder_table = other.symbol_count = NULL;
-					  other.symbol_count = 0;
+				  table_size(other.table_size), table_shift(other.table_shift)
+            {
+                size_t size(symbols * sizeof(U32));
+                distribution = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                std::copy(other.distribution, other.distribution + symbols, distribution);
+
+                symbol_count = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                std::copy(other.symbol_count, other.symbol_count + symbols, symbol_count);
+
+                if (table_size)
+                {
+                    size = (table_size + 2) * sizeof(U32);
+                    decoder_table = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                    std::copy(other.decoder_table, other.decoder_table + (table_size + 2), decoder_table);
+                }
+                else
+                    decoder_table = nullptr;
+			}
+
+			arithmetic(arithmetic&& other) : symbols(other.symbols), compress(other.compress),
+                distribution(other.distribution), symbol_count(other.symbol_count),
+				decoder_table(other.decoder_table),
+				total_count(other.total_count), update_cycle(other.update_cycle),
+				symbols_until_update(other.symbols_until_update), last_symbol(other.last_symbol),
+				table_size(other.table_size), table_shift(other.table_shift)
+            {
+                other.distribution = other.decoder_table = other.symbol_count = NULL;
+                other.symbol_count = 0;
 			}
 
 			arithmetic& operator = (arithmetic&& other) {
