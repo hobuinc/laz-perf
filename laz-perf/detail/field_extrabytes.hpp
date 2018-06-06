@@ -84,26 +84,23 @@ namespace laszip {
             {
                 if (!have_last_)
                 {
-                    dec.getInStream.getBytes(buf, buf + count_);
-                    std::copy(buf, buf + count_, count_);
+                    dec.getInStream().getBytes((unsigned char *)buf, count_);
+                    std::copy(buf, buf + count_, lasts_.data());
                     have_last_ = true;
                     return buf + count_;
                 }
-                else
+                // Use the diff vector for our current values.
+                auto& curs = diffs_;
+                auto ci = curs.begin();
+                auto li = lasts_.begin();
+                auto mi = models_.begin();
+                while (li != lasts_.end())
                 {
-                    // Use the diff vector for our current values.
-                    auto& curs = diffs_;
-                    auto ci = curs.begin();
-                    auto li = lasts_.begin();
-                    auto mi = models_.begin();
-                    while (li != lasts_.end())
-                    {
-                        *ci = U8_FOLD(*li + dec.decodeSymbol(*mi));
-                        *li++ = *buf++ = *ci++;
-                        mi++;
-                    }
-                    return buf;
+                    *ci = u8_fold(*li + dec.decodeSymbol(*mi));
+                    *li = *buf = *ci;
+                    li++; buf++; ci++; mi++;
                 }
+                return buf;
             }
         };
 	}

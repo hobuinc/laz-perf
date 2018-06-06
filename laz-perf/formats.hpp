@@ -413,7 +413,13 @@ namespace laszip {
 			typename TField
 		>
 		struct dynamic_decompressor_field : base_field {
-			dynamic_decompressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
+			dynamic_decompressor_field(TEncoderDecoder& encdec) :
+                encdec_(encdec), field_()
+            {}
+
+			dynamic_decompressor_field(TEncoderDecoder& encdec, const TField& f) :
+                encdec_(encdec), field_(f)
+            {}
 
 			virtual char *decompressRaw(char *buf) {
                 return field_.decompressWith(encdec_, buf);
@@ -460,10 +466,19 @@ namespace laszip {
 			dynamic_field_decompressor(TDecoder& decoder) : dec_(decoder), fields_(), first_decomp_(true) { }
 
 			template<typename TFieldType>
-			void add_field() {
+			void add_field()
+            {
 				fields_.push_back(base_field::ptr(new
-							dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
+                    dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
 			}
+
+            template<typename TField>
+            void add_field(const TField& f)
+            {
+				fields_.push_back(base_field::ptr(new
+                    dynamic_decompressor_field<TDecoder, TField>(dec_, f)));
+			}
+
 
 			virtual char *decompress(char *out)
             {
