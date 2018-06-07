@@ -342,71 +342,70 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 }
 
 TEST(lazperf_tests, point10_enc_dec_is_sym) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	record_compressor<
-		field<las::point10>
-	> compressor;
+    record_compressor<
+        field<las::point10>
+    > compressor;
 
-	SuchStream s;
+    SuchStream s;
 
-	const int N = 100000;
+    const int N = 100000;
 
-	encoders::arithmetic<SuchStream> encoder(s);
+    encoders::arithmetic<SuchStream> encoder(s);
 
-	for (int i = 0 ; i < N; i ++) {
-		las::point10 p;
+    for (int i = 0 ; i < N; i ++) {
+        las::point10 p;
 
-		p.x = i;
-		p.y = i + 1000;
-		p.z = i + 10000;
+        p.x = i;
+        p.y = i + 1000;
+        p.z = i + 10000;
 
-		p.intensity = (i + (1<14)) % (1 << 16);
-		p.return_number =  i & 0x7;
-		p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
-		p.scan_direction_flag = i & 1;
-		p.edge_of_flight_line = (i+1) & 1;
-		p.classification = (i + (1 << 7)) % (1 << 8);
-		p.scan_angle_rank = i % (1 << 7);
-		p.user_data = (i + 64) % (1 << 7);
-		p.point_source_ID = i % (1 << 16);
+        p.intensity = (i + (1<14)) % (1 << 16);
+        p.return_number =  i & 0x7;
+        p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
+        p.scan_direction_flag = i & 1;
+        p.edge_of_flight_line = (i+1) & 1;
+        p.classification = (i + (1 << 7)) % (1 << 8);
+        p.scan_angle_rank = i % (1 << 7);
+        p.user_data = (i + 64) % (1 << 7);
+        p.point_source_ID = i % (1 << 16);
 
-		char buf[sizeof(las::point10)];
-		packers<las::point10>::pack(p, buf);
+        char buf[sizeof(las::point10)];
+        packers<las::point10>::pack(p, buf);
 
-		compressor.compressWith(encoder, buf);
-	}
-	encoder.done();
+        compressor.compressWith(encoder, buf);
+    }
+    encoder.done();
 
-	record_decompressor<
-		field<las::point10>
-	> decompressor;
+    record_decompressor<
+        field<las::point10>
+    > decompressor;
 
-	decoders::arithmetic<SuchStream> decoder(s);
+    decoders::arithmetic<SuchStream> decoder(s);
 
-	char buf[sizeof(las::point10)];
-	for (int i = 0 ; i < N ; i ++) {
-		decompressor.decompressWith(decoder, (char *)buf);
+    char buf[sizeof(las::point10)];
+    for (int i = 0 ; i < N ; i ++) {
+        decompressor.decompressWith(decoder, (char *)buf);
 
-		las::point10 p = packers<las::point10>::unpack(buf);
+        las::point10 p = packers<las::point10>::unpack(buf);
 
-		EXPECT_EQ(p.x, i);
-		EXPECT_EQ(p.y, i + 1000);
-		EXPECT_EQ(p.z, i + 10000);
+        EXPECT_EQ(p.x, i);
+        EXPECT_EQ(p.y, i + 1000);
+        EXPECT_EQ(p.z, i + 10000);
 
-		EXPECT_EQ(p.intensity, (i + (1<14)) % (1 << 16));
-		EXPECT_EQ(p.return_number,  i & 0x7);
-		EXPECT_EQ(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
-		EXPECT_EQ(p.scan_direction_flag, i & 1);
-		EXPECT_EQ(p.edge_of_flight_line, (i+1) & 1);
-		EXPECT_EQ(p.classification, (i + (1 << 7)) % (1 << 8));
-		EXPECT_EQ(p.scan_angle_rank, i % (1 << 7));
-		EXPECT_EQ(p.user_data, (i + 64) % (1 << 7));
-		EXPECT_EQ(p.point_source_ID, i % (1 << 16));
-	}
+        EXPECT_EQ(p.intensity, (i + (1<14)) % (1 << 16));
+        EXPECT_EQ(p.return_number,  i & 0x7);
+        EXPECT_EQ(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
+        EXPECT_EQ(p.scan_direction_flag, i & 1);
+        EXPECT_EQ(p.edge_of_flight_line, (i+1) & 1);
+        EXPECT_EQ(p.classification, (i + (1 << 7)) % (1 << 8));
+        EXPECT_EQ(p.scan_angle_rank, i % (1 << 7));
+        EXPECT_EQ(p.user_data, (i + 64) % (1 << 7));
+        EXPECT_EQ(p.point_source_ID, i % (1 << 16));
+    }
 }
-
 
 void printPoint(const laszip::formats::las::point10& p) {
 	printf("x: %i, y: %i, z: %i, i: %u, rn: %i, nor: %i, sdf: %i, efl: %i, c: %i, "
@@ -845,6 +844,47 @@ TEST(lazperf_tests, can_compress_decompress_rgb) {
 				EXPECT_EQ(out.b, c.b);
 			}
 		}
+	}
+}
+
+TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+
+	encoders::arithmetic<SuchStream> encoder(s);
+    auto compressor = make_dynamic_compressor(encoder);
+
+    compressor->add_field(field<las::extrabytes>(10));
+
+    uint16_t eb[5];
+
+	const int N = 100000;
+	for (int i = 0 ; i < N; i ++) {
+        eb[0] = uint16_t(i);
+        eb[1] = uint16_t(i + 1);
+        eb[2] = uint16_t(i + 243);
+        eb[3] = uint16_t(i * 25);
+        eb[4] = uint16_t(i - 462);
+
+		compressor->compress((const char *)eb);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+    auto decompressor = make_dynamic_decompressor(decoder);
+
+    decompressor->add_field(field<las::extrabytes>(10));
+
+	for (int i = 0 ; i < N ; i ++) {
+		decompressor->decompress((char *)eb);
+
+        EXPECT_EQ(eb[0], uint16_t(i));
+        EXPECT_EQ(eb[1], uint16_t(i + 1));
+        EXPECT_EQ(eb[2], uint16_t(i + 243));
+        EXPECT_EQ(eb[3], uint16_t(i * 25));
+        EXPECT_EQ(eb[4], uint16_t(i - 462));
 	}
 }
 

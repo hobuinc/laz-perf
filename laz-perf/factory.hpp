@@ -102,9 +102,8 @@ namespace laszip {
 
 			int size_in_bytes() const {
 				int sum = 0;
-				for (auto i : records) {
+				for (auto i : records)
 					sum += i.size;
-				}
 
 				return sum;
 			}
