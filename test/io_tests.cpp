@@ -303,11 +303,11 @@ SchemaPtr makeSchema(unsigned char format)
 
     SchemaPtr schema(new factory::record_schema);
 
-    (*schema)(factory::record_item::POINT10);
+    (*schema)(factory::record_item::point());
     if (format == 1 || format == 3)
-        (*schema)(factory::record_item::GPSTIME);
+        (*schema)(factory::record_item::gpstime());
     else if (format == 2 || format == 3)
-        (*schema)(factory::record_item::RGB12);
+        (*schema)(factory::record_item::rgb());
     return schema;
 }
 
@@ -458,9 +458,9 @@ TEST(io_tests, can_encode_large_files) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		io::writer::file f(makeTempFileName(), schema,
 				io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
@@ -498,9 +498,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		io::writer::file f(fname, schema,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
@@ -530,9 +530,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		std::ifstream file(fname, std::ios::binary);
 		io::reader::file f(file);
@@ -656,7 +656,7 @@ TEST(io_tests, writes_bbox_to_header) {
 	using namespace laszip::formats;
 
 	factory::record_schema schema;
-	schema(factory::record_item::POINT10);
+	schema(factory::record_item::point());
 
 	// First write a few points
 	std::string filename(makeTempFileName());
@@ -696,7 +696,7 @@ TEST(io_tests, issue22)
     std::vector<int> cls(it, std::istream_iterator<int>());
 
     factory::record_schema schema;
-    schema(factory::record_item::POINT10);
+    schema(factory::record_item::point());
     io::writer::file out(tempfile, schema,
             io::writer::config({0.01,0.01,0.01}, {0.0,0.0,0.0}));
 

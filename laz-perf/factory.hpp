@@ -42,6 +42,7 @@ namespace laszip {
 	namespace factory {
 		struct record_item {
 			enum {
+                BYTE = 0,
 				POINT10 = 6,
 				GPSTIME = 7,
 				RGB12 = 8
@@ -51,19 +52,45 @@ namespace laszip {
 			record_item(int t, int s, int v) :
 				type(t), size(s), version(v) {}
 
-			record_item(int t) {
-				type = t;
-				switch(t) {
-					case POINT10: size = 20 ; version = 2; break;
-					case GPSTIME: size = 8 ; version = 2; break;
-					case RGB12: size = 6 ; version = 2; break;
-					default: throw unknown_record_item_type();
-				}
-			}
+            bool operator == (const record_item& other) const
+            {
+                return (type == other.type &&
+                    version == other.version &&
+                    size == other.size);
+            }
+
+            bool operator != (const record_item& other) const
+            {
+                return !(*this == other);
+            }
+
+            static const record_item& point()
+            {
+                static record_item item(POINT10, 20, 2);
+                return item;
+            }
+
+            static const record_item& gpstime()
+            {
+                static record_item item(GPSTIME, 8, 2);
+                return item;
+            }
+
+            static const record_item& rgb()
+            {
+                static record_item item(RGB12, 6, 2);
+                return item;
+            }
+
+            static const record_item eb(size_t count)
+            {
+                return record_item(BYTE, count, 2);
+            }
 		};
 
 		struct record_schema {
 			record_schema() : records() { }
+
 			void push(const record_item& item) {
 				records.push_back(item);
 			}
@@ -82,126 +109,150 @@ namespace laszip {
 				return sum;
 			}
 
+            int format() const
+            {
+                size_t count = records.size();
+                if (count == 0)
+                    return -1;
+
+                // Ignore extrabytes record that should be at the end.
+                if (extrabytes())
+                    count--;
+
+                if (count == 0 || records[0] != record_item::point())
+                    return -1;
+
+                if (count == 1)
+                    return 0;
+                if (count == 2)
+                {
+                    if (records[1] == record_item::gpstime())
+                        return 1;
+                    else if (records[1] == record_item::rgb())
+                        return 2;
+                }
+                if (count == 3 && records[1] == record_item::gpstime() &&
+                    records[2] == record_item::rgb())
+                    return 3;
+                return -1;
+            }
+
+            size_t extrabytes() const
+            {
+                if (records.size())
+                {
+                    auto ri = records.rbegin();
+                    if (ri->type == record_item::BYTE && ri->version == 2)
+                        return ri->size;
+                }
+                return 0;
+            }
+
 			std::vector<record_item> records;
 		};
 
-		static inline std::string make_token(const record_schema& s) {
-			std::stringstream tokensstr;
-			for (auto r : s.records) {
-				tokensstr << "v" << r.version << "t" << r.type << "s" << r.size;
-			}
-			return tokensstr.str();
-		}
 
-
-		template<
-			typename TDecoder
-		>
-		formats::dynamic_decompressor::ptr build_decompressor(TDecoder& dec, const record_schema& schema) {
-			// this code may be auto generated in future, please
+		template<typename TDecoder>
+		formats::dynamic_decompressor::ptr build_decompressor(TDecoder& decoder,
+            const record_schema& schema)
+        {
 			using namespace formats;
 
-			std::string hash = make_token(schema);
-
-#define __c(x) (hash.compare(x) == 0)
-			if (__c("v2t6s20")) {       // format 0
-				// just point 10
-				return make_dynamic_decompressor(dec,
-						new formats::record_decompressor<field<las::point10> >());
-			}
-			else if (__c("v2t6s20v2t7s8")) {   // format 1
-				// point 10, gpstime
-				return make_dynamic_decompressor(dec,
+            int format = schema.format();
+			if (format == -1)
+                throw unknown_schema_type();
+            size_t ebCount = schema.extrabytes();
+            if (ebCount)
+            {
+                auto decompressor = make_dynamic_decompressor(decoder);
+                decompressor->template add_field<las::point10>();
+                if (format == 1 || format == 3)
+                    decompressor->template add_field<las::gpstime>();
+                if (format == 2 || format == 3)
+                    decompressor->template add_field<las::rgb>();
+                decompressor->add_field(field<las::extrabytes>(ebCount));
+                return decompressor;
+            }
+            else
+            {
+                switch (format)
+                {
+                case 0:
+				    return make_dynamic_decompressor(decoder,
 						new formats::record_decompressor<
-							field<las::point10>,
-							field<las::gpstime> >());
-			}
-			else if (__c("v2t6s20v2t8s6")) {   // format 2
-				// point 10, gpstime
-				return make_dynamic_decompressor(dec,
+                            field<las::point10>>());
+                case 1:
+				    return make_dynamic_decompressor(decoder,
 						new formats::record_decompressor<
-							field<las::point10>,
-							field<las::rgb> >());
-			}
-
-			else if (__c("v2t6s20v2t7s8v2t8s6")) {    // format 2
-				// point10, gpstime, color
-				return make_dynamic_decompressor(dec,
-						new formats::record_decompressor<
-							field<las::point10>,
-							field<las::gpstime>,
-							field<las::rgb> >());
-			}
-#undef __c
-
-			// we got a schema we don't know how to build
-			throw unknown_schema_type();
-#ifndef _WIN32
-			return dynamic_decompressor::ptr(); // avoid warning
-#endif
-		}
-
-		template<
-			typename TEncoder
-		>
-		formats::dynamic_compressor::ptr build_compressor(TEncoder& enc, const record_schema& schema) {
-			using namespace formats;
-
-			std::string hash = make_token(schema);
-#define __c(x) (hash.compare(x) == 0)
-
-			if (__c("v2t6s20")) {  // format 0;
-				// just point 10
-				return make_dynamic_compressor(enc,
-						new formats::record_compressor<field<las::point10> >());
-			}
-			else if (__c("v2t6s20v2t7s8")) { // format 1
-				// point10, gpstime
-				return make_dynamic_compressor(enc,
-						new formats::record_compressor<
 							field<las::point10>,
 							field<las::gpstime>>());
-            }
-			else if (__c("v2t6s20v2t8s6")) {    // format 2
-				// point10, gpstime, color
-				return make_dynamic_compressor(enc,
-						new formats::record_compressor<
+                case 2:
+				    return make_dynamic_decompressor(decoder,
+						new formats::record_decompressor<
 							field<las::point10>,
-							field<las::rgb> >());
-			}
-			else if (__c("v2t6s20v2t7s8v2t8s6")) { // format 3
-				// point10, gpstime, color
-				return make_dynamic_compressor(enc,
-						new formats::record_compressor<
+							field<las::rgb>>());
+                case 3:
+				    return make_dynamic_decompressor(decoder,
+						new formats::record_decompressor<
 							field<las::point10>,
 							field<las::gpstime>,
-							field<las::rgb> >());
-			}
-#undef __c
-
-			// we got a schema we don't know how to build
-			throw unknown_schema_type();
-#ifndef _WIN32
-			return dynamic_compressor::ptr(); // avoid warning
-#endif
+							field<las::rgb>>());
+                }
+            }
+            return dynamic_decompressor::ptr();
 		}
 
-		static inline unsigned char schema_to_point_format(const record_schema& schema) {
-			// get a point format identifier from the given schema
-			std::string hash = make_token(schema);
+        template<typename TEncoder>
+        formats::dynamic_compressor::ptr build_compressor(TEncoder& encoder,
+            const record_schema& schema)
+        {
+            using namespace formats;
 
-#define __c(x) (hash.compare(x) == 0)
-			if (__c("v2t6s20")) return 0;				// just point
-			else if (__c("v2t6s20v2t7s8")) return 1;	// point + gpstime
-			else if (__c("v2t6s20v2t8s6")) return 2;	// point + color
-			else if (__c("v2t6s20v2t7s8v2t8s6")) return 3; // point + gpstime + color
+            int format = schema.format();
+            if (format == -1)
+                throw unknown_schema_type();
+            size_t ebCount = schema.extrabytes();
+            if (ebCount)
+            {
+                auto compressor = make_dynamic_compressor(encoder);
+                compressor->template add_field<las::point10>();
+                if (format == 1 || format == 3)
+                    compressor->template add_field<las::gpstime>();
+                if (format == 2 || format == 3)
+                    compressor->template add_field<las::rgb>();
+                compressor->add_field(field<las::extrabytes>(ebCount));
+                return compressor;
+            }
+            else
+            {
+                switch (format)
+                {
+                case 0:
+                    return make_dynamic_compressor(encoder,
+                        new formats::record_compressor<
+                            field<las::point10>>());
+                case 1:
+                    return make_dynamic_compressor(encoder,
+                        new formats::record_compressor<
+                            field<las::point10>,
+                            field<las::gpstime>>());
+                case 2:
+                    return make_dynamic_compressor(encoder,
+                        new formats::record_compressor<
+                            field<las::point10>,
+                            field<las::rgb>>());
+                case 3:
+                    return make_dynamic_compressor(encoder,
+                        new formats::record_compressor<
+                            field<las::point10>,
+                            field<las::gpstime>,
+                            field<las::rgb>>());
+                }
+            }
+            return dynamic_compressor::ptr();
+        }
 
-#undef __c
-
-			throw unknown_schema_type();
-			return static_cast<unsigned char>(-1); // avoid warning
-		}
-	}
-}
+    } // namespace factory
+} // namespace laszip
 
 #endif // __factory_hpp__

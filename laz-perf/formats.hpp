@@ -398,7 +398,13 @@ namespace laszip {
 			typename TField
 		>
 		struct dynamic_compressor_field : base_field {
-			dynamic_compressor_field(TEncoderDecoder& encdec) : encdec_(encdec), field_() {}
+			dynamic_compressor_field(TEncoderDecoder& encdec) :
+                encdec_(encdec), field_()
+            {}
+
+			dynamic_compressor_field(TEncoderDecoder& encdec, const TField& f) :
+                encdec_(encdec), field_(f)
+            {}
 
 			virtual const char *compressRaw(const char *in) {
 				return field_.compressWith(encdec_, in);
@@ -417,8 +423,8 @@ namespace laszip {
                 encdec_(encdec), field_()
             {}
 
-			dynamic_decompressor_field(TEncoderDecoder& encdec, const TField& f) :
-                encdec_(encdec), field_(f)
+			dynamic_decompressor_field(TEncoderDecoder& encdec,
+                const TField& f) : encdec_(encdec), field_(f)
             {}
 
 			virtual char *decompressRaw(char *buf) {
@@ -436,12 +442,24 @@ namespace laszip {
             typedef dynamic_field_compressor<TEncoder>  this_type;
             typedef std::shared_ptr<this_type>          ptr;
 
-			dynamic_field_compressor(TEncoder& encoder) : enc_(encoder), fields_() { }
+			dynamic_field_compressor(TEncoder& encoder) :
+                enc_(encoder), fields_()
+            {}
 
 			template<typename TFieldType>
-			void add_field() {
+			void add_field()
+            {
+                using TField = field<TFieldType>;
+
 				fields_.push_back(base_field::ptr(new
-                    dynamic_compressor_field<TEncoder, field<TFieldType> >(enc_)));
+                    dynamic_compressor_field<TEncoder, TField>(enc_)));
+			}
+
+			template<typename TField>
+			void add_field(const TField& f)
+            {
+				fields_.push_back(base_field::ptr(new
+                    dynamic_compressor_field<TEncoder, TField>(enc_, f)));
 			}
 
 			virtual const char *compress(const char *in)
@@ -463,13 +481,17 @@ namespace laszip {
             typedef dynamic_field_decompressor<TDecoder> this_type;
             typedef std::shared_ptr<this_type>           ptr;
 
-			dynamic_field_decompressor(TDecoder& decoder) : dec_(decoder), fields_(), first_decomp_(true) { }
+			dynamic_field_decompressor(TDecoder& decoder) :
+                dec_(decoder), fields_(), first_decomp_(true)
+            {}
 
 			template<typename TFieldType>
 			void add_field()
             {
+                using TField = field<TFieldType>;
+
 				fields_.push_back(base_field::ptr(new
-                    dynamic_decompressor_field<TDecoder, field<TFieldType> >(dec_)));
+                    dynamic_decompressor_field<TDecoder, TField>(dec_)));
 			}
 
             template<typename TField>

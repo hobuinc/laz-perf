@@ -1091,62 +1091,62 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10));
+		s(record_item::point());
 
-		EXPECT_EQ(schema_to_point_format(s), 0);
+		EXPECT_EQ(s.format(), 0);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::GPSTIME));
+		s(record_item::point())
+			(record_item::gpstime());
 
-		EXPECT_EQ(schema_to_point_format(s), 1);
+		EXPECT_EQ(s.format(), 1);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::RGB12));
+		s(record_item::point())
+			(record_item::rgb());
 
-		EXPECT_EQ(schema_to_point_format(s), 2);
+		EXPECT_EQ(s.format(), 2);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::GPSTIME))
-			(record_item(record_item::RGB12));
+		s(record_item::point())
+			(record_item::gpstime())
+			(record_item::rgb());
 
-		EXPECT_EQ(schema_to_point_format(s), 3);
+		EXPECT_EQ(s.format(), 3);
 	}
 
 	// Make sure we bail if something is not supported
 	{
 		auto f1 = []() {
 			record_schema s;
-			s(record_item(record_item::GPSTIME));
+			s(record_item::gpstime());
 
-			schema_to_point_format(s);
+			return s.format();
 		};
 
 		auto f2 = []() {
 			record_schema s;
-			s(record_item(record_item::GPSTIME))
-				(record_item(record_item::POINT10))
-				(record_item(record_item::RGB12));
+			s(record_item::gpstime())
+				(record_item::point())
+				(record_item::rgb());
 
-			schema_to_point_format(s);
+			return s.format();
 		};
 
 		auto f3 = []() {
 			record_schema s;
-			schema_to_point_format(s);
+			return s.format();
 		};
 
-		EXPECT_THROW(f1(), unknown_schema_type);
-		EXPECT_THROW(f2(), unknown_schema_type);
-		EXPECT_THROW(f3(), unknown_schema_type);
+		EXPECT_EQ(f1(), -1);
+		EXPECT_EQ(f2(), -1);
+		EXPECT_EQ(f3(), -1);
 	}
 }
 
