@@ -203,7 +203,7 @@ namespace laszip {
                     // for us, so we need to write raw into
 					// the outputstream
 					//
-					encoder.getOutStream().putBytes((unsigned char*)buf,
+					encoder.getOutStream().putBytes((const unsigned char*)buf,
                         sizeof(T));
 				}
 				differ_.push(this_val);

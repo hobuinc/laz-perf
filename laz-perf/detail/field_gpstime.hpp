@@ -84,7 +84,7 @@ namespace laszip {
 					common_.last_gpstime[0] = this_val;
 
 					// write this out to the encoder as it is
-					enc.getOutStream().putBytes((unsigned char*)buf,
+					enc.getOutStream().putBytes((const unsigned char*)buf,
                         sizeof(las::gpstime));
                     buf += sizeof(las::gpstime);
 
@@ -276,7 +276,8 @@ namespace laszip {
 					// don't have the first data yet, read the whole point out of the stream
 					common_.have_last_ = true;
 
-					dec.getInStream().getBytes((unsigned char*)buf, sizeof(buf));
+					dec.getInStream().getBytes((unsigned char*)buf,
+                        sizeof(las::gpstime));
                     // decode this value
                     common_.last_gpstime[0] = packers<las::gpstime>::unpack(buf);
 

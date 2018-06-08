@@ -114,7 +114,7 @@ namespace laszip {
 					have_last_ = true;
 					last = this_val;
 
-					enc.getOutStream().putBytes((unsigned char*)buf,
+					enc.getOutStream().putBytes((const unsigned char*)buf,
                         sizeof(las::rgb));
 
 					return buf + sizeof(las::rgb);

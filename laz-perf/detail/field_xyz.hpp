@@ -82,7 +82,7 @@ namespace laszip {
 					common_.have_last_ = true;
 					common_.last_ = this_val;
 
-					enc.getOutStream().putBytes((unsigned char*)buf,
+					enc.getOutStream().putBytes((const unsigned char*)buf,
                         sizeof(las::xyz));
 
 					// we are done here

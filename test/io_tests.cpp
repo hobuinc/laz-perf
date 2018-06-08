@@ -253,6 +253,8 @@ void testPoint(unsigned char format, unsigned short pointLen,
         break;
     case 1:
         testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
+        p1 += sizeof(las::gpstime);
+        p2 += sizeof(las::gpstime);
         pointLen -= sizeof(las::gpstime);
         break;
     case 2:

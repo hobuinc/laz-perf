@@ -172,7 +172,7 @@ namespace laszip {
 					common_.last_ = this_val;
 
 					// write this out to the encoder as it is
-					enc.getOutStream().putBytes((unsigned char*)buf,
+					enc.getOutStream().putBytes((const unsigned char*)buf,
                         sizeof(las::point10));
                     return buf + sizeof(las::point10);
 				}
