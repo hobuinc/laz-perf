@@ -143,8 +143,12 @@ endif(APPLE)
 set(LAZPERF_DEPENDENT_LIBRARIES "")
 
 # if we have an emscripten build, make sure the emscripten tag is set
+
+# Emscripten comes with its own POSIX headers so to trigger their
+# own includes, treat it like a posix system
+#
 if(EMSCRIPTEN)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
 endif()
 
 
