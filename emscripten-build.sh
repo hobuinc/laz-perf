@@ -4,5 +4,6 @@ if [ -z "$EMSCRIPTEN" ] ; then
 	exit 1
 fi
 
-cmake . -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-emscripten.cmake -DCMAKE_BUILD_TYPE=Release
+cmake . -DCMAKE_TOOLCHAIN_FILE="$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" \
+	-DCMAKE_BUILD_TYPE=Release
 $EMSCRIPTEN/emmake make VERBOSE=1
