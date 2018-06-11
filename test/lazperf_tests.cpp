@@ -1042,8 +1042,6 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 	}
 	encoder.done();
 
-//	std::cout << "buffer size: " << s.buf.size() << std::endl;
-
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
 		EXPECT_EQ(s.buf[i], laz.byte());
@@ -1114,7 +1112,6 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
 
-//		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
 		comp.compressWith(encoder, (char*)&p);
 	}
 	encoder.done();
@@ -1134,6 +1131,12 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 		s(record_item::point());
 
 		EXPECT_EQ(s.format(), 0);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 0);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
@@ -1142,6 +1145,12 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 			(record_item::gpstime());
 
 		EXPECT_EQ(s.format(), 1);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 1);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
@@ -1150,6 +1159,12 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 			(record_item::rgb());
 
 		EXPECT_EQ(s.format(), 2);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 2);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
@@ -1159,6 +1174,12 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 			(record_item::rgb());
 
 		EXPECT_EQ(s.format(), 3);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 3);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	// Make sure we bail if something is not supported

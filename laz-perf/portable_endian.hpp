@@ -4,7 +4,7 @@
 
 #pragma once
 
-#if (defined(_WIN16) || defined(_WIN32) || defined(_WIN64) || defined(EMSCRIPTEN_WINDOWS)) && !defined(__WINDOWS__)
+#if (defined(_WIN16) || defined(_WIN32) || defined(_WIN64)) && !defined(__WINDOWS__)
 
 #   define __WINDOWS__
 
@@ -12,7 +12,7 @@
 
 // use standard posix style headers for apple emscripten builds as well since emscripten sdk now ships its own
 // libc headers
-#if defined(__linux__) || defined(__CYGWIN__)|| defined(EMSCRIPTEN_LINUX) || defined(EMSCRIPTEN_APPLE)
+#if defined(__linux__) || defined(__CYGWIN__) || defined(__EMSCRIPTEN__)
 
 #   include <endian.h>
 
@@ -43,13 +43,11 @@
 #   define __PDP_ENDIAN    PDP_ENDIAN
 **/
 
-#elif defined(__OpenBSD__) || defined(EMSCRIPTEN_OPEN_BSD)
+#elif defined(__OpenBSD__)
 
 #   include <sys/endian.h>
 
-#elif defined(__NetBSD__) || defined(__FreeBSD__) || defined(__DragonFly__) || defined(EMSCRIPTEN_BSD)
-
-#   include <sys/endian.h>
+#elif defined(__NetBSD__) || defined(__FreeBSD__) || defined(__DragonFly__)
 
 #   define be16toh betoh16
 #   define le16toh letoh16
