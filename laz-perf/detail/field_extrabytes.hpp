@@ -1,7 +1,7 @@
 /*
 ===============================================================================
 
-  FILE:  field_rgb.hpp
+  FILE:  field_extrabytes.hpp
   
   CONTENTS:
     
@@ -10,6 +10,7 @@
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
+    andrew.bell.ia@gmail.com - Hobu Inc.
   
   COPYRIGHT:
   
