@@ -32,13 +32,6 @@
 #error Cannot directly include this file, this is a part of las.hpp
 #endif
 
-#define LASZIP_GPSTIME_MULTI 500
-#define LASZIP_GPSTIME_MULTI_MINUS -10
-#define LASZIP_GPSTIME_MULTI_UNCHANGED (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 1)
-#define LASZIP_GPSTIME_MULTI_CODE_FULL (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 2)
-
-#define LASZIP_GPSTIME_MULTI_TOTAL (LASZIP_GPSTIME_MULTI - LASZIP_GPSTIME_MULTI_MINUS + 6) 
-
 namespace laszip {
 	namespace formats {
 		// Teach packers how to pack and unpack rgb
@@ -46,16 +39,16 @@ namespace laszip {
 		template<>
 		struct packers<las::rgb> {
 			inline static las::rgb unpack(const char *in) {
-				return las::rgb(packers<unsigned short>::unpack(in),
-								packers<unsigned short>::unpack(in+2),
-								packers<unsigned short>::unpack(in+4));
+				return las::rgb(packers<uint16_t>::unpack(in),
+								packers<uint16_t>::unpack(in+2),
+								packers<uint16_t>::unpack(in+4));
 
 			}
 
 			inline static void pack(const las::rgb& c, char *buffer) {
-				packers<unsigned short>::pack(c.r, buffer);
-				packers<unsigned short>::pack(c.g, buffer+2);
-				packers<unsigned short>::pack(c.b, buffer+4);
+				packers<uint16_t>::pack(c.r, buffer);
+				packers<uint16_t>::pack(c.g, buffer+2);
+				packers<uint16_t>::pack(c.b, buffer+4);
 			}
 		};
 

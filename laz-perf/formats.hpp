@@ -57,7 +57,7 @@ namespace laszip {
 					(b1 & 0xFF);
 			}
 
-			static void pack(const uint32_t& v, char *out) {
+			static void pack(uint32_t v, char *out) {
 				out[3] = (v >> 24) & 0xFF;
 				out[2] = (v >> 16) & 0xFF;
 				out[1] = (v >> 8) & 0xFF;
@@ -75,6 +75,7 @@ namespace laszip {
 			}
 
 			static void pack(const uint16_t& v, char *out) {
+//			static void pack(uint16_t v, char *out) {
 				out[1] = (v >> 8) & 0xFF;
 				out[0] = v & 0xFF;
 			}
@@ -86,8 +87,8 @@ namespace laszip {
 				return static_cast<uint8_t>(in[0]);
 			}
 
-			static void pack(const uint8_t& c, char *out) {
-				out[0] = static_cast<int8_t>(c);
+			static void pack(uint8_t c, char *out) {
+				out[0] = static_cast<char>(c);
 			}
 		};
 
@@ -97,7 +98,7 @@ namespace laszip {
 				return static_cast<int32_t>(packers<uint32_t>::unpack(in));
 			}
 
-			static void pack(const int32_t& t, char *out) {
+			static void pack(int32_t t, char *out) {
 				packers<uint32_t>::pack(static_cast<uint32_t>(t), out);
 			}
 		};
@@ -108,7 +109,7 @@ namespace laszip {
 				return static_cast<int16_t>(packers<uint16_t>::unpack(in));
 			}
 
-			static void pack(const int16_t& t, char *out) {
+			static void pack(int16_t t, char *out) {
 				packers<uint16_t>::pack(static_cast<uint16_t>(t), out);
 			}
 		};
@@ -119,7 +120,7 @@ namespace laszip {
 				return in[0];
 			}
 
-			static void pack(const int8_t& t, char *out) {
+			static void pack(int8_t t, char *out) {
 				out[0] = t;
 			}
 		};
@@ -131,7 +132,7 @@ namespace laszip {
 				return in[0];
 			}
 
-			static void pack(const char& t, char *out) {
+			static void pack(char t, char *out) {
 				out[0] = t;
 			}
 		};
