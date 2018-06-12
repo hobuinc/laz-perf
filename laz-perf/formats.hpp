@@ -74,8 +74,7 @@ namespace laszip {
 				return (((b2 & 0xFF) << 8) | (b1 & 0xFF));
 			}
 
-			static void pack(const uint16_t& v, char *out) {
-//			static void pack(uint16_t v, char *out) {
+			static void pack(uint16_t v, char *out) {
 				out[1] = (v >> 8) & 0xFF;
 				out[0] = v & 0xFF;
 			}
