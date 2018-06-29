@@ -35,8 +35,11 @@ You should now be able to build JS/WASM output like so:
     VERBOSE=1 make
 
 
-    
+If you're a docker commando, you can run the provided docker build script to build both WASM and JS builds like so:
 
+    docker run -it -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash emscripten-docker-build.sh
+
+You should then end up with a `build-wasm` and `build-js` directories with respective builds.
 
 
 # Benchmark results so far
