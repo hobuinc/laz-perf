@@ -68,7 +68,7 @@ public:
     unsigned char getByte()
     {
         if (m_idx >= m_dataLength) {
-            throw std::runtime_error("access out of bounds");
+            throw std::runtime_error("Tried to read past buffer bounds");
         }
         return (unsigned char) m_data[m_idx++];
     }
@@ -76,7 +76,7 @@ public:
     void getBytes(unsigned char *b, int len)
     {
         if (m_idx + len > m_dataLength) {
-            throw std::runtime_error("access out of bounds");
+            throw std::runtime_error("Tried to read past buffer bounds");
         }
         memcpy(b, (unsigned char*) &m_data[m_idx], len);
         m_idx += len;
