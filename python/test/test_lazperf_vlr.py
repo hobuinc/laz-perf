@@ -34,7 +34,7 @@ class TestVLRDecompress(unittest.TestCase):
         laszip_vlr_data = np.frombuffer(laszip_vlr_data, dtype=np.uint8)
         compressed_points = np.frombuffer(raw_points, dtype=np.uint8)
 
-        decompressor = VLRDecompressor(compressed_points, laszip_vlr_data)
+        decompressor = VLRDecompressor(compressed_points, point_dtype.itemsize, laszip_vlr_data)
         points_decompressed = decompressor.decompress_points(point_count)
 
         points_decompressed = np.frombuffer(points_decompressed, dtype=point_dtype)
@@ -59,6 +59,7 @@ class TestVLRCompress(unittest.TestCase):
         gt_points_compressed = np.frombuffer(ground_truth[gt_offset_to_point_data + sizeof_chunk_table_offset:], dtype=np.uint8)
 
         rs = RecordSchema()
+        rs.add_point()
         rs.add_gps_time()
         rs.add_rgb()
 

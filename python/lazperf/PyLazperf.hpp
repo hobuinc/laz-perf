@@ -143,6 +143,7 @@ public:
     VlrDecompressor(
         const uint8_t *compressedData,
         size_t dataLength,
+        size_t pointSize,
         const char *vlr_data)
         : m_stream(compressedData, dataLength)
         , m_chunksize(0)
@@ -150,7 +151,7 @@ public:
     {
         laszip::io::laz_vlr zipvlr(vlr_data);
         m_chunksize = zipvlr.chunk_size;
-        m_schema = laszip::io::laz_vlr::to_schema(zipvlr);
+        m_schema = laszip::io::laz_vlr::to_schema(zipvlr, pointSize);
     }
 
     size_t getPointSize() const
