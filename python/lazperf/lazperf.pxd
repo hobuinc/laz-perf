@@ -1,6 +1,6 @@
 # distutils: language=c++
 from libcpp.vector cimport vector
-from libc.stdint cimport uint8_t, int32_t, uint64_t
+from libc.stdint cimport uint8_t, uint64_t
 
 cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
     enum LazPerfType "pylazperf::Type":

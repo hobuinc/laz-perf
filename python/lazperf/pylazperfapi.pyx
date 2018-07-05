@@ -1,10 +1,7 @@
 # distutils: language=c++
 
 from libcpp.vector cimport vector
-from libcpp.string cimport string
-from libc.stdint cimport uint8_t, int32_t, uint64_t
-from cpython.version cimport PY_MAJOR_VERSION
-from cpython.array cimport array, clone
+from libc.stdint cimport uint8_t, uint64_t
 
 import json as jsonlib
 import numpy as np

@@ -48,7 +48,7 @@ class TestExtraBytesDecompression(unittest.TestCase):
         laszip_vlr_data = raw_laz[
             OFFSET_TO_LASZIP_VLR_DATA : OFFSET_TO_LASZIP_VLR_DATA + LASZIP_VLR_DATA_SIZE
         ]
-        assert len(laszip_vlr_data) == LASZIP_VLR_DATA_SIZE
+        self.assertEqual(len(laszip_vlr_data), LASZIP_VLR_DATA_SIZE)
 
         raw_compressed_points = np.frombuffer(
             raw_laz[LAZ_OFFSET_TO_POINTS + LASZIP_CHUNK_TABLE_SIZE :], np.uint8
