@@ -120,9 +120,9 @@ class TestLazPerf(unittest.TestCase):
 
 
 
-def test_suite():
-    return unittest.TestSuite(
-        [TestLazPerf])
+# def test_suite():
+#     return unittest.TestSuite(
+#         [TestLazPerf])
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,2 +1,2 @@
-from test.test_lazperf import test_suite
+# from test.test_lazperf import test_suite
 
