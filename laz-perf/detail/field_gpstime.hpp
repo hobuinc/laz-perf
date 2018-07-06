@@ -69,7 +69,10 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			inline void compressWith(TEncoder& enc, const las::gpstime& this_val) {
+			inline const char *compressWith(TEncoder& enc, const char *buf)
+            {
+                las::gpstime this_val = packers<las::gpstime>::unpack(buf);
+
 				if (!compressor_inited_) {
 					compressors_.init();
 					compressor_inited_ = true;
@@ -81,13 +84,12 @@ namespace laszip {
 					common_.last_gpstime[0] = this_val;
 
 					// write this out to the encoder as it is
-					char buffer[sizeof(las::gpstime)];
-					packers<las::gpstime>::pack(this_val, buffer);
-
-					enc.getOutStream().putBytes((unsigned char*)buffer, sizeof(buffer));
+					enc.getOutStream().putBytes((const unsigned char*)buf,
+                        sizeof(las::gpstime));
+                    buf += sizeof(las::gpstime);
 
 					// we are done here
-					return;
+					return buf;
 				}
 
 				if (common_.last_gpstime_diff[common_.last] == 0) { // if last integer different was 0
@@ -120,8 +122,7 @@ namespace laszip {
 								if (other_gpstime_diff_64 == static_cast<int64_t>(other_gpstime_diff)) {
 									enc.encodeSymbol(common_.m_gpstime_0diff, i+2); // it belongs to another sequence
 									common_.last = (common_.last+i)&3;
-                                    compressWith(enc, this_val);
-									return;
+                                    return compressWith(enc, buf);
 								}
 							}
 
@@ -239,8 +240,7 @@ namespace laszip {
 									// it belongs to this sequence
 									enc.encodeSymbol(common_.m_gpstime_multi, LASZIP_GPSTIME_MULTI_CODE_FULL+i);
 									common_.last = (common_.last+i)&3;
-                                    compressWith(enc, this_val);
-									return;
+                                    return compressWith(enc, buf);
 								}
 							}
 
@@ -260,11 +260,13 @@ namespace laszip {
 						common_.last_gpstime[common_.last] = this_val;
 					}
 				}
+                return buf + sizeof(las::gpstime);
 			}
+
 			template<
 				typename TDecoder
 			>
-			inline las::gpstime decompressWith(TDecoder& dec) {
+			inline char *decompressWith(TDecoder& dec, char *buf) {
 				if (!decompressor_inited_) {
 					decompressors_.init();
 					decompressor_inited_ = true;
@@ -274,14 +276,13 @@ namespace laszip {
 					// don't have the first data yet, read the whole point out of the stream
 					common_.have_last_ = true;
 
-					char buf[sizeof(las::gpstime)];
-					dec.getInStream().getBytes((unsigned char*)buf, sizeof(buf));
-
-					// decode this value
-					common_.last_gpstime[0] = packers<las::gpstime>::unpack(buf);
+					dec.getInStream().getBytes((unsigned char*)buf,
+                        sizeof(las::gpstime));
+                    // decode this value
+                    common_.last_gpstime[0] = packers<las::gpstime>::unpack(buf);
 
 					// we are done here
-					return common_.last_gpstime[0];
+					return buf + sizeof(las::gpstime);
 				}
 
 				int multi;
@@ -307,7 +308,7 @@ namespace laszip {
 					else if (multi > 2) { // we switch to another sequence
 						common_.last = (common_.last+multi-2)&3;
 
-						decompressWith(dec);
+						decompressWith(dec, buf);
 					}
 				}
 				else {
@@ -379,10 +380,12 @@ namespace laszip {
 					else if (multi >=  LASZIP_GPSTIME_MULTI_CODE_FULL) {
 						common_.last = (common_.last+multi-LASZIP_GPSTIME_MULTI_CODE_FULL)&3;
 
-						decompressWith(dec);
+						decompressWith(dec, buf);
 					}
 				}
-				return common_.last_gpstime[common_.last];
+                packers<las::gpstime>::pack(common_.last_gpstime[common_.last],
+                    buf);
+                return buf + sizeof(las::gpstime);
 			}
 
 			// All the things we need to compress a point, group them into structs

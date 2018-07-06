@@ -360,7 +360,7 @@ namespace laszip {
 				return r;
 			}
 
-            static factory::record_schema to_schema(const laz_vlr& vlr) {
+            static factory::record_schema to_schema(const laz_vlr& vlr, int point_len) {
                 // convert the laszip items into record schema to be used by
                 // compressor/decompressor
 
@@ -371,7 +371,14 @@ namespace laszip {
                     laz_item& item = vlr.items[i];
                     schema.push(factory::record_item(item.type, item.size,
                         item.version));
+                    point_len -= item.size;
                 }
+                if (point_len < 0)
+                    throw laszip_format_unsupported();
+                // Add extra bytes information
+                if (point_len)
+                    schema.push(factory::record_item(record_item::BYTE,
+                        point_len, 2));
                 return schema;
             }
 		};
@@ -546,7 +553,7 @@ namespace laszip {
 				}
 
 				void _parseLASZIP() {
-					// move the pointer to the begining of the VLR
+					// move the pointer to the begining of the VLRs
 					f_.seekg(header_.header_size);
 
 #pragma pack(push, 1)
@@ -572,12 +579,12 @@ namespace laszip {
 							//
 							laszipFound = true;
 
-							char *buffer = new char[vlr_header.record_length];
+							std::unique_ptr<char> buffer(
+                                new char[vlr_header.record_length]);
 
-							f_.read(buffer, vlr_header.record_length);
-							_parseLASZIPVLR(buffer);
+							f_.read(buffer.get(), vlr_header.record_length);
+							_parseLASZIPVLR(buffer.get());
 
-							delete [] buffer;
 							break; // no need to keep iterating
 						}
 
@@ -588,7 +595,7 @@ namespace laszip {
 					if (!laszipFound)
 						throw no_laszip_vlr();
 
-                    schema_ = laz_vlr::to_schema(laz_);
+                    schema_ = laz_vlr::to_schema(laz_, header_.point_record_length);
 				}
 
 				void binPrint(const char *buf, int len) {
@@ -903,7 +910,7 @@ namespace laszip {
 					header_.point_offset = sizeof(header) + 54 + (34 + static_cast<unsigned int>(schema_.records.size()) * 6); // 54 is the size of one vlr header
 					header_.vlr_count = 1;
 
-					header_.point_format_id = factory::schema_to_point_format(schema_);
+					header_.point_format_id = schema_.format();
 					header_.point_format_id |= (1 << 7);
 					header_.point_record_length = static_cast<unsigned short>(schema_.size_in_bytes());
 					header_.point_count = static_cast<unsigned int>(chunk_state_.total_written);

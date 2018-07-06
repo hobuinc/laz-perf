@@ -155,7 +155,12 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			inline void compressWith(TEncoder& enc, const las::point10& this_val) {
+			inline const char *compressWith(TEncoder& enc, const char *buf)
+            {
+
+                las::point10 this_val;
+                this_val = packers<las::point10>::unpack(buf);
+
 				if (!compressor_inited_) {
 					compressors_.init();
 					compressor_inited_ = true;
@@ -167,13 +172,9 @@ namespace laszip {
 					common_.last_ = this_val;
 
 					// write this out to the encoder as it is
-					char buffer[sizeof(las::point10)];
-					packers<las::point10>::pack(this_val, buffer);
-
-					enc.getOutStream().putBytes((unsigned char*)buffer, sizeof(buffer));
-
-					// we are done here
-					return;
+					enc.getOutStream().putBytes((const unsigned char*)buf,
+                        sizeof(las::point10));
+                    return buf + sizeof(las::point10);
 				}
 
 				// this is not the first point we're trying to compress, do crazy things
@@ -244,12 +245,14 @@ namespace laszip {
 				common_.last_height[l] = this_val.z;
 
 				common_.last_ = this_val;
+                return buf + sizeof(las::point10);
 			}
 
 			template<
 				typename TDecoder
 			>
-			inline las::point10 decompressWith(TDecoder& dec) {
+			inline char *decompressWith(TDecoder& dec, char *buf)
+            {
 				if (!decompressors_inited_) {
 					decompressors_.init();
 					decompressors_inited_ = true;
@@ -259,14 +262,13 @@ namespace laszip {
 					// don't have the first data yet, read the whole point out of the stream
 					common_.have_last_ = true;
 
-					char buf[sizeof(las::point10)];
-					dec.getInStream().getBytes((unsigned char*)buf, sizeof(buf));
-
-					// decode this value
-					common_.last_ = packers<las::point10>::unpack(buf);
-
+					dec.getInStream().getBytes((unsigned char*)buf,
+                        sizeof(las::point10));
+                    // decode this value
+                    common_.last_ = packers<las::point10>::unpack(buf);
 					// we are done here
-					return common_.last_;
+
+					return buf + sizeof(las::point10);
 				}
 
 				unsigned int r, n, m, l, k_bits;
@@ -347,7 +349,8 @@ namespace laszip {
 				common_.last_.z = decompressors_.ic_z.decompress(dec, common_.last_height[l], (n==1) + (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
 				common_.last_height[l] = common_.last_.z;
 
-				return common_.last_;
+                packers<las::point10>::pack(common_.last_, buf);
+                return buf + sizeof(las::point10);
 			}
 
 			// All the things we need to compress a point, group them into structs

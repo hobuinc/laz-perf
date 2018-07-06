@@ -342,71 +342,70 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 }
 
 TEST(lazperf_tests, point10_enc_dec_is_sym) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	record_compressor<
-		field<las::point10>
-	> compressor;
+    record_compressor<
+        field<las::point10>
+    > compressor;
 
-	SuchStream s;
+    SuchStream s;
 
-	const int N = 100000;
+    const int N = 100000;
 
-	encoders::arithmetic<SuchStream> encoder(s);
+    encoders::arithmetic<SuchStream> encoder(s);
 
-	for (int i = 0 ; i < N; i ++) {
-		las::point10 p;
+    for (int i = 0 ; i < N; i ++) {
+        las::point10 p;
 
-		p.x = i;
-		p.y = i + 1000;
-		p.z = i + 10000;
+        p.x = i;
+        p.y = i + 1000;
+        p.z = i + 10000;
 
-		p.intensity = (i + (1<14)) % (1 << 16);
-		p.return_number =  i & 0x7;
-		p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
-		p.scan_direction_flag = i & 1;
-		p.edge_of_flight_line = (i+1) & 1;
-		p.classification = (i + (1 << 7)) % (1 << 8);
-		p.scan_angle_rank = i % (1 << 7);
-		p.user_data = (i + 64) % (1 << 7);
-		p.point_source_ID = i % (1 << 16);
+        p.intensity = (i + (1<14)) % (1 << 16);
+        p.return_number =  i & 0x7;
+        p.number_of_returns_of_given_pulse = (i + 4) & 0x7;
+        p.scan_direction_flag = i & 1;
+        p.edge_of_flight_line = (i+1) & 1;
+        p.classification = (i + (1 << 7)) % (1 << 8);
+        p.scan_angle_rank = i % (1 << 7);
+        p.user_data = (i + 64) % (1 << 7);
+        p.point_source_ID = i % (1 << 16);
 
-		char buf[sizeof(las::point10)];
-		packers<las::point10>::pack(p, buf);
+        char buf[sizeof(las::point10)];
+        packers<las::point10>::pack(p, buf);
 
-		compressor.compressWith(encoder, buf);
-	}
-	encoder.done();
+        compressor.compressWith(encoder, buf);
+    }
+    encoder.done();
 
-	record_decompressor<
-		field<las::point10>
-	> decompressor;
+    record_decompressor<
+        field<las::point10>
+    > decompressor;
 
-	decoders::arithmetic<SuchStream> decoder(s);
+    decoders::arithmetic<SuchStream> decoder(s);
 
-	char buf[sizeof(las::point10)];
-	for (int i = 0 ; i < N ; i ++) {
-		decompressor.decompressWith(decoder, (char *)buf);
+    char buf[sizeof(las::point10)];
+    for (int i = 0 ; i < N ; i ++) {
+        decompressor.decompressWith(decoder, (char *)buf);
 
-		las::point10 p = packers<las::point10>::unpack(buf);
+        las::point10 p = packers<las::point10>::unpack(buf);
 
-		EXPECT_EQ(p.x, i);
-		EXPECT_EQ(p.y, i + 1000);
-		EXPECT_EQ(p.z, i + 10000);
+        EXPECT_EQ(p.x, i);
+        EXPECT_EQ(p.y, i + 1000);
+        EXPECT_EQ(p.z, i + 10000);
 
-		EXPECT_EQ(p.intensity, (i + (1<14)) % (1 << 16));
-		EXPECT_EQ(p.return_number,  i & 0x7);
-		EXPECT_EQ(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
-		EXPECT_EQ(p.scan_direction_flag, i & 1);
-		EXPECT_EQ(p.edge_of_flight_line, (i+1) & 1);
-		EXPECT_EQ(p.classification, (i + (1 << 7)) % (1 << 8));
-		EXPECT_EQ(p.scan_angle_rank, i % (1 << 7));
-		EXPECT_EQ(p.user_data, (i + 64) % (1 << 7));
-		EXPECT_EQ(p.point_source_ID, i % (1 << 16));
-	}
+        EXPECT_EQ(p.intensity, (i + (1<14)) % (1 << 16));
+        EXPECT_EQ(p.return_number,  i & 0x7);
+        EXPECT_EQ(p.number_of_returns_of_given_pulse, (i + 4) & 0x7);
+        EXPECT_EQ(p.scan_direction_flag, i & 1);
+        EXPECT_EQ(p.edge_of_flight_line, (i+1) & 1);
+        EXPECT_EQ(p.classification, (i + (1 << 7)) % (1 << 8));
+        EXPECT_EQ(p.scan_angle_rank, i % (1 << 7));
+        EXPECT_EQ(p.user_data, (i + 64) % (1 << 7));
+        EXPECT_EQ(p.point_source_ID, i % (1 << 16));
+    }
 }
-
 
 void printPoint(const laszip::formats::las::point10& p) {
 	printf("x: %i, y: %i, z: %i, i: %u, rn: %i, nor: %i, sdf: %i, efl: %i, c: %i, "
@@ -848,6 +847,47 @@ TEST(lazperf_tests, can_compress_decompress_rgb) {
 	}
 }
 
+TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+
+	encoders::arithmetic<SuchStream> encoder(s);
+    auto compressor = make_dynamic_compressor(encoder);
+
+    compressor->add_field(field<las::extrabytes>(10));
+
+    uint16_t eb[5];
+
+	const int N = 100000;
+	for (int i = 0 ; i < N; i ++) {
+        eb[0] = uint16_t(i);
+        eb[1] = uint16_t(i + 1);
+        eb[2] = uint16_t(i + 243);
+        eb[3] = uint16_t(i * 25);
+        eb[4] = uint16_t(i - 462);
+
+		compressor->compress((const char *)eb);
+	}
+	encoder.done();
+
+	decoders::arithmetic<SuchStream> decoder(s);
+    auto decompressor = make_dynamic_decompressor(decoder);
+
+    decompressor->add_field(field<las::extrabytes>(10));
+
+	for (int i = 0 ; i < N ; i ++) {
+		decompressor->decompress((char *)eb);
+
+        EXPECT_EQ(eb[0], uint16_t(i));
+        EXPECT_EQ(eb[1], uint16_t(i + 1));
+        EXPECT_EQ(eb[2], uint16_t(i + 243));
+        EXPECT_EQ(eb[3], uint16_t(i * 25));
+        EXPECT_EQ(eb[4], uint16_t(i - 462));
+	}
+}
+
 TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
 	using namespace laszip;
 	using namespace laszip::formats;
@@ -1002,8 +1042,6 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 	}
 	encoder.done();
 
-//	std::cout << "buffer size: " << s.buf.size() << std::endl;
-
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
 		EXPECT_EQ(s.buf[i], laz.byte());
@@ -1074,7 +1112,6 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
 
-//		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
 		comp.compressWith(encoder, (char*)&p);
 	}
 	encoder.done();
@@ -1091,62 +1128,86 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10));
+		s(record_item::point());
 
-		EXPECT_EQ(schema_to_point_format(s), 0);
+		EXPECT_EQ(s.format(), 0);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 0);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::GPSTIME));
+		s(record_item::point())
+			(record_item::gpstime());
 
-		EXPECT_EQ(schema_to_point_format(s), 1);
+		EXPECT_EQ(s.format(), 1);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 1);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::RGB12));
+		s(record_item::point())
+			(record_item::rgb());
 
-		EXPECT_EQ(schema_to_point_format(s), 2);
+		EXPECT_EQ(s.format(), 2);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 2);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	{
 		record_schema s;
-		s(record_item(record_item::POINT10))
-			(record_item(record_item::GPSTIME))
-			(record_item(record_item::RGB12));
+		s(record_item::point())
+			(record_item::gpstime())
+			(record_item::rgb());
 
-		EXPECT_EQ(schema_to_point_format(s), 3);
+		EXPECT_EQ(s.format(), 3);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), 3);
+
+        s(record_item::eb(12));
+        EXPECT_EQ(s.format(), -1);
 	}
 
 	// Make sure we bail if something is not supported
 	{
 		auto f1 = []() {
 			record_schema s;
-			s(record_item(record_item::GPSTIME));
+			s(record_item::gpstime());
 
-			schema_to_point_format(s);
+			return s.format();
 		};
 
 		auto f2 = []() {
 			record_schema s;
-			s(record_item(record_item::GPSTIME))
-				(record_item(record_item::POINT10))
-				(record_item(record_item::RGB12));
+			s(record_item::gpstime())
+				(record_item::point())
+				(record_item::rgb());
 
-			schema_to_point_format(s);
+			return s.format();
 		};
 
 		auto f3 = []() {
 			record_schema s;
-			schema_to_point_format(s);
+			return s.format();
 		};
 
-		EXPECT_THROW(f1(), unknown_schema_type);
-		EXPECT_THROW(f2(), unknown_schema_type);
-		EXPECT_THROW(f3(), unknown_schema_type);
+		EXPECT_EQ(f1(), -1);
+		EXPECT_EQ(f2(), -1);
+		EXPECT_EQ(f3(), -1);
 	}
 }
 
