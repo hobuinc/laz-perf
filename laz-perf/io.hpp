@@ -104,11 +104,11 @@ namespace laszip {
 
 			struct {
 				double x, y, z;
-			} min;
+			} minimum;
 
 			struct {
 				double x, y, z;
-			} max;
+			} maximum;
 		};
 
 		// A Single LAZ Item representation
@@ -413,7 +413,7 @@ namespace laszip {
 
 			inline void getBytes(unsigned char *buf, size_t request) {
                 // Use what's left in the buffer, if anything.
-                size_t fetchable = std::min((size_t)(have - offset), request);
+                size_t fetchable = (std::min)((size_t)(have - offset), request);
 				std::copy(buf_ + offset, buf_ + offset + fetchable, buf);
                 offset += fetchable;
                 request -= fetchable;
@@ -536,13 +536,13 @@ namespace laszip {
 				void _fixMinMax(header& h) {
 					double mx, my, mz, nx, ny, nz;
 
-					mx = h.min.x; nx = h.min.y;
-					my = h.min.z; ny = h.max.x;
-					mz = h.max.y; nz = h.max.z;
+					mx = h.minimum.x; nx = h.minimum.y;
+					my = h.minimum.z; ny = h.maximum.x;
+					mz = h.maximum.y; nz = h.maximum.z;
 
-					h.min.x = nx; h.max.x = mx;
-					h.min.y = ny; h.max.y = my;
-					h.min.z = nz; h.max.z = mz;
+					h.minimum.x = nx; h.maximum.x = mx;
+					h.minimum.y = ny; h.maximum.y = my;
+					h.minimum.z = nz; h.maximum.z = mz;
 				}
 
 				void _parseLASZIP() {
@@ -643,8 +643,8 @@ namespace laszip {
 					// start pushing in chunk table offsets
 					chunk_table_offsets_.clear();
 
-					if (laz_.chunk_size == std::numeric_limits<unsigned int>::max())
-						throw not_supported("chunk_size == uint.max is not supported at this time, call 1-800-DAFUQ for support.");
+					if (laz_.chunk_size == (std::numeric_limits<unsigned int>::max)())
+						throw not_supported("chunk_size == uint.max is not supported at this time.");
 
 					// Allocate enough room for our chunk
 					chunk_table_offsets_.resize(chunk_table_header.chunk_count + 1);
@@ -761,8 +761,10 @@ namespace laszip {
 
 				header to_header() const {
 					header h; memset(&h, 0, sizeof(h)); // clear out header
-					h.min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-					h.max = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
+					h.minimum = { (std::numeric_limits<double>::max)(), (std::numeric_limits<double>::max)(),
+                        (std::numeric_limits<double>::max)() };
+					h.maximum = { std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(),
+                        std::numeric_limits<double>::lowest()};
 
 					h.offset.x = offset.x;
 					h.offset.y = offset.y;
@@ -872,13 +874,13 @@ namespace laszip {
 						   y = p.y * header_.scale.y + header_.offset.y,
 						   z = p.z * header_.scale.z + header_.offset.z;
 
-					header_.min.x = std::min(x, header_.min.x);
-					header_.min.y = std::min(y, header_.min.y);
-					header_.min.z = std::min(z, header_.min.z);
+					header_.minimum.x = (std::min)(x, header_.minimum.x);
+					header_.minimum.y = (std::min)(y, header_.minimum.y);
+					header_.minimum.z = (std::min)(z, header_.minimum.z);
 
-					header_.max.x = std::max(x, header_.max.x);
-					header_.max.y = std::max(y, header_.max.y);
-					header_.max.z = std::max(z, header_.max.z);
+					header_.maximum.x = (std::max)(x, header_.maximum.x);
+					header_.maximum.y = (std::max)(y, header_.maximum.y);
+					header_.maximum.z = (std::max)(z, header_.maximum.z);
 				}
 
 				void _flush() {
@@ -909,13 +911,13 @@ namespace laszip {
 					// make sure we re-arrange mins and maxs for writing
 					//
 					double mx, my, mz, nx, ny, nz;
-					nx = header_.min.x; mx = header_.max.x;
-					ny = header_.min.y; my = header_.max.y;
-					nz = header_.min.z; mz = header_.max.z;
+					nx = header_.minimum.x; mx = header_.maximum.x;
+					ny = header_.minimum.y; my = header_.maximum.y;
+					nz = header_.minimum.z; mz = header_.maximum.z;
 
-					header_.min.x = mx; header_.min.y = nx;
-					header_.min.z = my; header_.max.x = ny;
-					header_.max.y = mz; header_.max.z = nz;
+					header_.minimum.x = mx; header_.minimum.y = nx;
+					header_.minimum.z = my; header_.maximum.x = ny;
+					header_.maximum.y = mz; header_.maximum.z = nz;
 
 					f_.seekp(0);
 					f_.write(reinterpret_cast<char*>(&header_), sizeof(header_));

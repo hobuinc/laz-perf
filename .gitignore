@@ -58,3 +58,5 @@ test/test_main.hpp
 x64/Release/ALL_BUILD/ALL_BUILD.vcxprojResolveAssemblyReference.cache
 test/gtest/gtest-1.7.0/Release/gtest_main.lib
 LAZPERF.VC.VC.opendb
+build-js/
+build-wasm/
