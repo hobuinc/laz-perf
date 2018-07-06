@@ -234,7 +234,8 @@ void testPoint(laszip::formats::las::rgb& p1, laszip::formats::las::rgb& p2)
     EXPECT_EQ(p1.b, p2.b);
 }
 
-void testPoint(unsigned char format, char *p1, char *p2)
+void testPoint(unsigned char format, unsigned short pointLen,
+    char *p1, char *p2)
 {
     using namespace laszip;
     using namespace laszip::formats;
@@ -243,29 +244,40 @@ void testPoint(unsigned char format, char *p1, char *p2)
         return;
 
     testPoint(*(las::point10 *)p1, *(las::point10 *)p2);
+    p1 += sizeof(las::point10);
+    p2 += sizeof(las::point10);
+    pointLen -= sizeof(las::point10);
     switch (format)
     {
     case 0:
         break;
     case 1:
-        p1 += sizeof(las::point10);
-        p2 += sizeof(las::point10);
-        testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
-        break;
-    case 2:
-        p1 += sizeof(las::point10);
-        p2 += sizeof(las::point10);
-        testPoint(*(las::rgb *)p1, *(las::rgb *)p2);
-        break;
-    case 3:
-        p1 += sizeof(las::point10);
-        p2 += sizeof(las::point10);
         testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
         p1 += sizeof(las::gpstime);
         p2 += sizeof(las::gpstime);
+        pointLen -= sizeof(las::gpstime);
+        break;
+    case 2:
         testPoint(*(las::rgb *)p1, *(las::rgb *)p2);
+        p1 += sizeof(las::rgb);
+        p2 += sizeof(las::rgb);
+        pointLen -= sizeof(las::rgb);
+        break;
+    case 3:
+        testPoint(*(las::gpstime *)p1, *(las::gpstime *)p2);
+        p1 += sizeof(las::gpstime);
+        p2 += sizeof(las::gpstime);
+        pointLen -= sizeof(las::gpstime);
+        testPoint(*(las::rgb *)p1, *(las::rgb *)p2);
+        p1 += sizeof(las::rgb);
+        p2 += sizeof(las::rgb);
+        pointLen -= sizeof(las::rgb);
         break;
     }
+
+    // Check extra bytes
+    while (pointLen--)
+        EXPECT_EQ(*p1, *p2);
 }
 
 void compare(const std::string& compressed, const std::string& uncompressed)
@@ -291,23 +303,31 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     {
         ucStream.read(ucBuf, pointLen);
         c.readPoint(cBuf);
-        testPoint(header.point_format_id, ucBuf, cBuf);
+        testPoint(header.point_format_id, pointLen, ucBuf, cBuf);
     }
 }
 
 using SchemaPtr = std::unique_ptr<laszip::factory::record_schema>;
 
-SchemaPtr makeSchema(unsigned char format)
+SchemaPtr makeSchema(unsigned char format, size_t record_length)
 {
     using namespace laszip;
 
     SchemaPtr schema(new factory::record_schema);
-
-    (*schema)(factory::record_item::POINT10);
+    (*schema)(factory::record_item::point());
+    record_length -= factory::record_item::point().size;
     if (format == 1 || format == 3)
-        (*schema)(factory::record_item::GPSTIME);
+    {
+        (*schema)(factory::record_item::gpstime());
+        record_length -= factory::record_item::gpstime().size;
+    }
     else if (format == 2 || format == 3)
-        (*schema)(factory::record_item::RGB12);
+    {
+        (*schema)(factory::record_item::rgb());
+        record_length -= factory::record_item::rgb().size;
+    }
+    if (record_length)
+        (*schema)(factory::record_item::eb(record_length));
     return schema;
 }
 
@@ -323,7 +343,9 @@ void encode(const std::string& lasFilename, const std::string& lazFilename)
     lasStream.read((char *)&header, sizeof(io::header));
     lasStream.seekg(header.point_offset);
 
-    SchemaPtr schema = makeSchema(header.point_format_id);
+    SchemaPtr schema = makeSchema(header.point_format_id,
+        header.point_record_length);
+
     io::writer::file f(lazFilename, *schema, io::writer::config(header));
     char buf[1000];
     for (size_t i = 0; i < header.point_count; ++i)
@@ -337,6 +359,14 @@ void encode(const std::string& lasFilename, const std::string& lazFilename)
 TEST(io_tests, decodes_single_chunk_files_correctly)
 {
     compare(testFile("point10.las.laz"), testFile("point10.las"));
+}
+
+TEST(io_tests, extrabytes)
+{
+    compare(testFile("extrabytes.laz"), testFile("extrabytes.las"));
+    std::string outLaz(makeTempFileName());
+    encode(testFile("extrabytes.las"), outLaz);
+    compare(outLaz, testFile("extrabytes.las"));
 }
 
 TEST(io_tests, issue44)
@@ -458,9 +488,9 @@ TEST(io_tests, can_encode_large_files) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		io::writer::file f(makeTempFileName(), schema,
 				io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
@@ -498,9 +528,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		io::writer::file f(fname, schema,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
@@ -530,9 +560,9 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 
 		// make schema
 		schema
-			(factory::record_item::POINT10)
-			(factory::record_item::GPSTIME)
-			(factory::record_item::RGB12);
+			(factory::record_item::point())
+			(factory::record_item::gpstime())
+			(factory::record_item::rgb());
 
 		std::ifstream file(fname, std::ios::binary);
 		io::reader::file f(file);
@@ -656,7 +686,7 @@ TEST(io_tests, writes_bbox_to_header) {
 	using namespace laszip::formats;
 
 	factory::record_schema schema;
-	schema(factory::record_item::POINT10);
+	schema(factory::record_item::point());
 
 	// First write a few points
 	std::string filename(makeTempFileName());
@@ -696,7 +726,7 @@ TEST(io_tests, issue22)
     std::vector<int> cls(it, std::istream_iterator<int>());
 
     factory::record_schema schema;
-    schema(factory::record_item::POINT10);
+    schema(factory::record_item::point());
     io::writer::file out(tempfile, schema,
             io::writer::config({0.01,0.01,0.01}, {0.0,0.0,0.0}));
 

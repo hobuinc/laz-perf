@@ -22,9 +22,6 @@ class LASZip {
 
 		void open(unsigned int b, size_t len) {
 			char *buf = (char*) b;
-
-			std::cout << "Got data " << len << " bytes" << std::endl;
-
 			pmem_stream_.reset(new stream_type(buf, len));
 			pfile_.reset(new reader_type(*pmem_stream_));
 		}
