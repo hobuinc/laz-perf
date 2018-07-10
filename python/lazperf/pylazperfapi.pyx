@@ -1,10 +1,7 @@
-# distutils: language = c++
+# distutils: language=c++
 
 from libcpp.vector cimport vector
-from libcpp.string cimport string
-from libc.stdint cimport uint8_t, int32_t, uint64_t
-from cpython.version cimport PY_MAJOR_VERSION
-from cpython.array cimport array, clone
+from libc.stdint cimport uint8_t, uint64_t
 
 import json as jsonlib
 import numpy as np
@@ -207,13 +204,19 @@ cdef class PyRecordSchema:
     cdef lazperf.record_schema schema
 
     def __init__(self):
-        self.schema.push(lazperf.POINT10)
+        pass
+
+    def add_point(self):
+        self.schema.push(lazperf.record_item.point())
 
     def add_gps_time(self):
-        self.schema.push(lazperf.GPSTIME)
+        self.schema.push(lazperf.record_item.gpstime())
 
     def add_rgb(self):
-        self.schema.push(lazperf.RGB12)
+        self.schema.push(lazperf.record_item.rgb())
+
+    def add_extra_bytes(self, size_t count):
+        self.schema.push(lazperf.record_item.eb(count))
 
 cdef class PyLazVlr:
     """ Wraps a Lazperf's LazVlr class.
@@ -253,6 +256,7 @@ cdef class PyVLRDecompressor:
     def __init__(
             self,
             np.ndarray[uint8_t, ndim=1, mode="c"] compressed_points not None,
+            size_t point_size,
             np.ndarray[uint8_t, ndim=1, mode="c"] vlr not None
         ):
         """
@@ -261,7 +265,7 @@ cdef class PyVLRDecompressor:
         """
         cdef const uint8_t *p_compressed =  <const uint8_t*> compressed_points.data
         self.thisptr = new lazperf.VlrDecompressor(
-            p_compressed, compressed_points.shape[0], vlr.data)
+            p_compressed, compressed_points.shape[0], point_size, vlr.data)
 
     def decompress_points(self, size_t point_count):
         """ decompress the points
