@@ -95,6 +95,23 @@ namespace laszip {
 				records.push_back(item);
 			}
 
+            // This is backward compatible support. Remove.
+#ifdef _WIN32
+            __declspec(deprecated) void push(int t)
+#else
+            void push(int t) __attribute__ ((deprecated))
+#endif
+            {
+                if (t == record_item::POINT10)
+                    push(record_item::point());
+                else if (t == record_item::GPSTIME)
+                    push(record_item::gpstime());
+                else if (t == record_item::RGB12)
+                    push(record_item::rgb());
+                else
+                    throw unknown_schema_type();
+            }
+
 			record_schema& operator () (const record_item& i) {
 				push(i);
 				return *this;

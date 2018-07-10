@@ -381,6 +381,26 @@ namespace laszip {
                         point_len, 2));
                 return schema;
             }
+
+#ifdef _WIN32
+            __declspec(deprecated) static factory::record_schema to_schema(const laz_vlr& vlr)
+#else
+            static factory::record_schema to_schema(const laz_vlr& vlr) __attribute__ ((deprecated))
+#endif
+            {
+                // convert the laszip items into record schema to be used by
+                // compressor/decompressor
+
+                using namespace factory;
+                factory::record_schema schema;
+
+                for(auto i = 0 ; i < vlr.num_items ; i++) {
+                    laz_item& item = vlr.items[i];
+                    schema.push(factory::record_item(item.type, item.size,
+                        item.version));
+                }
+                return schema;
+            }
 		};
 #pragma pack(pop)
 
