@@ -62,18 +62,23 @@ with open("CHANGES.rst", "r", **open_kwds) as fp:
 long_description = readme + "\n\n" + changes
 
 include_dirs = ["."]
+
 library_dirs = []
 libraries = []
 extra_link_args = []
 extra_compile_args = []
 
-include_dirs.append(numpy.get_include())
 
 # Here we assume everyone on windows uses the MSVC compiler
 if platform.system() != "Windows":
     extra_compile_args = ["-std=c++11"]
     if DEBUG:
         extra_compile_args += ["-g", "-O0"]
+else:
+    include_dirs = ['..']
+
+include_dirs.append(numpy.get_include())
+
 
 sources = [
     "lazperf/pylazperfapi" + ext,
@@ -91,6 +96,7 @@ extensions = [
         language="c++",
     )
 ]
+
 if USE_CYTHON and "clean" not in sys.argv:
     from Cython.Build import cythonize
 
