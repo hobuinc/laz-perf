@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 #------------------------------------------------------------------------------
 
 set(LAZPERF_VERSION_MAJOR "1")
-set(LAZPERF_VERSION_MINOR "2")
+set(LAZPERF_VERSION_MINOR "3")
 set(LAZPERF_VERSION_PATCH "0")
 
 set(LAZPERF_VERSION "${LAZPERF_VERSION_MAJOR}.${LAZPERF_VERSION_MINOR}.${LAZPERF_VERSION_PATCH}")
