@@ -43,11 +43,11 @@
 #   define __PDP_ENDIAN    PDP_ENDIAN
 **/
 
-#elif defined(__OpenBSD__)
+#elif defined(__OpenBSD__)|| defined(__FreeBSD__) 
 
 #   include <sys/endian.h>
 
-#elif defined(__NetBSD__) || defined(__FreeBSD__) || defined(__DragonFly__)
+#elif defined(__NetBSD__) || defined(__DragonFly__)
 
 #   define be16toh betoh16
 #   define le16toh letoh16
