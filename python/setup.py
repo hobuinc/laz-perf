@@ -8,9 +8,9 @@ import platform
 import sys
 from distutils.version import StrictVersion
 
-import numpy
 from setuptools import setup
 from setuptools.extension import Extension as DistutilsExtension
+from setuptools.command.build_ext import build_ext as _build_ext
 
 logging.basicConfig()
 log = logging.getLogger(__file__)
@@ -28,6 +28,13 @@ try:
 except ImportError:
     pass
 
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
 ext = ".pyx" if USE_CYTHON else ".cpp"
 
 # python -W all setup.py ...
@@ -77,7 +84,6 @@ if platform.system() != "Windows":
 else:
     include_dirs = ['..']
 
-include_dirs.append(numpy.get_include())
 
 
 sources = [
@@ -105,7 +111,7 @@ if USE_CYTHON and "clean" not in sys.argv:
 setup_args = dict(
     name="lazperf",
     version=str(module_version),
-    install_requires=["numpy >=1.11"],
+    setup_requires=["numpy >=1.11"],
     description="Point cloud data compression",
     license="LGPL",
     keywords="point cloud compression",
@@ -113,6 +119,7 @@ setup_args = dict(
     author_email="howard@hobu.co",
     maintainer="Howard Butler",
     maintainer_email="howard@hobu.co",
+    cmdclass={'build_ext':build_ext},
     url="https://github.com/hobu/laz-perf",
     long_description=long_description,
     test_suite="test",
