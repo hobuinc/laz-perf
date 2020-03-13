@@ -268,6 +268,7 @@ namespace laszip {
                     common_.last_ = packers<las::point10>::unpack(buf);
 					// we are done here
 
+					common_.last_.intensity = 0;
 					return buf + sizeof(las::point10);
 				}
 
