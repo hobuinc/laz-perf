@@ -34,8 +34,10 @@ void VlrCompressor::compress(const char *inbuf)
 void VlrCompressor::done()
 {
     // Close and clear the point encoder.
-    m_encoder->done();
-    m_encoder.reset();
+    if (m_encoder) {
+        m_encoder->done();
+        m_encoder.reset();
+    }
 
     newChunk();
 
