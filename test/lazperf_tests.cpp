@@ -1573,3 +1573,40 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         }
     }
 }
+
+TEST(lazperf_tests, point_10_intensity) {
+	using namespace laszip;
+	using namespace laszip::formats;
+
+	SuchStream s;
+	encoders::arithmetic <SuchStream> encoder(s);
+
+	record_compressor<field<las::point10>> comp;
+
+	std::array<las::point10, 7> points;
+	points[0].intensity = 257;
+	points[1].intensity = 0;
+	points[2].intensity = 0;
+	points[3].intensity = 0;
+	points[4].intensity = 257;
+	points[5].intensity = 257;
+	points[6].intensity = 514;
+
+	for (const las::point10& point : points)
+	{
+		comp.compressWith(encoder, (char*)&point);
+	}
+	encoder.done();
+
+
+	decoders::arithmetic<SuchStream> decoder(s);
+
+	record_decompressor<field<las::point10>> decomp;
+
+	las::point10 decompressedPoint;
+	for (const las::point10 &point : points)
+	{
+		decomp.decompressWith(decoder, (char *)&decompressedPoint);
+		EXPECT_EQ(point.intensity, decompressedPoint.intensity);
+	}
+}
