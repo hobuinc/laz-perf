@@ -29,17 +29,14 @@ jobs:
       - name: Configure
         shell: bash -l {0}
         run: |
-            mkdir build; cd build;
-            cmake ..
+            cmake .
       - name: Build
         shell: bash -l {0}
         run: |
-            cd build;
             make
       - name: Test
         shell: bash -l {0}
         run: |
-            cd build;
             test
 
 
