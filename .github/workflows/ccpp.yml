@@ -26,7 +26,7 @@ jobs:
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install compilers cmake -y
+            conda install pytest numpy compilers cmake -y
             conda install laz-perf --only-deps -y
             pwd
             ls
@@ -44,6 +44,16 @@ jobs:
         shell: bash -l {0}
         run: |
             ctest
+      - name: Python
+        shell: bash -l {0}
+        run: |
+            pip install -e .
+        working-directory: ./python
+      - name: Python Test
+        shell: bash -l {0}
+        run: |
+            pytest
+        working-directory: ./python
 
 
 
