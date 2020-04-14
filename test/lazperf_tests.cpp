@@ -1594,7 +1594,7 @@ TEST(lazperf_tests, point_10_intensity) {
 
 	for (const las::point10& point : points)
 	{
-		comp.compressWith(encoder, (char*)&point);
+		comp.compressWith(encoder, (const char*)&point);
 	}
 	encoder.done();
 
