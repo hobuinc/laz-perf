@@ -19,13 +19,13 @@ jobs:
       - uses: actions/checkout@v2
       - uses: goanpeca/setup-miniconda@v1.1.2
         with:
-          channels: conda-forge,spyder-ide
+          channels: conda-forge,defaults
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install pytest cython numpy compilers cmake -y
+            conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
             conda install laz-perf --only-deps -y
             pwd
             ls
@@ -34,11 +34,11 @@ jobs:
         run: |
             pwd
             ls
-            cmake .
+            cmake . -G Ninja
       - name: Build
         shell: bash -l {0}
         run: |
-            make
+            ninja
       - name: Test
         shell: bash -l {0}
         run: |
