@@ -17,6 +17,7 @@ jobs:
         os: ['ubuntu-latest']
         python-version: ['3.8']
     steps:
+      - uses: actions/checkout@v2
       - uses: goanpeca/setup-miniconda@v1.1.2
         with:
           channels: conda-forge,spyder-ide
