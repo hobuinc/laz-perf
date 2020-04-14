@@ -16,7 +16,7 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         python-version: ['3.7', '3.8']
     steps:
-      - uses: goanpeca/setup-miniconda@enh/channels
+      - uses: goanpeca/setup-miniconda
         with:
           channels: conda-forge,spyder-ide
           auto-update-conda: true
