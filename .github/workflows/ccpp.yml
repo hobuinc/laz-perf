@@ -17,6 +17,7 @@ jobs:
         python-version: ['3.7', '3.8']
     steps:
       - uses: goanpeca/setup-miniconda@enh/channels
+        with:
           channels: conda-forge,spyder-ide
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
