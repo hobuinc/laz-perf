@@ -66,12 +66,7 @@ jobs:
         shell: bash -l {0}
         run: |
             docker pull trzeci/emscripten:sdk-incoming-64bit
-      - name: Start
+      - name: Build
         shell: bash -l {0}
         run: |
-            docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
-
-      - name: Start
-        shell: bash -l {0}
-        run: |
-             docker exec -it emscripten ./emscripten-build.sh
+            docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
