@@ -1,0 +1,39 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - bash: echo "##vso[task.prependpath]$CONDA/bin"
+      name: Add conda to PATH
+    - name: environment
+      run: |
+        conda create --yes --quiet --name lazperf
+        conda install --yes --quiet --name lazperf -c conda-forge cmake compilers 
+        conda install --yes --quiet --name lazperf -c conda-forge laz-perf  --only-deps 
+    - name: environment
+      run: |
+        conda activate lazperf
+        mkdir build;
+        cd build;
+        cmake ..
+    - name: make
+      run: |
+        conda activate lazperf
+        cd build;
+        make
+    - name: make check
+      run: |
+        conda activate lazperf
+        cd build
+        ctest 
+
