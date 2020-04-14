@@ -29,6 +29,8 @@ jobs:
       - name: Configure
         shell: bash -l {0}
         run: |
+            pwd
+            ls
             cmake .
       - name: Build
         shell: bash -l {0}
