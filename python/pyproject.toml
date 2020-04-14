@@ -1,0 +1,2 @@
+[build-system]
+requires = [ "pytest", "setuptools", "cython", "packaging","numpy"]
