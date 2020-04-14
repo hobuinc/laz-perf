@@ -1,39 +1,28 @@
-name: C/C++ CI
-
 on:
   push:
-    branches: [ master ]
+    branches:
+    - '*'
   pull_request:
-    branches: [ master ]
+    branches:
+    - '*'
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    name: laz-perf (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ['3.7', '3.8']
     steps:
-    - uses: actions/checkout@v2
-    - bash: echo "##vso[task.prependpath]$CONDA/bin"
-      name: Add conda to PATH
-    - name: environment
-      run: |
-        conda create --yes --quiet --name lazperf
-        conda install --yes --quiet --name lazperf -c conda-forge cmake compilers 
-        conda install --yes --quiet --name lazperf -c conda-forge laz-perf  --only-deps 
-    - name: environment
-      run: |
-        conda activate lazperf
-        mkdir build;
-        cd build;
-        cmake ..
-    - name: make
-      run: |
-        conda activate lazperf
-        cd build;
-        make
-    - name: make check
-      run: |
-        conda activate lazperf
-        cd build
-        ctest 
-
+      - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
+      - name: Conda list
+        shell: pwsh
+        run: conda list
