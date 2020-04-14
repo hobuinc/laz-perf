@@ -163,6 +163,9 @@ if(WITH_TESTS)
 	if(NOT EMSCRIPTEN)
 		enable_testing()
 		add_subdirectory(test)
+        file (DOWNLOAD
+            "https://github.com/PDAL/data/raw/master/autzen/autzen.laz"
+            "test/raw-sets/autzen.laz")
 	endif()
 endif()
 
