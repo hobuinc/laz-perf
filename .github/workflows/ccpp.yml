@@ -16,13 +16,30 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         python-version: ['3.7', '3.8']
     steps:
-      - uses: goanpeca/setup-miniconda@v1
-        with:
+      - uses: goanpeca/setup-miniconda@enh/channels
+          channels: conda-forge,spyder-ide
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - name: Conda info
+      - name: Setup
         shell: bash -l {0}
-        run: conda info
-      - name: Conda list
-        shell: pwsh
-        run: conda list
+        run: |
+            conda install compilers cmake -y
+            conda install laz-perf --only-deps -y
+      - name: Configure
+        shell: bash -l {0}
+        run: |
+            mkdir build; cd build;
+            cmake ..
+      - name: Build
+        shell: bash -l {0}
+        run: |
+            cd build;
+            make
+      - name: Test
+        shell: bash -l {0}
+        run: |
+            cd build;
+            test
+
+
+
