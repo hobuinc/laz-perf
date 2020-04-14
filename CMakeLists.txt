@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 #------------------------------------------------------------------------------
 
 set(LAZPERF_VERSION_MAJOR "1")
-set(LAZPERF_VERSION_MINOR "3")
+set(LAZPERF_VERSION_MINOR "4")
 set(LAZPERF_VERSION_PATCH "0")
 
 set(LAZPERF_VERSION "${LAZPERF_VERSION_MAJOR}.${LAZPERF_VERSION_MINOR}.${LAZPERF_VERSION_PATCH}")
@@ -163,6 +163,9 @@ if(WITH_TESTS)
 	if(NOT EMSCRIPTEN)
 		enable_testing()
 		add_subdirectory(test)
+        file (DOWNLOAD
+            "https://github.com/PDAL/data/raw/master/autzen/autzen.laz"
+            "test/raw-sets/autzen.laz")
 	endif()
 endif()
 
