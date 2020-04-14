@@ -27,8 +27,7 @@ jobs:
         run: |
             conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
             conda install laz-perf --only-deps -y
-            pwd
-            ls
+        continue-on-error: true
       - name: Configure
         shell: bash -l {0}
         run: |
