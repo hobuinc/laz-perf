@@ -29,8 +29,8 @@ jobs:
             conda install compilers cmake -y
             conda install laz-perf --only-deps -y
             pwd
-            ls
             mkdir build
+            ls
       - name: Configure
         working-directory: ./build
         shell: bash -l {0}
@@ -45,9 +45,8 @@ jobs:
             make
       - name: Test
         shell: bash -l {0}
-        working-directory: ./build
         run: |
-            test
+            ctest
 
 
 
