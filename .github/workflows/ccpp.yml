@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: goanpeca/setup-miniconda@v1.1.2
+      - uses: ilammy/msvc-dev-cmd@v1
         with:
           channels: conda-forge,defaults
           auto-update-conda: true
