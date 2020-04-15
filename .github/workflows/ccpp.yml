@@ -55,7 +55,7 @@ jobs:
         working-directory: ./python
       - name: Linux wheel
         shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - name: Publish package
