@@ -49,10 +49,11 @@ jobs:
         working-directory: ./python
       - name: Wheel
         shell: bash -l {0}
+        if: matrix.os != 'ubuntu-latest'
         run: |
             python setup.py bdist_wheel
         working-directory: ./python
-      - name: auditwheel
+      - name: Linux wheel
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
