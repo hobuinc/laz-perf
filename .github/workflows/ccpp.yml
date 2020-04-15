@@ -4,7 +4,7 @@ on:
     - '*'
   release:
     types:
-      - created
+      - published
 
 jobs:
   python:
@@ -51,7 +51,7 @@ jobs:
             ls dist
         working-directory: ./python
       - name: Publish package
-        if: github.event_name == 'release'
+        if: github.event_name == 'pull_request'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
