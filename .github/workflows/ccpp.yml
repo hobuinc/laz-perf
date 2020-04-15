@@ -52,6 +52,7 @@ jobs:
         working-directory: ./python
       - name: Publish package
         if: github.event_name == 'pull_request'
+        working-directory: ./python
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
