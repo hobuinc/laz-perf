@@ -43,6 +43,7 @@ jobs:
         shell: bash -l {0}
         run: |
             python setup.py sdist
+        working-directory: ./python
       - name: Wheel
         shell: bash -l {0}
         run: |
