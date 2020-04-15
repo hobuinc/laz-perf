@@ -44,6 +44,7 @@ jobs:
         working-directory: ./python
       - name: Source
         shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
             python setup.py sdist
         working-directory: ./python
