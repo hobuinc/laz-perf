@@ -8,7 +8,7 @@ on:
 
 jobs:
   python:
-    name:  ${{ matrix.os }}) - Python ${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -39,9 +39,25 @@ jobs:
         run: |
             pytest
         working-directory: ./python
+      - name: Source
+        shell: bash -l {0}
+        run: |
+            python setup.py sdist
+      - name: Wheel
+        shell: bash -l {0}
+        run: |
+            python setup.py bdist_wheel
+            ls dist
+        working-directory: ./python
+      - name: Publish package
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}
 
   base:
-    name:  ${{ matrix.os }})
+    name:  ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
