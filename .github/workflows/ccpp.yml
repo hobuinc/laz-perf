@@ -28,7 +28,10 @@ jobs:
         run: |
             conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
             conda install laz-perf --only-deps -y
+            pip install auditwheel
         continue-on-error: true
+
+
       - name: Build
         shell: bash -l {0}
         run: |
@@ -48,8 +51,12 @@ jobs:
         shell: bash -l {0}
         run: |
             python setup.py bdist_wheel
-            ls dist
         working-directory: ./python
+      - name: auditwheel
+        shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+            docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - name: Publish package
         if: github.event_name == 'pull_request'
         uses: pypa/gh-action-pypi-publish@master
