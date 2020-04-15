@@ -56,7 +56,7 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
-        packages_dir: ./python/dist
+          packages_dir: ./python/dist
 
   base:
     name:  ${{ matrix.os }}
