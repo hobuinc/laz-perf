@@ -7,8 +7,8 @@ on:
     - '*'
 
 jobs:
-  build:
-    name:  ${{ matrix.os }}) - Python ${{ matrix.python-version }}
+  python:
+    name: Python ${{ matrix.python-version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -29,6 +29,55 @@ jobs:
             conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
             conda install laz-perf --only-deps -y
         continue-on-error: true
+      - name: Build
+        shell: bash -l {0}
+        run: |
+            pip install -e .
+        working-directory: ./python
+      - name: Test
+        shell: bash -l {0}
+        run: |
+            pytest
+        working-directory: ./python
+      - name: Source
+        shell: bash -l {0}
+        run: |
+            python setup.py sdist
+        working-directory: ./python
+      - name: Wheel
+        shell: bash -l {0}
+        run: |
+            python setup.py bdist_wheel
+            ls dist
+        working-directory: ./python
+      - name: Publish package
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}
+
+  base:
+    name:  ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: goanpeca/setup-miniconda@v1.1.2
+        with:
+          channels: conda-forge,defaults
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Setup
+        shell: bash -l {0}
+        run: |
+            conda install -c conda-forge ninja compilers cmake -y
+            conda install laz-perf --only-deps -y
+        continue-on-error: true
       - name: Configure
         shell: bash -l {0}
         run: |
@@ -45,16 +94,6 @@ jobs:
         shell: bash -l {0}
         run: |
             ctest
-      - name: Python
-        shell: bash -l {0}
-        run: |
-            pip install -e .
-        working-directory: ./python
-      - name: Python Test
-        shell: bash -l {0}
-        run: |
-            pytest
-        working-directory: ./python
 
   empscripten:
 
