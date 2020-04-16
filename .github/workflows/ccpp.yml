@@ -41,15 +41,8 @@ jobs:
         run: |
             pytest
         working-directory: ./python
-      - name: Source
-        shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
-        run: |
-            python setup.py sdist
-        working-directory: ./python
       - name: Wheel
         shell: bash -l {0}
-        if: matrix.os != 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
             python setup.py bdist_wheel
         working-directory: ./python
@@ -57,9 +50,10 @@ jobs:
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
+            python setup.py sdist
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - name: Publish package
-        if: github.event_name == 'pull_request' && matrix.python-version == '3.8'
+        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
