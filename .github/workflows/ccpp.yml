@@ -53,7 +53,7 @@ jobs:
         run: |
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - name: Publish package
-        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.type == 'published'
+        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
 
         uses: pypa/gh-action-pypi-publish@master
         with:
