@@ -52,6 +52,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         run: |
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
+          path: ./python/dist
       - name: Publish package
         if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
 
