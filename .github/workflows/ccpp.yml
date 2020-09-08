@@ -53,6 +53,11 @@ jobs:
         run: |
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - uses: actions/upload-artifact@v2
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
+          path: ./wheelhouse
+      - uses: actions/upload-artifact@v2
         if: matrix.os != 'ubuntu-latest'
         with:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
