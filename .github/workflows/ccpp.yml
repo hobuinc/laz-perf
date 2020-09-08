@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/msvc-dev-cmd@v1
-      - uses: goanpeca/setup-miniconda@v1.1.2
+      - uses: goanpeca/setup-miniconda@v1
         with:
           channels: conda-forge
           auto-update-conda: true
@@ -27,18 +27,17 @@ jobs:
         shell: bash -l {0}
         run: |
             conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
-            conda install laz-perf --only-deps -y
         continue-on-error: true
 
 
       - name: Build
         shell: bash -l {0}
         run: |
-            pip install -e .
+            python -m pip install -e .
       - name: Test
         shell: bash -l {0}
         run: |
-            pytest --ignore cpp
+            python -m pytest --ignore cpp
       - name: Wheel
         if: matrix.os != 'ubuntu-latest'
         run: |
