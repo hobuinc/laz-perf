@@ -28,6 +28,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 # general settings
 #------------------------------------------------------------------------------
 
+set(CMAKE_PROJECT_VERSION "1.4.4")
 set(LAZPERF_VERSION_MAJOR "1")
 set(LAZPERF_VERSION_MINOR "4")
 set(LAZPERF_VERSION_PATCH "4")
