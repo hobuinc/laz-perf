@@ -38,7 +38,7 @@ jobs:
       - name: Test
         shell: bash -l {0}
         run: |
-            pytest
+            pytest --ignore cpp
       - name: Wheel
         if: matrix.os != 'ubuntu-latest'
         run: |
