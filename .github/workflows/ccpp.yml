@@ -50,7 +50,7 @@ jobs:
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
-            docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
+            docker run -v $(pwd):/src quay.io/pypa/manylinux1_x86_64 /src/ci/build-wheel-linux.sh
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
