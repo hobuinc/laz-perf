@@ -42,37 +42,37 @@ jobs:
             pytest
         working-directory: ./python
       - name: Wheel
-        shell: bash -l {0}
         if: matrix.os != 'ubuntu-latest'
         run: |
             python setup.py bdist_wheel
         working-directory: ./python
       - name: Linux wheel
         shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        if: matrix.os == 'ubuntu-latest'
         run: |
             docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
-          path: ./wheelhouse
+          path: ./python/wheelhouse
       - uses: actions/upload-artifact@v2
         if: matrix.os != 'ubuntu-latest'
         with:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
-          path: ./dist
-      - name: Publish package
-        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
+          path: ./python/dist
 
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
-          packages_dir: ./python/dist
+#      - name: Publish package
+#        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
+#
+#        uses: pypa/gh-action-pypi-publish@master
+#        with:
+#          user: __token__
+#          password: ${{ secrets.pypi_token }}
+#          packages_dir: ./python/dist
 
   base:
-    name:  ${{ matrix.os }}
+    name: Base library ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
