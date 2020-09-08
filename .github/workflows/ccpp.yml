@@ -39,6 +39,7 @@ jobs:
         run: |
             python -m pytest --ignore cpp
       - name: Wheel
+        shell: bash -l {0}
         if: matrix.os != 'ubuntu-latest'
         run: |
             python setup.py bdist_wheel
