@@ -34,10 +34,10 @@ POINT_DTYPE = np.dtype(
 class TestVLRDecompress(unittest.TestCase):
     def test_decompression(self):
 
-        with open("test/simple_points_uncompressed.bin", mode="rb") as fin:
+        with open("python/test/simple_points_uncompressed.bin", mode="rb") as fin:
             points_ground_truth = np.frombuffer(fin.read(), dtype=POINT_DTYPE)
 
-        with open("test/simple.laz", mode="rb") as fin:
+        with open("python/test/simple.laz", mode="rb") as fin:
             raw_data = fin.read()
 
         laszip_vlr_data = raw_data[
@@ -68,10 +68,10 @@ class TestVLRDecompress(unittest.TestCase):
 
 class TestVLRCompress(unittest.TestCase):
     def test_compression(self):
-        with open("test/simple_points_uncompressed.bin", mode="rb") as fin:
+        with open("python/test/simple_points_uncompressed.bin", mode="rb") as fin:
             points_to_compress = np.frombuffer(fin.read(), dtype=np.uint8)
 
-        with open("test/simple.laz", mode="rb") as fin:
+        with open("python/test/simple.laz", mode="rb") as fin:
             ground_truth = fin.read()
 
         laszip_vlr_data = ground_truth[
@@ -122,7 +122,7 @@ class TestVLRCompress(unittest.TestCase):
         self.assertEqual(points_compressed, gt_points_compressed)
 
     def test_raises(self):
-        with open("test/simple_points_uncompressed.bin", mode="rb") as fin:
+        with open("python/test/simple_points_uncompressed.bin", mode="rb") as fin:
             point_buffer = fin.read()
 
         rs = RecordSchema()

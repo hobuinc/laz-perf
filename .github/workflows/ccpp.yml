@@ -121,5 +121,6 @@ jobs:
             docker pull trzeci/emscripten:sdk-incoming-64bit
       - name: Build
         shell: bash -l {0}
+        working-directory: ./cpp
         run: |
             docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
