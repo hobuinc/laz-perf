@@ -47,7 +47,7 @@ if "all" in sys.warnoptions:
 
 # Get the version from the lazperf module
 module_version = None
-with open("lazperf/__init__.py", "r") as fp:
+with open("python/lazperf/__init__.py", "r") as fp:
     for line in fp:
         if line.startswith("__version__"):
             module_version = StrictVersion(line.split("=")[1].strip().strip("\"'"))
@@ -61,18 +61,18 @@ open_kwds = {}
 if sys.version_info >= (3,):
     open_kwds["encoding"] = "utf-8"
 
-with open("VERSION.txt", "w", **open_kwds) as fp:
+with open("python/VERSION.txt", "w", **open_kwds) as fp:
     fp.write(str(module_version))
 
-with open("README.rst", "r", **open_kwds) as fp:
+with open("python/README.rst", "r", **open_kwds) as fp:
     readme = fp.read()
 
-with open("CHANGES.rst", "r", **open_kwds) as fp:
+with open("python/CHANGES.rst", "r", **open_kwds) as fp:
     changes = fp.read()
 
 long_description = readme + "\n\n" + changes
 
-include_dirs = ["."]
+include_dirs = [".", "cpp"]
 
 library_dirs = []
 libraries = []
@@ -85,15 +85,13 @@ if platform.system() != "Windows":
     extra_compile_args = ["-std=c++11"]
     if DEBUG:
         extra_compile_args += ["-g", "-O0"]
-else:
-    include_dirs = ['..']
 
 
 
 sources = [
-    "lazperf/pylazperfapi" + ext,
-    "lazperf/PyLazperf.cpp",
-    "lazperf/PyVlrCompressor.cpp",
+    "python/lazperf/pylazperfapi" + ext,
+    "python/lazperf/PyLazperf.cpp",
+    "python/lazperf/PyVlrCompressor.cpp",
 ]
 extensions = [
     DistutilsExtension(
@@ -128,7 +126,7 @@ setup_args = dict(
     long_description=long_description,
     test_suite="test",
     include_package_data=True,
-    packages=["lazperf"],
+    packages=["python/lazperf"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
