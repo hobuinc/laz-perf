@@ -126,7 +126,8 @@ setup_args = dict(
     long_description=long_description,
     test_suite="test",
     include_package_data=True,
-    packages=["python/lazperf"],
+    packages=["lazperf"],
+    package_dir = {'': 'python'},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
