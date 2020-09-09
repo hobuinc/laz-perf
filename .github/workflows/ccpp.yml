@@ -165,7 +165,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ./python
         run: |
-            python -m pytest --ignore cpp
+            python3 -m pytest --ignore cpp
 
 
   collect-artifacts:
