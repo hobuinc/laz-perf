@@ -138,7 +138,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Source
-        shell: bash -l {0}
         run: |
             sudo apt install python3-pip
             python3 -m pip install --upgrade pip
@@ -162,7 +161,6 @@ jobs:
                 python3 -m pip install $f
             done;
       - name: Test
-        shell: bash -l {0}
         working-directory: ./python
         run: |
             export PATH=$PATH:/home/runner/.local/bin
