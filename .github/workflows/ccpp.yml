@@ -26,7 +26,8 @@ jobs:
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
+            conda update -n base -c defaults conda -y
+            conda install ninja pytest cython numpy compilers cmake -y
         continue-on-error: true
 
 
@@ -86,7 +87,8 @@ jobs:
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install -c conda-forge ninja compilers cmake -y
+            conda update -n base -c defaults conda -y
+            conda install ninja compilers cmake -y
             conda install laz-perf --only-deps -y
         continue-on-error: true
       - name: Configure
@@ -150,18 +152,18 @@ jobs:
       - name: List dist
         working-directory: ./python/dist
         run: |
-            python -v
+            python3 -v
             ls -alh
       - name: Install
         working-directory: ./python/dist
         run: |
             for f in *.whl
             do
-                python -m pip install $f
+                python3 -m pip install $f
             done;
       - name: Import
         run: |
-            python -m lazperf
+            python3 -m lazperf
 
   collect-artifacts:
     name: Package and push release
