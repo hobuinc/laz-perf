@@ -124,10 +124,48 @@ jobs:
         run: |
             docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
 
+  test-wheel:
+    name: Test Wheel
+
+    needs: [base, python, empscripten]
+
+    runs-on: 'ubuntu-latest'
+    strategy:
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Source
+        shell: bash -l {0}
+        run: |
+            sudo apt install python3-pip
+            python3 -m pip install --upgrade pip
+            python3 -m pip install setuptools numpy flake8 pytest wheel
+            export PATH=$PATH:/home/runner/.local/bin
+      - uses: actions/download-artifact@v1
+        name: Fetch Linux 3.7 wheel
+        with:
+          name: ubuntu-latest-3.7-whl
+          path: dist
+      - name: List dist
+        working-directory: ./python/dist
+        run: |
+            ls -alh
+      - name: Install
+        working-directory: ./python/dist
+        run: |
+            for f in *.whl
+            do
+                python -m pip install $f
+            done;
+      - name: Import
+        run: |
+            python -m lazperf
+
   collect-artifacts:
     name: Package and push release
 
-    needs: [base, python, empscripten]
+    needs: [test-wheel]
 
     runs-on: 'ubuntu-latest'
     strategy:
