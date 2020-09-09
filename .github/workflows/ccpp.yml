@@ -165,6 +165,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ./python
         run: |
+            export PATH=$PATH:/home/runner/.local/bin
             python3 -m pytest --ignore cpp
 
 
