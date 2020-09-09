@@ -40,7 +40,7 @@ POINTS_DTYPE = np.dtype(
 
 class TestExtraBytesDecompression(unittest.TestCase):
     def test_decompression(self):
-        with open("../test/raw-sets/extrabytes.laz", mode="rb") as f:
+        with open("./cpp/test/raw-sets/extrabytes.laz", mode="rb") as f:
             raw_laz = f.read()
 
         # The file contains 2 vlrs in this order:
@@ -61,7 +61,7 @@ class TestExtraBytesDecompression(unittest.TestCase):
         decompressed_points = decompressor.decompress_points(LAS_POINT_COUNT)
         decompressed_points = np.frombuffer(decompressed_points, dtype=POINTS_DTYPE)
 
-        with open("../test/raw-sets/extrabytes.las", mode="rb") as f:
+        with open("./cpp/test/raw-sets/extrabytes.las", mode="rb") as f:
             raw_las = f.read()
 
         offset_to_points = (
@@ -84,10 +84,10 @@ class TestExtraBytesDecompression(unittest.TestCase):
 
 class TestExtraBytesCompression(unittest.TestCase):
     def test_compression(self):
-        with open("../test/raw-sets/extrabytes.laz", mode="rb") as f:
+        with open("./cpp/test/raw-sets/extrabytes.laz", mode="rb") as f:
             raw_laz = f.read()
 
-        with open("../test/raw-sets/extrabytes.las", mode="rb") as f:
+        with open("./cpp/test/raw-sets/extrabytes.las", mode="rb") as f:
             raw_las = f.read()
 
         record_schema = RecordSchema()

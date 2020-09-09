@@ -28,10 +28,10 @@ class TestLazPerf(unittest.TestCase):
     def test_decompressor(self):
         s = json.dumps(schema)
 
-        with open('test/compressed.bin', 'rb') as f:
+        with open('python/test/compressed.bin', 'rb') as f:
             data = f.read()
 
-        with open('test/uncompressed.bin', 'rb') as f:
+        with open('python/test/uncompressed.bin', 'rb') as f:
             original = f.read()
 
         self.assertEqual(len(data),
@@ -68,10 +68,10 @@ class TestLazPerf(unittest.TestCase):
     def test_compressor(self):
         s = json.dumps(schema)
 
-        with open('test/compressed.bin', 'rb') as f:
+        with open('python/test/compressed.bin', 'rb') as f:
             data = f.read()
 
-        with open('test/uncompressed.bin', 'rb') as f:
+        with open('python/test/uncompressed.bin', 'rb') as f:
             original = f.read()
 
         self.assertEqual(len(data),
@@ -111,7 +111,7 @@ class TestLazPerf(unittest.TestCase):
     def test_full_loop(self):
         s = json.dumps(schema)
 
-        with open('test/uncompressed.bin', 'rb') as f:
+        with open('python/test/uncompressed.bin', 'rb') as f:
             original = f.read()
 
         dtype = buildNumpyDescription(json.loads(s))

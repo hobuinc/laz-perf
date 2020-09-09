@@ -14,11 +14,11 @@ jobs:
       fail-fast: true
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        python-version: ['3.7','3.8']
+        python-version: ['3.6','3.7','3.8']
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/msvc-dev-cmd@v1
-      - uses: goanpeca/setup-miniconda@v1.1.2
+      - uses: goanpeca/setup-miniconda@v1
         with:
           channels: conda-forge
           auto-update-conda: true
@@ -26,43 +26,51 @@ jobs:
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install -c conda-forge ninja pytest cython numpy compilers cmake -y
-            conda install laz-perf --only-deps -y
+            conda update -n base -c defaults conda -y
+            conda install ninja pytest cython numpy compilers cmake -y
         continue-on-error: true
 
 
       - name: Build
         shell: bash -l {0}
         run: |
-            pip install -e .
-        working-directory: ./python
+            python -m pip install -e .
       - name: Test
         shell: bash -l {0}
         run: |
-            pytest
-        working-directory: ./python
+            python -m pytest --ignore cpp
       - name: Wheel
         shell: bash -l {0}
         if: matrix.os != 'ubuntu-latest'
         run: |
             python setup.py bdist_wheel
-        working-directory: ./python
       - name: Linux wheel
         shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        if: matrix.os == 'ubuntu-latest'
         run: |
-            docker run -v $(pwd):/src quay.io/pypa/manylinux2014_x86_64 /src/python-wheel-build.sh
-      - name: Publish package
-        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
-
-        uses: pypa/gh-action-pypi-publish@master
+            docker run -v $(pwd):/src quay.io/pypa/manylinux2010_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
+      - uses: actions/upload-artifact@v2
+        if: matrix.os == 'ubuntu-latest'
         with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
-          packages_dir: ./python/dist
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
+          path: ./wheelhouse
+      - uses: actions/upload-artifact@v2
+        if: matrix.os != 'ubuntu-latest'
+        with:
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
+          path: ./dist
+
+#      - name: Publish package
+#        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
+#
+#        uses: pypa/gh-action-pypi-publish@master
+#        with:
+#          user: __token__
+#          password: ${{ secrets.pypi_token }}
+#          packages_dir: ./python/dist
 
   base:
-    name:  ${{ matrix.os }}
+    name: Base library ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -75,15 +83,17 @@ jobs:
         with:
           channels: conda-forge
           auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
       - name: Setup
         shell: bash -l {0}
         run: |
-            conda install -c conda-forge ninja compilers cmake -y
+            conda update -n base -c defaults conda -y
+            conda install ninja compilers cmake -y
             conda install laz-perf --only-deps -y
         continue-on-error: true
       - name: Configure
         shell: bash -l {0}
+        working-directory: ./cpp
         run: |
             if [ "$RUNNER_OS" == "Windows" ]; then
               export CC=cl.exe
@@ -92,10 +102,12 @@ jobs:
             cmake . -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON
       - name: Build
         shell: bash -l {0}
+        working-directory: ./cpp
         run: |
             ninja
       - name: Test
         shell: bash -l {0}
+        working-directory: ./cpp
         run: |
             ctest
 
@@ -113,3 +125,125 @@ jobs:
         shell: bash -l {0}
         run: |
             docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
+
+  test-wheel:
+    name: Test Wheel
+
+    needs: [base, python, empscripten]
+
+    runs-on: 'ubuntu-latest'
+    strategy:
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Source
+        run: |
+            sudo apt install python3-pip
+            python3 -m pip install --upgrade pip
+            python3 -m pip install setuptools numpy flake8 pytest wheel
+            export PATH=$PATH:/home/runner/.local/bin
+      - uses: actions/download-artifact@v1
+        name: Fetch Linux 3.6 wheel
+        with:
+          name: ubuntu-latest-3.6-whl
+          path: ./python/dist
+      - name: List dist
+        working-directory: ./python/dist
+        run: |
+            python3 -v
+            ls -alh
+      - name: Install
+        working-directory: ./python/dist
+        run: |
+            for f in *.whl
+            do
+                python3 -m pip install $f
+            done;
+      - name: Test
+        run: |
+            export PATH=$PATH:/home/runner/.local/bin
+            python3 -m pytest --ignore cpp
+
+
+  collect-artifacts:
+    name: Package and push release
+
+    needs: [test-wheel]
+
+    runs-on: 'ubuntu-latest'
+    strategy:
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Source
+        shell: bash -l {0}
+        run: |
+            sudo apt install python3-pip
+            python3 -m pip install --upgrade pip
+            python3 -m pip install setuptools numpy flake8 pytest wheel
+            export PATH=$PATH:/home/runner/.local/bin
+            python3 setup.py sdist
+
+      - uses: actions/download-artifact@v1
+        name: Linux 3.6 wheel
+        with:
+          name: ubuntu-latest-3.6-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
+        name: Linux 3.7 wheel
+        with:
+          name: ubuntu-latest-3.7-whl
+          path: dist
+      - uses: actions/download-artifact@v1
+        name: Linux 3.8 wheel
+        with:
+          name: ubuntu-latest-3.8-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
+        name: OSX 3.6 wheel
+        with:
+          name: macos-latest-3.6-whl
+          path: dist
+      - uses: actions/download-artifact@v1
+        name: OSX 3.7 wheel
+        with:
+          name: macos-latest-3.7-whl
+          path: dist
+      - uses: actions/download-artifact@v1
+        name: OSX 3.8 wheel
+        with:
+          name: macos-latest-3.8-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
+        name: Windows 3.6 wheel
+        with:
+          name: windows-latest-3.6-whl
+          path: dist
+      - uses: actions/download-artifact@v1
+        name: Windows 3.7 wheel
+        with:
+          name: windows-latest-3.7-whl
+          path: dist
+      - uses: actions/download-artifact@v1
+        name: Windows 3.8 wheel
+        with:
+          name: windows-latest-3.8-whl
+          path: dist
+
+      - name: List dist
+        shell: bash -l {0}
+        working-directory: ./dist
+        run: |
+            ls -alh
+      - uses: pypa/gh-action-pypi-publish@master
+        name: Publish package
+        if: github.event_name == 'release' && github.event.action == 'published'
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}
+          packages_dir: ./dist
