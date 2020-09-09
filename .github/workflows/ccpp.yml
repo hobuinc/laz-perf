@@ -14,7 +14,7 @@ jobs:
       fail-fast: true
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        python-version: ['3.7','3.8']
+        python-version: ['3.6','3.7','3.8']
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/msvc-dev-cmd@v1
@@ -145,9 +145,9 @@ jobs:
             python3 -m pip install setuptools numpy flake8 pytest wheel
             export PATH=$PATH:/home/runner/.local/bin
       - uses: actions/download-artifact@v1
-        name: Fetch Linux 3.7 wheel
+        name: Fetch Linux 3.6 wheel
         with:
-          name: ubuntu-latest-3.7-whl
+          name: ubuntu-latest-3.6-whl
           path: ./python/dist
       - name: List dist
         working-directory: ./python/dist
@@ -186,6 +186,12 @@ jobs:
             python3 setup.py sdist
 
       - uses: actions/download-artifact@v1
+        name: Linux 3.6 wheel
+        with:
+          name: ubuntu-latest-3.6-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
         name: Linux 3.7 wheel
         with:
           name: ubuntu-latest-3.7-whl
@@ -194,6 +200,12 @@ jobs:
         name: Linux 3.8 wheel
         with:
           name: ubuntu-latest-3.8-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
+        name: OSX 3.6 wheel
+        with:
+          name: macos-latest-3.6-whl
           path: dist
       - uses: actions/download-artifact@v1
         name: OSX 3.7 wheel
@@ -204,6 +216,12 @@ jobs:
         name: OSX 3.8 wheel
         with:
           name: macos-latest-3.8-whl
+          path: dist
+
+      - uses: actions/download-artifact@v1
+        name: Windows 3.6 wheel
+        with:
+          name: windows-latest-3.6-whl
           path: dist
       - uses: actions/download-artifact@v1
         name: Windows 3.7 wheel
