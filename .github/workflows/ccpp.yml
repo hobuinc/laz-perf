@@ -161,9 +161,12 @@ jobs:
             do
                 python3 -m pip install $f
             done;
-      - name: Import
+      - name: Test
+        shell: bash -l {0}
+        working-directory: ./python
         run: |
-            python3 -m lazperf
+            python -m pytest --ignore cpp
+
 
   collect-artifacts:
     name: Package and push release
