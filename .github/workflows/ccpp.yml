@@ -146,7 +146,7 @@ jobs:
         name: Fetch Linux 3.7 wheel
         with:
           name: ubuntu-latest-3.7-whl
-          path: dist
+          path: ./python/dist
       - name: List dist
         working-directory: ./python/dist
         run: |
