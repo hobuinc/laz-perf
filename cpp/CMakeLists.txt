@@ -3,49 +3,12 @@
 #
 # (based originally on the libLAS files copyright Mateusz Loskot)
 
-if(WIN32)
-cmake_minimum_required(VERSION 2.8.7)
-else()
-cmake_minimum_required(VERSION 2.6.0)
-endif()
-
-project(LAZPERF)
-
-#------------------------------------------------------------------------------
-# internal cmake settings
-#------------------------------------------------------------------------------
-
-set(CMAKE_COLOR_MAKEFILE ON)
-
-# Allow advanced users to generate Makefiles printing detailed commands
-mark_as_advanced(CMAKE_VERBOSE_MAKEFILE)
-
-# Path to additional CMake modules
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
-
-
-#------------------------------------------------------------------------------
-# general settings
-#------------------------------------------------------------------------------
-
-set(CMAKE_PROJECT_VERSION "1.4.4")
-set(LAZPERF_VERSION_MAJOR "1")
-set(LAZPERF_VERSION_MINOR "4")
-set(LAZPERF_VERSION_PATCH "4")
-
-set(LAZPERF_VERSION "${LAZPERF_VERSION_MAJOR}.${LAZPERF_VERSION_MINOR}.${LAZPERF_VERSION_PATCH}")
-set(LAZPERF_LIB_SOVERSION ${LAZPERF_VERSION_MAJOR})
-set(LAZPERF_C_LIB_SOVERSION ${LAZPERF_VERSION_MAJOR})
-
-set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
-
 
 #------------------------------------------------------------------------------
 # misc user options
 #------------------------------------------------------------------------------
 
-# Choose package components
-set(WITH_TESTS TRUE CACHE BOOL "Choose if LAZPERF unit tests should be built")
+
 
 
 #------------------------------------------------------------------------------
@@ -102,7 +65,7 @@ else()
   # Recommended C++ compilation flags
   # -Weffc++
   set(LAZPERF_COMMON_CXX_FLAGS
-	  "-std=c++11 -Wextra -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
+      "-std=c++11 -Wextra -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
 
   if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
@@ -114,21 +77,21 @@ else()
     set(LAZPERF_COMPILER_GCC 1)
 
   elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER}" MATCHES "clang")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}") # enable Weverything on clang, since we're badass
     set(LAZPERF_COMPILER_CLANG 1)
   endif()
 
   # Compiler-specific C++11 activation.
   if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-	  execute_process(
-		  COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-	  if (NOT (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7))
-		  message(FATAL_ERROR "${PROJECT_NAME} requires g++ 4.7 or greater.")
-	  endif ()
+      execute_process(
+          COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+      if (NOT (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7))
+          message(FATAL_ERROR "${PROJECT_NAME} requires g++ 4.7 or greater.")
+      endif ()
   elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-	  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
   else ()
-	  message(FATAL_ERROR "Your C++ compiler does not support C++11.")
+      message(FATAL_ERROR "Your C++ compiler does not support C++11.")
   endif ()
 endif(WIN32)
 
@@ -149,7 +112,7 @@ set(LAZPERF_DEPENDENT_LIBRARIES "")
 # own includes, treat it like a posix system
 #
 if(EMSCRIPTEN)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
 endif()
 
 
@@ -157,17 +120,14 @@ add_subdirectory(examples)
 add_subdirectory(benchmarks)
 
 if (EMSCRIPTEN)
-	add_subdirectory(emscripten)
+    add_subdirectory(emscripten)
 endif()
 
 if(WITH_TESTS)
-	if(NOT EMSCRIPTEN)
-		enable_testing()
-		add_subdirectory(test)
-        file (DOWNLOAD
-            "https://github.com/PDAL/data/raw/master/autzen/autzen.laz"
-            "test/raw-sets/autzen.laz")
-	endif()
+    if(NOT EMSCRIPTEN)
+        enable_testing()
+        add_subdirectory(test)
+    endif()
 endif()
 
 if (WIN32 AND NOT CYGWIN)

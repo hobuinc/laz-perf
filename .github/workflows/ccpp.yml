@@ -128,7 +128,7 @@ jobs:
   collect-artifacts:
     name: Package and push release
 
-    needs: [base, python]
+    needs: [base, python, empscripten]
 
     runs-on: 'ubuntu-latest'
     strategy:

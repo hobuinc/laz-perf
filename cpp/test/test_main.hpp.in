@@ -7,5 +7,5 @@ GTEST_API_ int main(int argc, char **argv) {
 
 std::string testFile(const std::string& filename)
 {
-    return std::string("@CMAKE_SOURCE_DIR@/test/raw-sets/") + filename;
+    return std::string("@CMAKE_SOURCE_DIR@/cpp/test/raw-sets/") + filename;
 }
