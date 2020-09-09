@@ -161,7 +161,6 @@ jobs:
                 python3 -m pip install $f
             done;
       - name: Test
-        working-directory: ./python
         run: |
             export PATH=$PATH:/home/runner/.local/bin
             python3 -m pytest --ignore cpp
