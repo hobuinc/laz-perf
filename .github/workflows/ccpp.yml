@@ -150,6 +150,7 @@ jobs:
       - name: List dist
         working-directory: ./python/dist
         run: |
+            python -v
             ls -alh
       - name: Install
         working-directory: ./python/dist
