@@ -48,7 +48,7 @@ jobs:
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
-            docker run -v $(pwd):/src quay.io/pypa/manylinux2010_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
+            docker run -v $(pwd):/src quay.io/pypa/manylinux1_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
@@ -118,7 +118,7 @@ jobs:
             docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
 
   test-wheel:
-    name: Test Wheel
+    name: Test Wheel ${{ matrix.os }} - ${{ matrix.python-version }}
 
     needs: [base, python, empscripten]
 
