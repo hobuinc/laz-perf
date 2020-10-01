@@ -60,15 +60,6 @@ jobs:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
           path: ./dist
 
-#      - name: Publish package
-#        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
-#
-#        uses: pypa/gh-action-pypi-publish@master
-#        with:
-#          user: __token__
-#          password: ${{ secrets.pypi_token }}
-#          packages_dir: ./python/dist
-
   base:
     name: Base library ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -131,39 +122,49 @@ jobs:
 
     needs: [base, python, empscripten]
 
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ['3.6','3.7','3.8']
 
     steps:
       - uses: actions/checkout@v2
-      - name: Source
-        run: |
-            sudo apt install python3-pip
-            python3 -m pip install --upgrade pip
-            python3 -m pip install setuptools numpy flake8 pytest wheel
-            export PATH=$PATH:/home/runner/.local/bin
       - uses: actions/download-artifact@v1
-        name: Fetch Linux 3.6 wheel
+        name: Fetch Linux ${{matrix.os}}-${{matrix.python-version}} wheel
         with:
-          name: ubuntu-latest-3.6-whl
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
           path: ./python/dist
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Setup
+        run: |
+            python -m pip install --upgrade pip
+            python -m pip install setuptools numpy flake8 pytest wheel
+
       - name: List dist
         working-directory: ./python/dist
         run: |
-            python3 -v
+            python -v
             ls -alh
+
       - name: Install
         working-directory: ./python/dist
         run: |
             for f in *.whl
             do
-                python3 -m pip install $f
+                python -m pip install $f
             done;
+
       - name: Test
         run: |
-            export PATH=$PATH:/home/runner/.local/bin
-            python3 -m pytest --ignore cpp
+            python -m pytest --ignore cpp
 
 
   collect-artifacts:
