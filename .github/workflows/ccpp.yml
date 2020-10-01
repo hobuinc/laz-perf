@@ -155,7 +155,7 @@ jobs:
         working-directory: ./python/dist
         run: |
             python -v
-            ls -alh dist
+            ls -alh *
         if: matrix.os != 'windows-latest'
 
       - name: Install
@@ -171,7 +171,7 @@ jobs:
         working-directory: ./python/dist
         if: matrix.os == 'windows-latest'
         run: |
-            for /f %f in ('dir /b ./python/dist') do python -m pip install %%f
+            for /f %f in ('dir /b .') do python -m pip install %%f
       - name: Test
         run: |
             python -m pytest --ignore cpp
