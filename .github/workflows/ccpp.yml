@@ -171,7 +171,7 @@ jobs:
         working-directory: ./python/dist
         if: matrix.os == 'windows-latest'
         run: |
-            for /f %f in ('dir /b .') do python -m pip install %%f
+            for %%f in (*.whl) do (python -m pip install %%f)
       - name: Test
         run: |
             python -m pytest --ignore cpp
