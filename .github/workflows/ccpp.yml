@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
-        name: Fetch Linux ${{matrix.os}}-${{matrix.python-version}} wheel
+        name: Fetch ${{matrix.os}}-${{matrix.python-version}} wheel
         with:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
           path: ./python/dist
@@ -153,20 +153,25 @@ jobs:
 
       - name: List dist
         working-directory: ./python/dist
-        shell: bash -l {0}
         run: |
             python -v
-            ls -alh
+            ls -alh dist
+        if: matrix.os != 'windows-latest'
 
       - name: Install
         working-directory: ./python/dist
-        shell: bash -l {0}
+        if: matrix.os != 'windows-latest'
         run: |
             for f in *.whl
             do
                 python -m pip install $f
             done;
 
+      - name: Install
+        working-directory: ./python/dist
+        if: matrix.os == 'windows-latest'
+        run: |
+            for /f %f in ('dir /b ./python/dist') do python -m pip install %%f
       - name: Test
         run: |
             python -m pytest --ignore cpp
