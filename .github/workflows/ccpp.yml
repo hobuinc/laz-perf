@@ -153,12 +153,14 @@ jobs:
 
       - name: List dist
         working-directory: ./python/dist
+        shell: bash -l {0}
         run: |
             python -v
             ls -alh
 
       - name: Install
         working-directory: ./python/dist
+        shell: bash -l {0}
         run: |
             for f in *.whl
             do
