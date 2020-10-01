@@ -51,7 +51,7 @@ jobs:
             ls build
             rm -rf build
 
-            docker run -v $(pwd):/src quay.io/pypa/manylinux1_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
+            docker run -v $(pwd):/src quay.io/pypa/manylinux2010_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
         with:
