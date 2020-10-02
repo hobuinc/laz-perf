@@ -17,11 +17,8 @@ fi
 
 echo "PYTHONROOT: " $PYTHONROOT
 
-
 cd /src
-
-rm -rf build dist *.egg-info/
-
+$PYTHONROOT/bin/python -m pip install . -t .
 
 $PYTHONROOT/bin/python setup.py bdist_wheel
 
@@ -30,4 +27,3 @@ for f in dist/*.whl
 do
     auditwheel repair $f
 done;
-

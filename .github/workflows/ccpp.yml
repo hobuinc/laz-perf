@@ -48,6 +48,9 @@ jobs:
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
+            ls build
+            rm -rf build
+
             docker run -v $(pwd):/src quay.io/pypa/manylinux2010_x86_64 /src/python/ci/build-wheel-linux.sh ${{ matrix.python-version }}
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest'
@@ -59,15 +62,6 @@ jobs:
         with:
           name: ${{matrix.os}}-${{matrix.python-version}}-whl
           path: ./dist
-
-#      - name: Publish package
-#        if: github.event_name == 'release' && matrix.os == 'ubuntu-latest'  && matrix.python-version == '3.8' && github.event.action == 'published'
-#
-#        uses: pypa/gh-action-pypi-publish@master
-#        with:
-#          user: __token__
-#          password: ${{ secrets.pypi_token }}
-#          packages_dir: ./python/dist
 
   base:
     name: Base library ${{ matrix.os }}
@@ -127,43 +121,61 @@ jobs:
             docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
 
   test-wheel:
-    name: Test Wheel
+    name: Test Wheel ${{ matrix.os }} - ${{ matrix.python-version }}
 
     needs: [base, python, empscripten]
 
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ['3.6','3.7','3.8']
 
     steps:
       - uses: actions/checkout@v2
-      - name: Source
-        run: |
-            sudo apt install python3-pip
-            python3 -m pip install --upgrade pip
-            python3 -m pip install setuptools numpy flake8 pytest wheel
-            export PATH=$PATH:/home/runner/.local/bin
       - uses: actions/download-artifact@v1
-        name: Fetch Linux 3.6 wheel
+        name: Fetch ${{matrix.os}}-${{matrix.python-version}} wheel
         with:
-          name: ubuntu-latest-3.6-whl
+          name: ${{matrix.os}}-${{matrix.python-version}}-whl
           path: ./python/dist
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Setup
+        run: |
+            python -m pip install --upgrade pip
+            python -m pip install setuptools numpy flake8 pytest wheel
+
       - name: List dist
         working-directory: ./python/dist
         run: |
-            python3 -v
-            ls -alh
+            python -v
+            ls -alh *
+        if: matrix.os != 'windows-latest'
+
       - name: Install
         working-directory: ./python/dist
+        if: matrix.os != 'windows-latest'
         run: |
             for f in *.whl
             do
-                python3 -m pip install $f
+                python -m pip install $f
             done;
+
+      - name: Install
+        working-directory: ./python/dist
+        if: matrix.os == 'windows-latest'
+        shell: cmd /C CALL {0}
+        run: |
+            for %%f in (*.whl) do (python -m pip install %%f)
       - name: Test
         run: |
-            export PATH=$PATH:/home/runner/.local/bin
-            python3 -m pytest --ignore cpp
+            python -m pytest --ignore cpp
 
 
   collect-artifacts:
