@@ -170,6 +170,7 @@ jobs:
       - name: Install
         working-directory: ./python/dist
         if: matrix.os == 'windows-latest'
+        shell: cmd /C CALL {0}
         run: |
             for %%f in (*.whl) do (python -m pip install %%f)
       - name: Test
