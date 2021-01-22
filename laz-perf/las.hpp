@@ -31,9 +31,13 @@
 #ifndef __las_hpp__
 #define __las_hpp__
 
+#include <stdint.h>
+
+#include "encoder.hpp"
 #include "formats.hpp"
 #include "model.hpp"
 #include "compressor.hpp"
+#include "streams.hpp"
 #include "util.hpp"
 
 namespace laszip {
@@ -86,6 +90,103 @@ namespace laszip {
 
             struct extrabytes : public std::vector<uint8_t>
             {};
+
+			struct point14
+            {
+            private:
+				int32_t x_;
+				int32_t y_;
+				int32_t z_;
+				uint16_t intensity_;
+                uint8_t returns_;
+                uint8_t flags_;
+                uint8_t classification_;
+                uint8_t user_data_;
+                int16_t scan_angle_;
+                uint16_t point_source_ID_;
+                double gpstime_;
+
+            public:
+                point14()
+                {}
+
+                int32_t x() const
+                { return x_; }
+                void setX(int32_t x)
+                { x_ = x; }
+
+                int32_t y() const
+                { return y_; }
+                void setY(int32_t y)
+                { y_ = y; }
+
+                int32_t z() const
+                { return z_; }
+                void setZ(int32_t z)
+                { z_ = z; }
+
+                uint16_t intensity() const
+                { return intensity_; }
+                void setIntensity(uint16_t intensity)
+                { intensity_ = intensity; }
+
+                uint8_t returns() const
+                { return returns_; }
+                void setReturns(uint8_t returns)
+                { returns_ = returns; }
+
+                int returnNum() const
+                { return returns_ & 0xF; }
+
+                uint8_t numReturns() const
+                { return returns_ >> 4; }
+
+                uint8_t flags() const
+                { return flags_; }
+                void setFlags(uint8_t flags)
+                { flags_ = flags; }
+
+                int classFlags() const
+                { return (flags_ & 0xF); }
+
+                int scannerChannel() const
+                { return (flags_ >> 4) & 0x03; }
+
+                int scanDirFlag() const
+                { return ((flags_ >> 5) & 1); }
+
+                int eofFlag() const
+                { return ((flags_ >> 6) & 1); }
+
+                uint8_t classification() const
+                { return classification_; }
+                void setClassification(uint8_t classification)
+                { classification_ = classification; }
+
+                uint8_t userData() const
+                { return user_data_; }
+                void setUserData(uint8_t user_data)
+                { user_data_ = user_data; }
+
+                int16_t scanAngle() const
+                { return scan_angle_; }
+                void setScanAngle(int16_t scan_angle)
+                { scan_angle_ = scan_angle; }
+
+                uint16_t pointSourceID() const
+                { return point_source_ID_; }
+                void setPointSourceID(uint16_t point_source_ID)
+                { point_source_ID_ = point_source_ID; }
+
+                double gpsTime() const
+                { return gpstime_; }
+                uint64_t uGpsTime() const
+                { return *reinterpret_cast<const uint64_t *>(&gpstime_); }
+                int64_t iGpsTime() const
+                { return *reinterpret_cast<const int64_t *>(&gpstime_); }
+                void setGpsTime(double gpstime)
+                { gpstime_ = gpstime; }
+			};
 #pragma pack(pop)
 		}
 	}
@@ -93,6 +194,7 @@ namespace laszip {
 
 #include "detail/field_extrabytes.hpp"
 #include "detail/field_point10.hpp"
+#include "detail/field_point14.hpp"
 #include "detail/field_gpstime.hpp"
 #include "detail/field_rgb.hpp"
 #include "detail/field_xyz.hpp"

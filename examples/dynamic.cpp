@@ -50,19 +50,15 @@ int main() {
     using namespace laszip;
     using namespace laszip::formats;
 
-    typedef encoders::arithmetic<SuchStream> EncoderType;
-    typedef decoders::arithmetic<SuchStream> DecoderType;
-
     // Get a memory stream backed encoder up
     SuchStream s;
-    EncoderType encoder(s);
     struct {
         las::xyz p;
         int a, b;
         short c;
     } data;
 
-    auto compressor = make_dynamic_compressor(encoder);
+    auto compressor = make_dynamic_compressor(s);
     compressor->add_field<las::xyz>();
     compressor->add_field<int>();
     compressor->add_field<int>();
@@ -84,16 +80,14 @@ int main() {
         compressor->compress((const char*)&data);
     }
 
-    encoder.done();
+//ABELL
+//    encoder.done();
 
     std::cout << "Points compressed to: " << s.buf.size() << " bytes" << std::endl;
 
-    DecoderType decoder(s);
-
     // Print some fun stuff about compression
-    //
 
-    auto decompressor = make_dynamic_decompressor(decoder);
+    auto decompressor = make_dynamic_decompressor(s);
     decompressor->add_field<las::xyz>();
     decompressor->add_field<int>();
     decompressor->add_field<int>();

@@ -84,20 +84,20 @@ namespace laszip {
 				mCorrector.clear();
 			}
 
+            // ABELL - Maybe this is separate so that the compressor can be reused?
+            // If so, why not called from the ctor?
 			void init() {
 				using laszip::models::arithmetic;
 				using laszip::models::arithmetic_bit;
 
-				U32 i;
-
 				// maybe create the models
 				if (mBits.empty()) {
-					for (i = 0; i < contexts; i++)
+					for (U32 i = 0; i < contexts; i++)
 						mBits.push_back(arithmetic(corr_bits+1));
 
 #ifndef COMPRESS_ONLY_K
 					// mcorrector0 is already in init state
-					for (i = 1; i <= corr_bits; i++) {
+					for (U32 i = 1; i <= corr_bits; i++) {
 						U32 v = i <= bits_high ? 1 << i : 1 << bits_high;
 						mCorrector.push_back(arithmetic(v));
 					}
@@ -143,8 +143,9 @@ namespace laszip {
 					k = k + 1;
 				}
 
-				// the number k is between 0 and corr_bits and describes the interval the corrector falls into
-				// we can compress the exact location of c within this interval using k bits
+				// the number k is between 0 and corr_bits and describes the interval
+                // the corrector falls into we can compress the exact location of c
+                // within this interval using k bits
 
 				enc.encodeSymbol(mBits, k);
 

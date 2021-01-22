@@ -96,16 +96,7 @@ typedef union U64I64F64 { U64 u64; I64 i64; F64 f64; } U64I64F64;
 #define I64_MIN            ((I64)0x8000000000000000)
 #define I64_MAX            ((I64)0x7FFFFFFFFFFFFFFF)
 
-/**
-#define U8_FOLD(n)      (((n) < U8_MIN) ? (n+U8_MAX_PLUS_ONE) : (((n) > U8_MAX) ? (n-U8_MAX_PLUS_ONE) : (n)))
-**/
-
 inline uint8_t U8_FOLD(int i)
-{
-    return uint8_t(i);
-}
-
-inline uint8_t u8_fold(int i)
 {
     return uint8_t(i);
 }

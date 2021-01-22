@@ -97,7 +97,7 @@ namespace laszip {
                 auto mi = models_.begin();
                 while (li != lasts_.end())
                 {
-                    *ci = u8_fold(*li + dec.decodeSymbol(*mi));
+                    *ci = (uint8_t)(*li + dec.decodeSymbol(*mi));
                     *li = *buf = *ci;
                     li++; buf++; ci++; mi++;
                 }

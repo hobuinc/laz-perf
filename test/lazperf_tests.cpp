@@ -608,15 +608,11 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 	const std::string lasRaw = testFile("point10-1.las.raw");
 	const std::string lazRaw = testFile("point10-1.las.laz.raw");
 
-	typedef encoders::arithmetic<SuchStream> Encoder;
-
 	SuchStream s;
-	Encoder encoder(s);
 
 	auto compressor = new record_compressor<field<las::point10> >();
 
-	dynamic_compressor::ptr pcompressor =
-		make_dynamic_compressor(encoder, compressor);
+	dynamic_compressor::ptr pcompressor = make_dynamic_compressor(s, compressor);
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
@@ -633,7 +629,7 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 	}
 
 	// flush encoder
-	encoder.done();
+    pcompressor->done();
 	f.close();
 
 
@@ -673,11 +669,9 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-	typedef decoders::arithmetic<SuchStream> Decoder;
 	auto decomp = new record_decompressor<field<las::point10> >();
 
-	Decoder dec(s);
-	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(dec, decomp);
+	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(s, decomp);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -853,8 +847,7 @@ TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
 
 	SuchStream s;
 
-	encoders::arithmetic<SuchStream> encoder(s);
-    auto compressor = make_dynamic_compressor(encoder);
+    auto compressor = make_dynamic_compressor(s);
 
     compressor->add_field(field<las::extrabytes>(10));
 
@@ -870,10 +863,9 @@ TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
 
 		compressor->compress((const char *)eb);
 	}
-	encoder.done();
+    compressor->done();
 
-	decoders::arithmetic<SuchStream> decoder(s);
-    auto decompressor = make_dynamic_decompressor(decoder);
+    auto decompressor = make_dynamic_decompressor(s);
 
     decompressor->add_field(field<las::extrabytes>(10));
 
@@ -1264,11 +1256,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<int>();
-
 
 		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
@@ -1278,10 +1268,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             int a = rvalue;
             comp->compress((const char*)&a);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<int>();
 
@@ -1296,8 +1285,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<int>();
         comp->add_field<int>();
@@ -1324,10 +1312,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
             comp->compress((const char*)arr);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<int>();
         decomp->add_field<int>();
@@ -1351,11 +1338,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<las::gpstime>();
-
 
 		unsigned int seed = static_cast<unsigned int>(time(NULL));
         srand(seed);
@@ -1365,10 +1350,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             las::gpstime g(makegps(rvalue, rvalue));
             comp->compress((const char*)&g);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<las::gpstime>();
 
@@ -1383,8 +1367,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<las::gpstime>();
         comp->add_field<las::rgb>();
@@ -1432,10 +1415,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
 
             comp->compress((const char*)&data);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<las::gpstime>();
         decomp->add_field<las::rgb>();
@@ -1473,8 +1455,7 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<las::gpstime>();
         comp->add_field<las::gpstime>();
@@ -1498,10 +1479,9 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 
             comp->compress((const char*)&p1);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<las::gpstime>();
         decomp->add_field<las::gpstime>();
@@ -1523,8 +1503,7 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
     }
     {
         SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
+        auto comp = make_dynamic_compressor(s);
 
         comp->add_field<las::gpstime>();
         comp->add_field<las::gpstime>();
@@ -1548,10 +1527,9 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
 
             comp->compress((const char*)&p1);
         }
-        encoder.done();
+        comp->done();
 
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
+        auto decomp = make_dynamic_decompressor(s);
 
         decomp->add_field<las::gpstime>();
         decomp->add_field<las::gpstime>();

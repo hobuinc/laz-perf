@@ -32,83 +32,38 @@
 #include <algorithm>
 
 namespace laszip {
-	namespace streams {
-		struct memory_stream {
-			memory_stream(const char *buf, std::streamsize len) :
-				buf_(buf), len_(len), offset_(0),
-				is_bad_(false), is_eof_(false), last_read_count_(0) {
-			}
 
-			void read(char *into, std::streamsize size) {
-				if (is_eof_) {
-					is_bad_ = true;
-					return;
-				}
+struct MemoryStream
+{
+    MemoryStream() : buf(), idx(0)
+    {}
 
-				std::streamsize to_read = (std::min)(size, len_ - offset_);
-				std::copy(buf_ + offset_, buf_ + offset_ + to_read, into);
-				offset_ += to_read;
-				last_read_count_ = to_read;
+    void putBytes(const unsigned char* b, size_t len)
+    {
+        while(len --)
+            buf.push_back(*b++);
+    }
 
-				if (offset_ >= len_)
-					is_eof_ = true;
-			}
+    void putByte(const unsigned char b)
+    {
+        buf.push_back(b);
+    }
 
-			bool eof() {
-				return is_eof_;
-			}
+    unsigned char getByte()
+    {
+        return buf[idx++];
+    }
 
-			std::streamsize gcount() {
-				return last_read_count_;
-			}
+    void getBytes(unsigned char *b, int len)
+    {
+        for (int i = 0 ; i < len ; i ++)
+            b[i] = getByte();
+    }
 
-			bool good() {
-				bool b = is_bad_;
-				is_bad_ = false;
-				return !b;
-			}
+    std::vector<unsigned char> buf; // cuz I'm ze faste
+    size_t idx;
+};
 
-			void clear() {
-				is_bad_ = false;
-				is_eof_ = false;
-			}
-
-			std::streamsize tellg() {
-				return offset_;
-			}
-
-			void seekg(std::ios::pos_type p) {
-				if (p >= len_)
-					is_bad_ = true;
-				else
-					offset_ = p;
-			}
-
-			void seekg(std::ios::off_type p, std::ios_base::seekdir dir) {
-				std::streamoff new_offset_ = 0;
-				switch(dir) {
-					case std::ios::beg: new_offset_ = p; break;
-					case std::ios::end: new_offset_ = len_ + p - 1; break;
-					case std::ios::cur: new_offset_ = offset_ + p; break;
-                    default: break;
-				}
-
-				if (new_offset_ >= len_ || new_offset_ < 0)
-					is_bad_ = true;
-				else {
-					is_bad_ = false;
-					offset_ = new_offset_;
-				}
-			}
-
-
-
-			const char *buf_;
-			std::streamsize len_, offset_;
-			bool is_bad_, is_eof_;
-			std::streamsize last_read_count_;
-		};
-	}
-}
+} // namespace laszip
 
 #endif // __streams_hpp__

@@ -35,22 +35,116 @@
 #include "test_main.hpp"
 
 #include <laz-perf/io.hpp>
-#include <laz-perf/streams.hpp>
 
 #include <cstdio>
 #include "reader.hpp"
 #include <stdio.h>
+
+struct memory_stream
+{
+
+    memory_stream(const char *buf, std::streamsize len) :
+        buf_(buf), len_(len), offset_(0),
+        is_bad_(false), is_eof_(false), last_read_count_(0)
+    {}
+
+    void read(char *into, std::streamsize size)
+    {
+        if (is_eof_) {
+            is_bad_ = true;
+            return;
+        }
+
+        std::streamsize to_read = (std::min)(size, len_ - offset_);
+        std::copy(buf_ + offset_, buf_ + offset_ + to_read, into);
+        offset_ += to_read;
+        last_read_count_ = to_read;
+
+        if (offset_ >= len_)
+            is_eof_ = true;
+    }
+
+    bool eof()
+    {
+        return is_eof_;
+    }
+
+    std::streamsize gcount()
+    {
+        return last_read_count_;
+    }
+
+    bool good()
+    {
+        bool b = is_bad_;
+        is_bad_ = false;
+        return !b;
+    }
+
+    void clear()
+    {
+        is_bad_ = false;
+        is_eof_ = false;
+    }
+
+    std::streamsize tellg()
+    {
+        return offset_;
+    }
+
+    void seekg(std::ios::pos_type p)
+    {
+        if (p >= len_)
+            is_bad_ = true;
+        else
+            offset_ = p;
+    }
+
+    void seekg(std::ios::off_type p, std::ios_base::seekdir dir)
+    {
+        std::streamoff new_offset_ = 0;
+
+        switch(dir) {
+            case std::ios::beg:
+                new_offset_ = p;
+                break;
+            case std::ios::end:
+                new_offset_ = len_ + p - 1;
+                break;
+            case std::ios::cur:
+                new_offset_ = offset_ + p;
+                break;
+            default:
+                break;
+        }
+
+        if (new_offset_ >= len_ || new_offset_ < 0)
+            is_bad_ = true;
+        else
+        {
+            is_bad_ = false;
+            offset_ = new_offset_;
+        }
+    }
+
+    const char *buf_;
+    std::streamsize len_;
+    std::streamsize offset_;
+    bool is_bad_;
+    bool is_eof_;
+    std::streamsize last_read_count_;
+};
 
 std::string makeTempFileName()
 {
 #ifdef _WIN32
     char *fnTemplate = "fnXXXXXX";
     char name[9];
-	strcpy_s(name, sizeof(name), fnTemplate);
+    strcpy_s(name, sizeof(name), fnTemplate);
     size_t size = strnlen(name, 9) + 1;
     _mktemp_s(name, size);
-	char path[MAX_PATH];
-	GetTempPath(MAX_PATH, path);
+    char path[MAX_PATH];
+    GetTempPath(MAX_PATH, path);
 
     return std::string(path) + std::string(name, 8);
 #else
@@ -62,145 +156,145 @@ std::string makeTempFileName()
 }
 
 TEST(io_tests, io_structs_are_of_correct_size) {
-	using namespace laszip::io;
+    using namespace laszip::io;
 
-	EXPECT_EQ(sizeof(header), 227u);
+    EXPECT_EQ(sizeof(header), 227u);
 }
 
 TEST(io_tests, can_report_invalid_magic) {
-	using namespace laszip;
+    using namespace laszip;
 
-	{
-		std::ifstream file(testFile("point10-1.las.raw"), std::ios::binary);
-		auto func = [&file]() {
-			io::reader::file f(file);
-		};
+    {
+        std::ifstream file(testFile("point10-1.las.raw"), std::ios::binary);
+        auto func = [&file]() {
+            io::reader::file f(file);
+        };
 
-		EXPECT_THROW(func(), invalid_magic);
+        EXPECT_THROW(func(), error);
 
-		file.close();
-	}
+        file.close();
+    }
 }
 
 TEST(io_tests, can_check_for_no_compression) {
-	using namespace laszip;
+    using namespace laszip;
 
-	{
-		std::ifstream file(testFile("point10.las"), std::ios::binary);
-		auto func = [&file]() {
-			io::reader::file f(file);
-		};
-		EXPECT_THROW(func(), not_compressed);
-		file.close();
-	}
+    {
+        std::ifstream file(testFile("point10.las"), std::ios::binary);
+        auto func = [&file]() {
+            io::reader::file f(file);
+        };
+        EXPECT_THROW(func(), error);
+        file.close();
+    }
 }
 
 TEST(io_tests, doesnt_throw_any_errors_for_valid_laz) {
-	using namespace laszip;
-	{
-		std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
-		auto func = [&file]() {
-			io::reader::file f(file);
-		};
+    using namespace laszip;
+    {
+        std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
+        auto func = [&file]() {
+            io::reader::file f(file);
+        };
 
-		EXPECT_NO_THROW(func());
-	}
+        EXPECT_NO_THROW(func());
+    }
 }
 
 void dumpBytes(const char* b, size_t len) {
-	for (size_t i = 0 ; i < len ; i ++) {
-		printf("%02X ", (unsigned char)b[i]);
+    for (size_t i = 0 ; i < len ; i ++) {
+        printf("%02X ", (unsigned char)b[i]);
 
-		if ((i+1) % 16 == 0)
-			printf("\n");
-	}
+        if ((i+1) % 16 == 0)
+            printf("\n");
+    }
 }
 
 TEST(io_tests, parses_header_correctly) {
-	using namespace laszip;
+    using namespace laszip;
 
-	{
-		std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
-		io::reader::file f(file);
-		auto header = f.get_header();
+    {
+        std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
+        io::reader::file f(file);
+        auto header = f.get_header();
 
-		EXPECT_EQ(header.version.major, 1);
-		EXPECT_EQ(header.version.minor, 2);
+        EXPECT_EQ(header.version.major, 1);
+        EXPECT_EQ(header.version.minor, 2);
 
-		EXPECT_EQ(header.creation.day, 113);
-		EXPECT_EQ(header.creation.year, 2014);
+        EXPECT_EQ(header.creation.day, 113);
+        EXPECT_EQ(header.creation.year, 2014);
 
-		EXPECT_EQ(header.header_size, 227);
-		EXPECT_EQ(header.point_offset, 1301u);
+        EXPECT_EQ(header.header_size, 227);
+        EXPECT_EQ(header.point_offset, 1301u);
 
-		EXPECT_EQ(header.vlr_count, 5u);
+        EXPECT_EQ(header.vlr_count, 5u);
 
-		EXPECT_EQ(header.point_format_id, 0);
-		EXPECT_EQ(header.point_record_length, 20);
+        EXPECT_EQ(header.point_format_id, 0);
+        EXPECT_EQ(header.point_record_length, 20);
 
-		EXPECT_DOUBLE_EQ(header.scale.x, 0.01);
-		EXPECT_DOUBLE_EQ(header.scale.y, 0.01);
-		EXPECT_DOUBLE_EQ(header.scale.z, 0.01);
+        EXPECT_DOUBLE_EQ(header.scale.x, 0.01);
+        EXPECT_DOUBLE_EQ(header.scale.y, 0.01);
+        EXPECT_DOUBLE_EQ(header.scale.z, 0.01);
 
-		EXPECT_DOUBLE_EQ(header.offset.x, 0.0);
-		EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
-		EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
+        EXPECT_DOUBLE_EQ(header.offset.x, 0.0);
+        EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
+        EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
 
-		EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87);
-		EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62);
-		EXPECT_DOUBLE_EQ(header.minimum.z, 123.93);
+        EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87);
+        EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62);
+        EXPECT_DOUBLE_EQ(header.minimum.z, 123.93);
 
-		EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68);
-		EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02);
-		EXPECT_DOUBLE_EQ(header.maximum.z, 178.73);
+        EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68);
+        EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02);
+        EXPECT_DOUBLE_EQ(header.maximum.z, 178.73);
 /**
-		EXPECT_DOUBLE_EQ(header.scale.x, 0.01, 0.0001);
-		EXPECT_DOUBLE_EQ(header.scale.y, 0.01, 0.0001);
-		EXPECT_DOUBLE_EQ(header.scale.z, 0.01, 0.0001);
+        EXPECT_DOUBLE_EQ(header.scale.x, 0.01, 0.0001);
+        EXPECT_DOUBLE_EQ(header.scale.y, 0.01, 0.0001);
+        EXPECT_DOUBLE_EQ(header.scale.z, 0.01, 0.0001);
 
-		EXPECT_DOUBLE_EQ(header.offset.x, 0.0, 0.0001);
-		EXPECT_DOUBLE_EQ(header.offset.y, 0.0, 0.0001);
-		EXPECT_DOUBLE_EQ(header.offset.z, 0.0, 0.0001);
+        EXPECT_DOUBLE_EQ(header.offset.x, 0.0, 0.0001);
+        EXPECT_DOUBLE_EQ(header.offset.y, 0.0, 0.0001);
+        EXPECT_DOUBLE_EQ(header.offset.z, 0.0, 0.0001);
 
-		EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87, 0.0001);
-		EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62, 0.0001);
-		EXPECT_DOUBLE_EQ(header.minimum.z, 123.93, 0.0001);
+        EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87, 0.0001);
+        EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62, 0.0001);
+        EXPECT_DOUBLE_EQ(header.minimum.z, 123.93, 0.0001);
 
-		EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68, 0.0001);
-		EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02, 0.0001);
-		EXPECT_DOUBLE_EQ(header.maximum.z, 178.73, 0.0001);
+        EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68, 0.0001);
+        EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02, 0.0001);
+        EXPECT_DOUBLE_EQ(header.maximum.z, 178.73, 0.0001);
 **/
 
-		EXPECT_EQ(header.point_count, 1065u);
-	}
+        EXPECT_EQ(header.point_count, 1065u);
+    }
 }
 
 TEST(io_tests, parses_laszip_vlr_correctly) {
-	using namespace laszip;
+    using namespace laszip;
 
-	{
-		std::ifstream file(testFile("point10.las.laz"));
-		io::reader::file f(file);
-		auto vlr = f.get_laz_vlr();
+    {
+        std::ifstream file(testFile("point10.las.laz"));
+        io::reader::file f(file);
+        auto vlr = f.get_laz_vlr();
 
-		EXPECT_EQ(vlr.compressor, 2);
-		EXPECT_EQ(vlr.coder, 0);
+        EXPECT_EQ(vlr.compressor, 2);
+        EXPECT_EQ(vlr.coder, 0);
 
-		EXPECT_EQ(vlr.version.major, 2);
-		EXPECT_EQ(vlr.version.minor, 2);
-		EXPECT_EQ(vlr.version.revision, 0);
+        EXPECT_EQ(vlr.version.major, 2);
+        EXPECT_EQ(vlr.version.minor, 2);
+        EXPECT_EQ(vlr.version.revision, 0);
 
-		EXPECT_EQ(vlr.options, 0u);
-		EXPECT_EQ(vlr.chunk_size, 50000u);
+        EXPECT_EQ(vlr.options, 0u);
+        EXPECT_EQ(vlr.chunk_size, 50000u);
 
-		EXPECT_EQ(vlr.num_points, -1);
-		EXPECT_EQ(vlr.num_bytes, -1);
+        EXPECT_EQ(vlr.num_points, -1);
+        EXPECT_EQ(vlr.num_bytes, -1);
 
-		EXPECT_EQ(vlr.num_items, 1u);
-		EXPECT_EQ(vlr.items[0].type, 6);
-		EXPECT_EQ(vlr.items[0].size, 20);
-		EXPECT_EQ(vlr.items[0].version, 2);
-	}
+        EXPECT_EQ(vlr.num_items, 1u);
+        EXPECT_EQ(vlr.items[0].type, 6);
+        EXPECT_EQ(vlr.items[0].size, 20);
+        EXPECT_EQ(vlr.items[0].version, 2);
+    }
 }
 
 void testPoint(laszip::formats::las::point10& p1,
@@ -381,336 +475,435 @@ TEST(io_tests, issue44)
 }
 
 void checkExists(const std::string& filename) {
-	std::ifstream f(filename, std::ios::binary);
-	if (!f.good()) {
-		std::stringstream sstr;
-		sstr << "Could not open test file: " << filename << ", did you run the download-test-sets.sh script yet?";
-		FAIL() << sstr.str();
-	}
+    std::ifstream f(filename, std::ios::binary);
+    if (!f.good()) {
+        std::stringstream sstr;
+        sstr << "Could not open test file: " << filename << ", did you run the download-test-sets.sh script yet?";
+        FAIL() << sstr.str();
+    }
 
-	f.close();
+    f.close();
 }
 
 
 TEST(io_tests, can_open_large_files) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	checkExists(testFile("autzen_trim.laz"));
+    checkExists(testFile("autzen_trim.laz"));
 
-	{
-		auto func = []() {
-			std::ifstream file(testFile("autzen_trim.laz"));
-			io::reader::file f(file);
-		};
+    {
+        auto func = []() {
+            std::ifstream file(testFile("autzen_trim.laz"));
+            io::reader::file f(file);
+        };
 
-		EXPECT_NO_THROW(func());
-	}
+        EXPECT_NO_THROW(func());
+    }
 }
 
 TEST(io_tests, can_decode_large_files) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	checkExists(testFile("autzen_trim.laz"));
-	checkExists(testFile("autzen_trim.las"));
+    checkExists(testFile("autzen_trim.laz"));
+    checkExists(testFile("autzen_trim.las"));
 
-	{
-		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
-		io::reader::file f(file);
-		reader fin(testFile("autzen_trim.las"));
+    {
+        std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
+        io::reader::file f(file);
+        reader fin(testFile("autzen_trim.las"));
 
-		size_t pointCount = f.get_header().point_count;
+        size_t pointCount = f.get_header().point_count;
 
-		EXPECT_EQ(pointCount, fin.count_);
-		EXPECT_EQ( fin.count_, 110000u);
+        EXPECT_EQ(pointCount, fin.count_);
+        EXPECT_EQ( fin.count_, 110000u);
 
-		struct pnt {
-			las::point10 p;
-			las::gpstime t;
-			las::rgb c;
-		};
+        struct pnt {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
 
-		for (size_t i = 0 ; i < pointCount ; i ++) {
-			pnt p1, p2;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            pnt p1, p2;
 
-			fin.record((char*)&p2);
-			f.readPoint((char*)&p1);
+            fin.record((char*)&p2);
+            f.readPoint((char*)&p1);
 
-			// Make sure the points match
-			{
-				const las::point10& p = p2.p;
-				const las::point10& pout = p1.p;
+            // Make sure the points match
+            {
+                const las::point10& p = p2.p;
+                const las::point10& pout = p1.p;
 
-				EXPECT_EQ(p.x, pout.x);
-				EXPECT_EQ(p.y, pout.y);
-				EXPECT_EQ(p.z, pout.z);
-				EXPECT_EQ(p.intensity, pout.intensity);
-				EXPECT_EQ(p.return_number, pout.return_number);
-				EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-				EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
-				EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
-				EXPECT_EQ(p.classification, pout.classification);
-				EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
-				EXPECT_EQ(p.user_data, pout.user_data);
-				EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
-			}
+                EXPECT_EQ(p.x, pout.x);
+                EXPECT_EQ(p.y, pout.y);
+                EXPECT_EQ(p.z, pout.z);
+                EXPECT_EQ(p.intensity, pout.intensity);
+                EXPECT_EQ(p.return_number, pout.return_number);
+                EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+                EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+                EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+                EXPECT_EQ(p.classification, pout.classification);
+                EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+                EXPECT_EQ(p.user_data, pout.user_data);
+                EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
+            }
 
-			// Make sure the gps time match
-			EXPECT_EQ(p1.t.value, p2.t.value);
+            // Make sure the gps time match
+            EXPECT_EQ(p1.t.value, p2.t.value);
 
-			// Make sure the colors match
-			EXPECT_EQ(p1.c.r, p2.c.r);
-			EXPECT_EQ(p1.c.g, p2.c.g);
-			EXPECT_EQ(p1.c.b, p2.c.b);
-		}
-	}
+            // Make sure the colors match
+            EXPECT_EQ(p1.c.r, p2.c.r);
+            EXPECT_EQ(p1.c.g, p2.c.g);
+            EXPECT_EQ(p1.c.b, p2.c.b);
+        }
+    }
 }
 
 TEST(io_tests, can_encode_large_files) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	checkExists(testFile("autzen_trim.laz"));
-	checkExists(testFile("autzen_trim.las"));
+    checkExists(testFile("autzen_trim.laz"));
+    checkExists(testFile("autzen_trim.las"));
 
-	// write stuff to a temp file
+    // write stuff to a temp file
 
-	{
-		// this is the format the autzen has points in
-		struct point {
-			las::point10 p;
-			las::gpstime t;
-			las::rgb c;
-		};
+    {
+        // this is the format the autzen has points in
+        struct point {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
 
-		factory::record_schema schema;
+        factory::record_schema schema;
 
-		// make schema
-		schema
-			(factory::record_item::point())
-			(factory::record_item::gpstime())
-			(factory::record_item::rgb());
+        // make schema
+        schema
+            (factory::record_item::point())
+            (factory::record_item::gpstime())
+            (factory::record_item::rgb());
 
-		io::writer::file f(makeTempFileName(), schema,
-				io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
+        io::writer::file f(makeTempFileName(), schema,
+                io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
-		reader fin(testFile("autzen_trim.las"));
+        reader fin(testFile("autzen_trim.las"));
 
-		size_t pointCount = fin.count_;
-		point p;
-		for (size_t i = 0 ; i < pointCount ; i ++) {
-			fin.record((char*)&p);
-			f.writePoint((char*)&p);
-		}
+        size_t pointCount = fin.count_;
+        point p;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            fin.record((char*)&p);
+            f.writePoint((char*)&p);
+        }
 
-		f.close();
-	}
+        f.close();
+    }
 }
 
 
-TEST(io_tests, compression_decompression_is_symmetric) {
-	using namespace laszip;
-	using namespace laszip::formats;
+TEST(io_tests, 1_4) {
+    /**
+    using namespace laszip;
+    using namespace laszip::formats;
 
     std::string fname = makeTempFileName();
 
-	checkExists(testFile("autzen_trim.las"));
-	{
-		// this is the format the autzen has points in
-		struct point {
-			las::point10 p;
-			las::gpstime t;
-			las::rgb c;
-		};
+    checkExists(testFile("autzen_trim.las"));
+    {
+        // this is the format the autzen has points in
+        struct point {
+            las::point14 p;
+        };
 
-		factory::record_schema schema;
+        factory::record_schema schema;
 
-		// make schema
-		schema
-			(factory::record_item::point())
-			(factory::record_item::gpstime())
-			(factory::record_item::rgb());
+        // make schema
+        schema
+            (factory::record_item::point14());
 
-		io::writer::file f(fname, schema,
+        io::writer::file f(fname, schema,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
-		reader fin(testFile("autzen_trim.las"));
+        reader fin(testFile("autzen_trim.las"));
 
-		size_t pointCount = fin.count_;
-		point p;
-		for (size_t i = 0 ; i < pointCount ; i ++) {
-			fin.record((char*)&p);
-			f.writePoint((char*)&p);
-		}
+        size_t pointCount = fin.count_;
+        point p;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            fin.record((char*)&p);
+            f.writePoint((char*)&p);
+        }
 
-		f.close();
-	}
+        f.close();
+    }
+    **/
 
-	// Now read that back and make sure points match
-	{
-		// this is the format the autzen has points in
-		struct point {
-			las::point10 p;
-			las::gpstime t;
-			las::rgb c;
-		};
+    /**
+    // Now read that back and make sure points match
+    {
+        // this is the format the autzen has points in
+        struct point {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
 
-		factory::record_schema schema;
+        factory::record_schema schema;
 
-		// make schema
-		schema
-			(factory::record_item::point())
-			(factory::record_item::gpstime())
-			(factory::record_item::rgb());
+        // make schema
+        schema
+            (factory::record_item::point())
+            (factory::record_item::gpstime())
+            (factory::record_item::rgb());
 
-		std::ifstream file(fname, std::ios::binary);
-		io::reader::file f(file);
-		reader fin(testFile("autzen_trim.las"));
+        std::ifstream file(fname, std::ios::binary);
+        io::reader::file f(file);
+        reader fin(testFile("autzen_trim.las"));
 
-		size_t pointCount = fin.count_;
-		point p1, p2;
-		for (size_t i = 0 ; i < pointCount ; i ++) {
-			//std::cout << "# " << i << std::endl;
-			fin.record((char*)&p1);
-			f.readPoint((char*)&p2);
+        size_t pointCount = fin.count_;
+        point p1, p2;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            //std::cout << "# " << i << std::endl;
+            fin.record((char*)&p1);
+            f.readPoint((char*)&p2);
 
-			// Make sure the points match
-			{
-				const las::point10& p = p2.p;
-				const las::point10& pout = p1.p;
+            // Make sure the points match
+            {
+                const las::point10& p = p2.p;
+                const las::point10& pout = p1.p;
 
-				EXPECT_EQ(p.x, pout.x);
-				EXPECT_EQ(p.y, pout.y);
-				EXPECT_EQ(p.z, pout.z);
-				EXPECT_EQ(p.intensity, pout.intensity);
-				EXPECT_EQ(p.return_number, pout.return_number);
-				EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-				EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
-				EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
-				EXPECT_EQ(p.classification, pout.classification);
-				EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
-				EXPECT_EQ(p.user_data, pout.user_data);
-				EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
-			}
+                EXPECT_EQ(p.x, pout.x);
+                EXPECT_EQ(p.y, pout.y);
+                EXPECT_EQ(p.z, pout.z);
+                EXPECT_EQ(p.intensity, pout.intensity);
+                EXPECT_EQ(p.return_number, pout.return_number);
+                EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+                EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+                EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+                EXPECT_EQ(p.classification, pout.classification);
+                EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+                EXPECT_EQ(p.user_data, pout.user_data);
+                EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
+            }
 
-			// Make sure the gps time match
-			EXPECT_EQ(p1.t.value, p2.t.value);
+            // Make sure the gps time match
+            EXPECT_EQ(p1.t.value, p2.t.value);
 
-			// Make sure the colors match
-			EXPECT_EQ(p1.c.r, p2.c.r);
-			EXPECT_EQ(p1.c.g, p2.c.g);
-			EXPECT_EQ(p1.c.b, p2.c.b);
-		}
+            // Make sure the colors match
+            EXPECT_EQ(p1.c.r, p2.c.r);
+            EXPECT_EQ(p1.c.g, p2.c.g);
+            EXPECT_EQ(p1.c.b, p2.c.b);
+        }
 
-		file.close();
-	}
+        file.close();
+    }
+    **/
+}
+
+///
+TEST(io_tests, compression_decompression_is_symmetric) {
+    using namespace laszip;
+    using namespace laszip::formats;
+
+    std::string fname = makeTempFileName();
+
+    checkExists(testFile("autzen_trim.las"));
+    {
+        // this is the format the autzen has points in
+        struct point {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
+
+        factory::record_schema schema;
+
+        // make schema
+        schema
+            (factory::record_item::point())
+            (factory::record_item::gpstime())
+            (factory::record_item::rgb());
+
+        io::writer::file f(fname, schema,
+            io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
+
+        reader fin(testFile("autzen_trim.las"));
+
+        size_t pointCount = fin.count_;
+        point p;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            fin.record((char*)&p);
+            f.writePoint((char*)&p);
+        }
+
+        f.close();
+    }
+
+    // Now read that back and make sure points match
+    {
+        // this is the format the autzen has points in
+        struct point {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
+
+        factory::record_schema schema;
+
+        // make schema
+        schema
+            (factory::record_item::point())
+            (factory::record_item::gpstime())
+            (factory::record_item::rgb());
+
+        std::ifstream file(fname, std::ios::binary);
+        io::reader::file f(file);
+        reader fin(testFile("autzen_trim.las"));
+
+        size_t pointCount = fin.count_;
+        point p1, p2;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            //std::cout << "# " << i << std::endl;
+            fin.record((char*)&p1);
+            f.readPoint((char*)&p2);
+
+            // Make sure the points match
+            {
+                const las::point10& p = p2.p;
+                const las::point10& pout = p1.p;
+
+                EXPECT_EQ(p.x, pout.x);
+                EXPECT_EQ(p.y, pout.y);
+                EXPECT_EQ(p.z, pout.z);
+                EXPECT_EQ(p.intensity, pout.intensity);
+                EXPECT_EQ(p.return_number, pout.return_number);
+                EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+                EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+                EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+                EXPECT_EQ(p.classification, pout.classification);
+                EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+                EXPECT_EQ(p.user_data, pout.user_data);
+                EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
+            }
+
+            // Make sure the gps time match
+            EXPECT_EQ(p1.t.value, p2.t.value);
+
+            // Make sure the colors match
+            EXPECT_EQ(p1.c.r, p2.c.r);
+            EXPECT_EQ(p1.c.g, p2.c.g);
+            EXPECT_EQ(p1.c.b, p2.c.b);
+        }
+
+        file.close();
+    }
 }
 
 TEST(io_tests, can_decode_large_files_from_memory) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	checkExists(testFile("autzen_trim.laz"));
-	checkExists(testFile("autzen_trim.las"));
+    checkExists(testFile("autzen_trim.laz"));
+    checkExists(testFile("autzen_trim.las"));
 
-	{
-		std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
-		EXPECT_EQ(file.good(), true);
+    {
+        std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
+        EXPECT_EQ(file.good(), true);
 
-		file.ignore((std::numeric_limits<std::streamsize>::max)());
-		std::streamsize file_size = file.gcount();
-		file.clear();   //  Since ignore will have set eof.
-		file.seekg(0, std::ios_base::beg);
+        file.ignore((std::numeric_limits<std::streamsize>::max)());
+        std::streamsize file_size = file.gcount();
+        file.clear();   //  Since ignore will have set eof.
+        file.seekg(0, std::ios_base::beg);
 
-		char *buf = (char *)malloc(static_cast<size_t>(file_size));
-		file.read(buf, file_size);
-		EXPECT_EQ(file.gcount(), file_size);
-		file.close();
+        char *buf = (char *)malloc(static_cast<size_t>(file_size));
+        file.read(buf, file_size);
+        EXPECT_EQ(file.gcount(), file_size);
+        file.close();
 
-		streams::memory_stream ms(buf, file_size);
+        memory_stream ms(buf, file_size);
 
-		io::reader::basic_file<streams::memory_stream> f(ms);
-		reader fin(testFile("autzen_trim.las"));
+        io::reader::basic_file<memory_stream> f(ms);
+        reader fin(testFile("autzen_trim.las"));
 
-		size_t pointCount = f.get_header().point_count;
+        size_t pointCount = f.get_header().point_count;
 
-		EXPECT_EQ(pointCount, fin.count_);
+        EXPECT_EQ(pointCount, fin.count_);
 
-		struct pnt {
-			las::point10 p;
-			las::gpstime t;
-			las::rgb c;
-		};
+        struct pnt {
+            las::point10 p;
+            las::gpstime t;
+            las::rgb c;
+        };
 
-		for (size_t i = 0 ; i < pointCount ; i ++) {
-			pnt p1, p2;
+        for (size_t i = 0 ; i < pointCount ; i ++) {
+            pnt p1, p2;
 
-			f.readPoint((char*)&p1);
-			fin.record((char*)&p2);
+            f.readPoint((char*)&p1);
+            fin.record((char*)&p2);
 
-			// Make sure the points match
-			{
-				const las::point10& p = p2.p;
-				const las::point10& pout = p1.p;
+            // Make sure the points match
+            {
+                const las::point10& p = p2.p;
+                const las::point10& pout = p1.p;
 
-				EXPECT_EQ(p.x, pout.x);
-				EXPECT_EQ(p.y, pout.y);
-				EXPECT_EQ(p.z, pout.z);
-				EXPECT_EQ(p.intensity, pout.intensity);
-				EXPECT_EQ(p.return_number, pout.return_number);
-				EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
-				EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
-				EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
-				EXPECT_EQ(p.classification, pout.classification);
-				EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
-				EXPECT_EQ(p.user_data, pout.user_data);
-				EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
-			}
+                EXPECT_EQ(p.x, pout.x);
+                EXPECT_EQ(p.y, pout.y);
+                EXPECT_EQ(p.z, pout.z);
+                EXPECT_EQ(p.intensity, pout.intensity);
+                EXPECT_EQ(p.return_number, pout.return_number);
+                EXPECT_EQ(p.number_of_returns_of_given_pulse, pout.number_of_returns_of_given_pulse);
+                EXPECT_EQ(p.scan_direction_flag, pout.scan_direction_flag);
+                EXPECT_EQ(p.edge_of_flight_line, pout.edge_of_flight_line);
+                EXPECT_EQ(p.classification, pout.classification);
+                EXPECT_EQ(p.scan_angle_rank, pout.scan_angle_rank);
+                EXPECT_EQ(p.user_data, pout.user_data);
+                EXPECT_EQ(p.point_source_ID, pout.point_source_ID);
+            }
 
-			// Make sure the gps time match
-			EXPECT_EQ(p1.t.value, p2.t.value);
+            // Make sure the gps time match
+            EXPECT_EQ(p1.t.value, p2.t.value);
 
-			// Make sure the colors match
-			EXPECT_EQ(p1.c.r, p2.c.r);
-			EXPECT_EQ(p1.c.g, p2.c.g);
-			EXPECT_EQ(p1.c.b, p2.c.b);
-		}
+            // Make sure the colors match
+            EXPECT_EQ(p1.c.r, p2.c.r);
+            EXPECT_EQ(p1.c.g, p2.c.g);
+            EXPECT_EQ(p1.c.b, p2.c.b);
+        }
 
-		free(buf);
-	}
+        free(buf);
+    }
 }
 
 TEST(io_tests, writes_bbox_to_header) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    using namespace laszip;
+    using namespace laszip::formats;
 
-	factory::record_schema schema;
-	schema(factory::record_item::point());
+    factory::record_schema schema;
+    schema(factory::record_item::point());
 
-	// First write a few points
-	std::string filename(makeTempFileName());
-	io::writer::file f(filename, schema,
-			io::writer::config(vector3<double>(0.01, 0.01, 0.01),
-							   vector3<double>(0.0, 0.0, 0.0)));
-	las::point10 p1, p2;
-	p1.x = 100; p2.x = 200;
-	p1.y = -200; p2.y = -300;
-	p1.z = 300; p2.z = -400;
+    // First write a few points
+    std::string filename(makeTempFileName());
+    io::writer::file f(filename, schema,
+        io::writer::config(io::vector3(0.01, 0.01, 0.01), io::vector3(0.0, 0.0, 0.0)));
 
-	f.writePoint((char*)&p1);
-	f.writePoint((char*)&p2);
-	f.close();
+    las::point10 p1, p2;
+    p1.x = 100; p2.x = 200;
+    p1.y = -200; p2.y = -300;
+    p1.z = 300; p2.z = -400;
 
-	// Now check that the file has correct bounding box
-  std::ifstream ifs(filename);
-  io::reader::file reader(ifs);
-  EXPECT_EQ(reader.get_header().minimum.x, 1.0);
-  EXPECT_EQ(reader.get_header().maximum.x, 2.0);
-  EXPECT_EQ(reader.get_header().minimum.y, -3.0);
-  EXPECT_EQ(reader.get_header().maximum.y, -2.0);
-  EXPECT_EQ(reader.get_header().minimum.z, -4.0);
-  EXPECT_EQ(reader.get_header().maximum.z, 3.0);
+    f.writePoint((char*)&p1);
+    f.writePoint((char*)&p2);
+    f.close();
+
+    // Now check that the file has correct bounding box
+    std::ifstream ifs(filename);
+    io::reader::file reader(ifs);
+    EXPECT_EQ(reader.get_header().minimum.x, 1.0);
+    EXPECT_EQ(reader.get_header().maximum.x, 2.0);
+    EXPECT_EQ(reader.get_header().minimum.y, -3.0);
+    EXPECT_EQ(reader.get_header().maximum.y, -2.0);
+    EXPECT_EQ(reader.get_header().minimum.z, -4.0);
+    EXPECT_EQ(reader.get_header().maximum.z, 3.0);
 }
 
 TEST(io_tests, issue22)
