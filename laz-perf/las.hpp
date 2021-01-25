@@ -209,7 +209,7 @@ namespace las
 // Compressor
 
 template<typename TStream>
-struct point_compressor_base_1_2 : public formats::dynamic_compressor
+struct point_compressor_base_1_2 : public formats::las_compressor
 {
     point_compressor_base_1_2(TStream& stream, int ebCount) :
         encoder_(stream), extrabytes_(ebCount)
@@ -298,7 +298,7 @@ struct point_compressor_3 : public point_compressor_base_1_2<TStream>
 // Decompressor
 
 template<typename TStream>
-struct point_decompressor_base_1_2 : public formats::dynamic_decompressor
+struct point_decompressor_base_1_2 : public formats::las_decompressor
 {
     point_decompressor_base_1_2(TStream& stream, int ebCount) :
         decoder_(stream), extrabytes_(ebCount), first_(true)

@@ -345,6 +345,25 @@ namespace formats
             record_decompressor<TS...> next_;
         };
 
+        
+        struct las_compressor {
+            typedef std::shared_ptr<las_compressor> ptr;
+
+            virtual const char *compress(const char *in) = 0;
+            virtual void done() = 0;
+            virtual ~las_compressor()
+            {}
+        };
+
+        struct las_decompressor {
+            typedef std::shared_ptr<las_decompressor> ptr;
+
+            virtual char *decompress(char *in) = 0;
+            virtual ~las_decompressor()
+            {}
+        };
+        
+
         struct dynamic_compressor {
             typedef std::shared_ptr<dynamic_compressor> ptr;
 

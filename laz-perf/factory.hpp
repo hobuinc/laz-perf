@@ -182,90 +182,13 @@ struct record_schema
     std::vector<record_item> records_;
 };
 
+
 template<typename TStream>
-formats::dynamic_decompressor::ptr build_decompressor(TStream& stream, int format, int ebCount = 0)
+formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, int ebCount = 0)
 {
     using namespace formats;
 
-    dynamic_decompressor::ptr decompressor;
-
-    switch (format)
-    {
-    case 0:
-        decompressor.reset(new las::point_decompressor_0<TStream>(stream, ebCount));
-        break;
-    case 1:
-        decompressor.reset(new las::point_decompressor_1<TStream>(stream, ebCount));
-        break;
-    case 2:
-        decompressor.reset(new las::point_decompressor_2<TStream>(stream, ebCount));
-        break;
-    case 3:
-        decompressor.reset(new las::point_decompressor_3<TStream>(stream, ebCount));
-        break;
-    }
-    return decompressor;
-}
-
-template<typename TStream>
-formats::dynamic_decompressor::ptr build_decompressor(TStream& stream,
-    const record_schema& schema)
-{
-    if (!schema.valid())
-        throw error("Can't build decompressor. Invalid/unsupported schema.");
-    return build_decompressor(stream, schema.format(), schema.extrabytes());
-}
-
-/**
-    int format = schema.format();
-    size_t ebCount = schema.extrabytes();
-    if (ebCount)
-    {
-        auto decompressor = make_dynamic_decompressor(stream);
-        decompressor->template add_field<las::point10>();
-        if (format == 1 || format == 3)
-            decompressor->template add_field<las::gpstime>();
-        if (format == 2 || format == 3)
-            decompressor->template add_field<las::rgb>();
-        decompressor->add_field(field<las::extrabytes>(ebCount));
-        return decompressor;
-    }
-    else
-    {
-        switch (format)
-        {
-        case 0:
-            return make_dynamic_decompressor(stream,
-                new formats::record_decompressor<field<las::point10>>());
-        case 1:
-            return make_dynamic_decompressor(stream,
-                new formats::record_decompressor<
-                    field<las::point10>,
-                    field<las::gpstime>>());
-        case 2:
-            return make_dynamic_decompressor(stream,
-                new formats::record_decompressor<
-                    field<las::point10>,
-                    field<las::rgb>>());
-        case 3:
-            return make_dynamic_decompressor(stream,
-                new formats::record_decompressor<
-                    field<las::point10>,
-                    field<las::gpstime>,
-                    field<las::rgb>>());
-        }
-    }
-    return dynamic_decompressor::ptr();
-}
-**/
-
-
-template<typename TStream>
-formats::dynamic_compressor::ptr build_compressor(TStream& stream, int format, int ebCount = 0)
-{
-    using namespace formats;
-
-    dynamic_compressor::ptr compressor;
+    las_compressor::ptr compressor;
 
     switch (format)
     {
@@ -286,11 +209,44 @@ formats::dynamic_compressor::ptr build_compressor(TStream& stream, int format, i
 }
 
 template<typename TStream>
-formats::dynamic_compressor::ptr build_compressor(TStream& stream, const record_schema& schema)
+formats::las_compressor::ptr build_las_compressor(TStream& stream, const record_schema& schema)
 {
     if (!schema.valid())
         throw error("Can't create compressor. Unsupported/invalid schema.");
-    return build_compressor(stream, schema.format(), schema.extrabytes());
+    return build_las_compressor(stream, schema.format(), schema.extrabytes());
+}
+
+template<typename TStream>
+formats::las_decompressor::ptr build_las_decompressor(TStream& stream, int format, int ebCount = 0)
+{
+    using namespace formats;
+
+    las_decompressor::ptr decompressor;
+
+    switch (format)
+    {
+    case 0:
+        decompressor.reset(new las::point_decompressor_0<TStream>(stream, ebCount));
+        break;
+    case 1:
+        decompressor.reset(new las::point_decompressor_1<TStream>(stream, ebCount));
+        break;
+    case 2:
+        decompressor.reset(new las::point_decompressor_2<TStream>(stream, ebCount));
+        break;
+    case 3:
+        decompressor.reset(new las::point_decompressor_3<TStream>(stream, ebCount));
+        break;
+    }
+    return decompressor;
+}
+
+template<typename TStream>
+formats::las_decompressor::ptr build_las_decompressor(TStream& stream, const record_schema& schema)
+{
+    if (!schema.valid())
+        throw error("Can't build decompressor. Invalid/unsupported schema.");
+    return build_las_decompressor(stream, schema.format(), schema.extrabytes());
 }
 
 } // namespace factory

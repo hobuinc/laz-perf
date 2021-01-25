@@ -511,7 +511,7 @@ public:
          // read the next point in
          if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
          {
-             pdecomperssor_ = factory::build_decompressor(stream_, schema_);
+             pdecomperssor_ = factory::build_las_decompressor(stream_, schema_);
 
              // reset chunk state
              chunk_state_.current++;
@@ -750,7 +750,7 @@ private:
     // the schema of this file, the LAZ items converted into factory recognizable description,
     factory::record_schema schema_;
 
-    formats::dynamic_decompressor::ptr pdecomperssor_;
+    formats::las_decompressor::ptr pdecomperssor_;
 
     // Establish our current state as we iterate through the file
     struct __chunk_state
@@ -872,7 +872,7 @@ public:
             chunk_state_.last_chunk_write_offset = offset;
 
             // reinit stuff
-            pcompressor_ = factory::build_compressor(wrapper_, schema_);
+            pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
         }
 
         // now write the point
@@ -1022,7 +1022,7 @@ private:
     std::ofstream f_;
     __ofstream_wrapper<std::ofstream> wrapper_;
 
-    formats::dynamic_compressor::ptr pcompressor_;
+    formats::las_compressor::ptr pcompressor_;
 
     factory::record_schema schema_;
     header header_;

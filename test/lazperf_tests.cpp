@@ -345,15 +345,11 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
     using namespace laszip;
     using namespace laszip::formats;
 
-    record_compressor<
-        field<las::point10>
-    > compressor;
-
     SuchStream s;
 
     const int N = 100000;
 
-    encoders::arithmetic<SuchStream> encoder(s);
+    las::point_compressor_0<SuchStream> compressor(s, 0);
 
     for (int i = 0 ; i < N; i ++) {
         las::point10 p;
@@ -375,19 +371,15 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
         char buf[sizeof(las::point10)];
         packers<las::point10>::pack(p, buf);
 
-        compressor.compressWith(encoder, buf);
+        compressor.compress(buf);
     }
-    encoder.done();
+    compressor.done();
 
-    record_decompressor<
-        field<las::point10>
-    > decompressor;
-
-    decoders::arithmetic<SuchStream> decoder(s);
+    las::point_decompressor_0<SuchStream> decompressor(s, 0);
 
     char buf[sizeof(las::point10)];
     for (int i = 0 ; i < N ; i ++) {
-        decompressor.decompressWith(decoder, (char *)buf);
+        decompressor.decompress((char *)buf);
 
         las::point10 p = packers<las::point10>::unpack(buf);
 
@@ -439,35 +431,25 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 	las::point10 pnt;
 
 	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
+    las::point_compressor_0<SuchStream> compressor(s, 0);
 
-	record_compressor<
-		field<las::point10>
-	> comp;
-
-	std::vector<las::point10> points;	// hopefully not too many points in our test case :)
-
+    std::vector<las::point10> points;
 	while(!f.eof()) {
 		f.read((char *)&pnt, sizeof(pnt));
-		comp.compressWith(encoder, (const char*)&pnt);
+		compressor.compress((const char*)&pnt);
 
 		points.push_back(pnt);
 	}
-
-	encoder.done();
+	compressor.done();
 
 	f.close();
 
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	record_decompressor<
-		field<las::point10>
-	> decomp;
+    las::point_decompressor_0<SuchStream> decompressor(s, 0);
 
 	for (size_t i = 0 ; i < points.size() ; i ++) {
 		char buf[sizeof(las::point10)];
 		las::point10 pout;
-		decomp.decompressWith(decoder, (char *)buf);
+		decompressor.decompress((char *)buf);
 
 		pout = packers<las::point10>::unpack(buf);
 
@@ -513,10 +495,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-	decoders::arithmetic<SuchStream> dec(s);
-	record_decompressor<
-		field<las::point10>
-	> decomp;
+    las::point_decompressor_0<SuchStream> decompressor(s, 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -534,7 +513,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 
 		// decompress record
 		//
-		decomp.decompressWith(dec, (char*)&pout);
+		decompressor.decompress((char*)&pout);
 
 		// make sure they match
 		EXPECT_EQ(p.x, pout.x);
@@ -611,7 +590,7 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 
 	SuchStream s;
 
-	dynamic_compressor::ptr pcompressor = build_compressor(s, 0);
+	las_compressor::ptr pcompressor = build_las_compressor(s, 0);
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
@@ -649,6 +628,7 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 	using namespace laszip;
 	using namespace laszip::formats;
+	using namespace laszip::factory;
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
@@ -668,9 +648,7 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-	auto decomp = new record_decompressor<field<las::point10> >();
-
-	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(s, decomp);
+    las_decompressor::ptr pdecomp = build_las_decompressor(s, 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);

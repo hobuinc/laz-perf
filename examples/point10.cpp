@@ -52,13 +52,6 @@ int main() {
 	using namespace laszip;
 	using namespace laszip::formats;
 
-
-	// Create a record compressor for point10
-	//
-	record_compressor<
-		field<las::point10>
-	> compressor;
-
 	int N = 1000;
 
 	// Create an object of our stream to which the encoder will write
@@ -67,7 +60,7 @@ int main() {
 
 	// Instantiate the arithmetic encoder
 	//
-	encoders::arithmetic<SuchStream> encoder(s);
+    las::point_compressor_0<SuchStream> compressor(s, 0);
 
 	// Encode some dummy data
 	//
@@ -89,12 +82,12 @@ int main() {
 		// All compressor cares about is your data as a pointer, it will unpack data
 		// automatically based on the fields that were specified and compress them
 		//
-		compressor.compressWith(encoder, (const char*)&p);
+		compressor.compress((const char*)&p);
 	}
 
 	// Finally terminate the encoder by calling done on it. This will flush out any pending data to output.
 	//
-	encoder.done();
+	compressor.done();
 
 
 	// Print some fun stuff about compression
@@ -103,13 +96,9 @@ int main() {
 
 	// Setup record decompressor for point10
 	//
-	record_decompressor<
-		field<las::point10>
-	> decompressor;
-
 	// Create a decoder same way as we did with the encoder
 	//
-	decoders::arithmetic<SuchStream> decoder(s);
+    las::point_decompressor_0<SuchStream> decompressor(s, 0);
 
 	// This time we'd read the values out instead and make sure they match what we pushed in
 	//
@@ -117,7 +106,7 @@ int main() {
 		// When we decompress data we need to provide where to decode stuff to
 		//
 		las::point10 p2;
-		decompressor.decompressWith(decoder, (char *)&p2);
+		decompressor.decompress((char *)&p2);
 
 		// Finally make sure things match, otherwise bail
 		if (p2.x != i ||
