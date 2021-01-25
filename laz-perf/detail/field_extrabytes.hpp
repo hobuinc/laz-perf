@@ -56,6 +56,9 @@ namespace laszip {
 			template<typename TEncoder>
 			inline const char *compressWith(TEncoder& enc, const char *buf)
             {
+                if (count_ == 0)
+                    return buf;
+
                 auto li = lasts_.begin();
                 auto di = diffs_.begin();
                 while (di != diffs_.end())
@@ -83,6 +86,9 @@ namespace laszip {
             template<typename TDecoder>
             inline char *decompressWith(TDecoder& dec, char *buf)
             {
+                if (count_ == 0)
+                    return buf;
+
                 if (!have_last_)
                 {
                     dec.getInStream().getBytes((unsigned char *)buf, count_);

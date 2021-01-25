@@ -397,6 +397,7 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     {
         ucStream.read(ucBuf, pointLen);
         c.readPoint(cBuf);
+        std::cerr << "Testing point " << i << "!\n";
         testPoint(header.point_format_id, pointLen, ucBuf, cBuf);
     }
 }

@@ -604,15 +604,14 @@ TEST(lazperf_tests, binary_matches_laszip) {
 TEST(lazperf_tests, dynamic_compressor_works) {
 	using namespace laszip;
 	using namespace laszip::formats;
+	using namespace laszip::factory;
 
 	const std::string lasRaw = testFile("point10-1.las.raw");
 	const std::string lazRaw = testFile("point10-1.las.laz.raw");
 
 	SuchStream s;
 
-	auto compressor = new record_compressor<field<las::point10> >();
-
-	dynamic_compressor::ptr pcompressor = make_dynamic_compressor(s, compressor);
+	dynamic_compressor::ptr pcompressor = build_compressor(s, 0);
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())

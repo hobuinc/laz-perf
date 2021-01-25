@@ -199,4 +199,204 @@ namespace laszip {
 #include "detail/field_rgb.hpp"
 #include "detail/field_xyz.hpp"
 
+namespace laszip
+{
+namespace formats
+{
+namespace las
+{
+
+// Compressor
+
+template<typename TStream>
+struct point_compressor_base_1_2 : public formats::dynamic_compressor
+{
+    point_compressor_base_1_2(TStream& stream, int ebCount) :
+        encoder_(stream), extrabytes_(ebCount)
+    {}
+
+    virtual void done()
+    { encoder_.done(); }
+
+    encoders::arithmetic<TStream> encoder_;
+    field<point10> point_;
+    field<extrabytes> extrabytes_;
+};
+
+template<typename TStream>
+struct point_compressor_0 : public point_compressor_base_1_2<TStream>
+{
+    point_compressor_0(TStream& stream, int ebCount) :
+        point_compressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    virtual const char *compress(const char *in)
+    {
+        in = this->point_.compressWith(this->encoder_, in);
+        in = this->extrabytes_.compressWith(this->encoder_, in);
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_compressor_1 : public point_compressor_base_1_2<TStream>
+{
+    point_compressor_1(TStream& stream, int ebCount) :
+        point_compressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<gpstime> gpstime_;
+
+    virtual const char *compress(const char *in)
+    {
+        in = this->point_.compressWith(this->encoder_, in);
+        in = gpstime_.compressWith(this->encoder_, in);
+        in = this->extrabytes_.compressWith(this->encoder_, in);
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_compressor_2 : public point_compressor_base_1_2<TStream>
+{
+    point_compressor_2(TStream& stream, int ebCount) :
+        point_compressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<rgb> rgb_;
+
+    virtual const char *compress(const char *in)
+    {
+        in = this->point_.compressWith(this->encoder_, in);
+        in = rgb_.compressWith(this->encoder_, in);
+        in = this->extrabytes_.compressWith(this->encoder_, in);
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_compressor_3 : public point_compressor_base_1_2<TStream>
+{
+    point_compressor_3(TStream& stream, int ebCount) :
+        point_compressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<gpstime> gpstime_;
+    field<rgb> rgb_;
+
+    virtual const char *compress(const char *in)
+    {
+        in = this->point_.compressWith(this->encoder_, in);
+        in = gpstime_.compressWith(this->encoder_, in);
+        in = rgb_.compressWith(this->encoder_, in);
+        in = this->extrabytes_.compressWith(this->encoder_, in);
+        return in;
+    }
+};
+
+
+// Decompressor
+
+template<typename TStream>
+struct point_decompressor_base_1_2 : public formats::dynamic_decompressor
+{
+    point_decompressor_base_1_2(TStream& stream, int ebCount) :
+        decoder_(stream), extrabytes_(ebCount), first_(true)
+    {}
+
+    //ABELL - This is a bad hack that should by changing the call site.
+    void handleFirst()
+    {
+        if (first_)
+        {
+            decoder_.readInitBytes();
+            first_ = false;
+        }
+    }
+
+    decoders::arithmetic<TStream> decoder_;
+    field<point10> point_;
+    field<extrabytes> extrabytes_;
+    bool first_;
+};
+
+template<typename TStream>
+struct point_decompressor_0 : public point_decompressor_base_1_2<TStream>
+{
+    point_decompressor_0(TStream& stream, int ebCount) :
+        point_decompressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    virtual char *decompress(char *in)
+    {
+        in = this->point_.decompressWith(this->decoder_, in);
+        in = this->extrabytes_.decompressWith(this->decoder_, in);
+        this->handleFirst();
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_decompressor_1 : public point_decompressor_base_1_2<TStream>
+{
+    point_decompressor_1(TStream& stream, int ebCount) :
+        point_decompressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<gpstime> gpstime_;
+
+    virtual char *decompress(char *in)
+    {
+        in = this->point_.decompressWith(this->decoder_, in);
+        in = gpstime_.decompressWith(this->decoder_, in);
+        in = this->extrabytes_.decompressWith(this->decoder_, in);
+        this->handleFirst();
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_decompressor_2 : public point_decompressor_base_1_2<TStream>
+{
+    point_decompressor_2(TStream& stream, int ebCount) :
+        point_decompressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<rgb> rgb_;
+
+    virtual char *decompress(char *in)
+    {
+        in = this->point_.decompressWith(this->decoder_, in);
+        in = rgb_.decompressWith(this->decoder_, in);
+        in = this->extrabytes_.decompressWith(this->decoder_, in);
+        this->handleFirst();
+        return in;
+    }
+};
+
+template<typename TStream>
+struct point_decompressor_3 : public point_decompressor_base_1_2<TStream>
+{
+    point_decompressor_3(TStream& stream, int ebCount) :
+        point_decompressor_base_1_2<TStream>(stream, ebCount)
+    {}
+
+    field<gpstime> gpstime_;
+    field<rgb> rgb_;
+
+    virtual char *decompress(char *in)
+    {
+        in = this->point_.decompressWith(this->decoder_, in);
+        in = gpstime_.decompressWith(this->decoder_, in);
+        in = rgb_.decompressWith(this->decoder_, in);
+        in = this->extrabytes_.decompressWith(this->decoder_, in);
+        this->handleFirst();
+        return in;
+    }
+};
+
+} // namespace las
+} // namespace formats
+} // namespace laszip
+
 #endif // __las_hpp__

@@ -360,35 +360,7 @@ namespace formats
             virtual ~dynamic_decompressor() {}
         };
 
-        template<typename TStream, typename TRecordCompressor>
-        struct dynamic_compressor1_2 : public dynamic_compressor
-        {
-            dynamic_compressor1_2(TStream& stream, TRecordCompressor* compressor) :
-                encoder_(stream), compressor_(compressor) {}
 
-            virtual const char *compress(const char *in) {
-                return compressor_->compressWith(encoder_, in);
-            }
-
-            virtual void done()
-            { encoder_.done(); }
-
-            dynamic_compressor1_2(
-                const dynamic_compressor1_2<TStream, TRecordCompressor>&) = delete;
-            dynamic_compressor1_2<TStream, TRecordCompressor>& operator=(
-                dynamic_compressor1_2<TStream, TRecordCompressor>&) = delete;
-
-            encoders::arithmetic<TStream> encoder_;
-            std::unique_ptr<TRecordCompressor> compressor_;
-        };
-
-        template<typename TStream, typename TRecordCompressor>
-        static dynamic_compressor::ptr make_dynamic_compressor(
-            TStream& stream, TRecordCompressor* compressor)
-        {
-            return dynamic_compressor::ptr(
-                new dynamic_compressor1_2<TStream, TRecordCompressor>(stream, compressor));
-        }
         template<typename TStream, typename TRecordDecompressor>
         struct dynamic_decompressor1_2 : public dynamic_decompressor
         {
