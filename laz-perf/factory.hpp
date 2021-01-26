@@ -204,6 +204,8 @@ formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, i
     case 3:
         compressor.reset(new las::point_compressor_3<TStream>(stream, ebCount));
         break;
+    case 6:
+        compressor.reset(new las::point_compressor_6<TStream>(stream));
     }
     return compressor;
 }

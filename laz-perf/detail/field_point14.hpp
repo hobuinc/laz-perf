@@ -207,8 +207,8 @@ struct field<las::point14>
     field() : last_channel_(-1)
     {}
 
-    template<typename Encoder>
-    inline const char *compressWith(Encoder& enc, const char *buf)
+    template<typename TStream>
+    inline const char *compressWith(TStream& stream, const char *buf)
     {
         const las::point14 point = packers<las::point14>::unpack(buf);
 
@@ -222,7 +222,7 @@ struct field<las::point14>
         if (last_channel_ == -1)
         {
             ChannelCtx& c = chan_ctxs_[sc];
-            enc.getOutStream().putBytes((const unsigned char*)buf, sizeof(las::point14));
+            stream.putBytes((const unsigned char*)buf, sizeof(las::point14));
             c.last_ = point;
             c.have_last_ = true;
             last_channel_ = sc;
@@ -542,6 +542,55 @@ struct field<las::point14>
         last_channel_ = sc;
         c.last_ = point;
         return buf + sizeof(las::point14);
+    }
+
+    template <typename TStream>
+    void done(TStream& stream)
+    {
+        xy_enc_.done();
+        z_enc_.done();
+        class_enc_.done();
+        flags_enc_.done();
+        intensity_enc_.done();
+        scan_angle_enc_.done();
+        user_data_enc_.done();
+        point_source_id_enc_.done();
+        gpstime_enc_.done();
+
+        stream << xy_enc_.num_encoded();
+        stream << z_enc_.num_encoded();
+        if (class_enc_.num_encoded())
+            stream << class_enc_.num_encoded();
+        if (flags_enc_.num_encoded())
+            stream << flags_enc_.num_encoded();
+        if (intensity_enc_.num_encoded())
+            stream << intensity_enc_.num_encoded();
+        if (scan_angle_enc_.num_encoded())
+            stream << scan_angle_enc_.num_encoded();
+        if (user_data_enc_.num_encoded())
+            stream << user_data_enc_.num_encoded();
+        if (point_source_id_enc_.num_encoded())
+            stream << point_source_id_enc_.num_encoded();
+        if (gpstime_enc_.num_encoded())
+            stream << gpstime_enc_.num_encoded();
+
+        stream.putBytes(xy_enc_.encoded_bytes(), xy_enc_.num_encoded());
+        stream.putBytes(z_enc_.encoded_bytes(), z_enc_.num_encoded());
+        if (class_enc_.num_encoded())
+            stream.putBytes(class_enc_.encoded_bytes(), class_enc_.num_encoded());
+        if (flags_enc_.num_encoded())
+            stream.putBytes(flags_enc_.encoded_bytes(), flags_enc_.num_encoded());
+        if (intensity_enc_.num_encoded())
+            stream.putBytes(intensity_enc_.encoded_bytes(), intensity_enc_.num_encoded());
+        if (scan_angle_enc_.num_encoded())
+            stream.putBytes(scan_angle_enc_.encoded_bytes(), scan_angle_enc_.num_encoded());
+        if (user_data_enc_.num_encoded())
+            stream.putBytes(user_data_enc_.encoded_bytes(), user_data_enc_.num_encoded());
+        if (point_source_id_enc_.num_encoded())
+            stream.putBytes(point_source_id_enc_.encoded_bytes(),
+                point_source_id_enc_.num_encoded());
+        if (gpstime_enc_.num_encoded())
+            stream.putBytes(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded());
     }
 
     static const int GpstimeMulti = 500;

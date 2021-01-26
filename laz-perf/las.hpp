@@ -224,6 +224,37 @@ struct point_compressor_base_1_2 : public formats::las_compressor
 };
 
 template<typename TStream>
+struct point_compressor_base_1_4 : public formats::las_compressor
+{
+    point_compressor_base_1_4(TStream& stream) : stream_(stream)
+    {}
+
+    virtual void done()
+    {
+        stream_ << chunk_count_;
+        point_.done(stream_);
+    }
+
+    TStream& stream_;
+    field<point14> point_;
+    uint32_t chunk_count_;
+};
+
+//ABELL - Move this
+template<typename TStream>
+struct point_compressor_6 : public point_compressor_base_1_4<TStream>
+{
+    point_compressor_6(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    {}
+
+    virtual const char *compress(const char *in)
+    {
+        in = this->point_.compressWith(this->stream_, in);
+        return in;
+    }
+};
+
+template<typename TStream>
 struct point_compressor_0 : public point_compressor_base_1_2<TStream>
 {
     point_compressor_0(TStream& stream, int ebCount) :

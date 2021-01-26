@@ -241,6 +241,15 @@ public:
         return outstream;
     }
 
+    uint32_t num_encoded()
+    {
+        return outstream.numBytesPut();
+    }
+
+    const uint8_t *encoded_bytes()
+    {
+        return outstream.data();
+    }
 
 private:
     void init()
@@ -305,11 +314,12 @@ arithmetic<TOutStream>(const arithmetic<TOutStream>&) = delete;
 arithmetic<TOutStream>& operator = (const arithmetic<TOutStream>&) = delete;
 
 private:
-    U8* outbuffer;
-    U8* endbuffer;
-    U8* outbyte;
-    U8* endbyte;
-    U32 base, value, length;
+    uint8_t* outbuffer;
+    uint8_t* endbuffer;
+    uint8_t* outbyte;
+    uint8_t* endbyte;
+    uint32_t base, value, length;
+    uint32_t bytesEncoded;  //ABELL - Seems strange this is 32 bits, but LAZ1.4...
 
     std::unique_ptr<TOutStream> pOut;
     TOutStream& outstream;

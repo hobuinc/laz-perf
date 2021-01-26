@@ -31,6 +31,8 @@
 
 #include <algorithm>
 
+#include "portable_endian.hpp"
+
 namespace laszip {
 
 struct MemoryStream
@@ -60,9 +62,25 @@ struct MemoryStream
             b[i] = getByte();
     }
 
+    uint32_t numBytesPut() const
+    {
+        return buf.size();
+    }
+
+    const uint8_t *data() const
+    { return buf.data(); }
+
     std::vector<unsigned char> buf; // cuz I'm ze faste
     size_t idx;
 };
+
+template <typename TStream>
+TStream& operator << (TStream& stream, uint32_t u)
+{
+    uint32_t uLe = htole32(u);
+    stream.putBytes(reinterpret_cast<const unsigned char *>(&uLe), sizeof(uLe));
+    return stream;
+}
 
 } // namespace laszip
 

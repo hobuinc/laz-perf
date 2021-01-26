@@ -851,34 +851,26 @@ public:
 
     void writePoint(const char *p)
     {
-        if (chunk_state_.points_in_chunk == chunk_size_ || !pcompressor_)
+        //ABELL - This first bit can go away if we simply always create compressor and
+        //  decompressor.
+        if (!pcompressor_)
         {
-            if (pcompressor_)
-                pcompressor_->done();
-            pcompressor_.reset();
-
-            // reset chunk state
-            chunk_state_.current_chunk_index ++;
+            pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+        }
+        else if (chunk_state_.points_in_chunk == chunk_size_)
+        {
+            pcompressor_->done();
             chunk_state_.points_in_chunk = 0;
-
-            // take note of the current offset
             std::streamsize offset = f_.tellp();
-            if (chunk_state_.current_chunk_index > 0) {
-                // When we hit this point the first time around, we don't do anything since we are just
-                // starting to write out our first chunk.
-                chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
-            }
-
+            chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
             chunk_state_.last_chunk_write_offset = offset;
-
-            // reinit stuff
             pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
         }
 
         // now write the point
         pcompressor_->compress(p);
-        chunk_state_.total_written ++;
-        chunk_state_.points_in_chunk ++;
+        chunk_state_.total_written++;
+        chunk_state_.points_in_chunk++;
 
         _update_min_max(*(reinterpret_cast<const formats::las::point10*>(p)));
     }
