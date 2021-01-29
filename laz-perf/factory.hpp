@@ -205,6 +205,8 @@ formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, i
         compressor.reset(new las::point_compressor_3<TStream>(stream, ebCount));
         break;
     case 6:
+        if (ebCount != 0)
+            throw error("Can't create point data format 6 compressor with extra bytes.");
         compressor.reset(new las::point_compressor_6<TStream>(stream));
     }
     return compressor;

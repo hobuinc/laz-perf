@@ -153,10 +153,10 @@ namespace laszip {
                 { return (flags_ >> 4) & 0x03; }
 
                 int scanDirFlag() const
-                { return ((flags_ >> 5) & 1); }
+                { return ((flags_ >> 6) & 1); }
 
                 int eofFlag() const
-                { return ((flags_ >> 6) & 1); }
+                { return ((flags_ >> 7) & 1); }
 
                 uint8_t classification() const
                 { return classification_; }

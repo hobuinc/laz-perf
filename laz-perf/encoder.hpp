@@ -99,6 +99,7 @@ public:
     template<typename EntropyModel>
     void encodeBit(EntropyModel& m, U32 sym)
     {
+        anyEncoded = true;
         assert(sym <= 1);
 
         U32 x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
@@ -125,6 +126,7 @@ public:
     template <typename EntropyModel>
     void encodeSymbol(EntropyModel& m, U32 sym)
     {
+        anyEncoded = true;
         assert(sym <= m.last_symbol);
 
         U32 x, init_base = base;
@@ -157,6 +159,7 @@ public:
     {
         assert(sym < 2);
 
+        anyEncoded = true;
         U32 init_base = base;
         base += sym * (length >>= 1);                // new interval base and length
 
@@ -170,6 +173,7 @@ public:
     {
         assert(bits && (bits <= 32) && (sym < (1u<<bits)));
 
+        anyEncoded = true;
         if (bits > 19)
         {
             writeShort(sym&U16_MAX);
@@ -188,6 +192,7 @@ public:
 
     void writeByte(U8 sym)
     {
+        anyEncoded = true;
         U32 init_base = base;
         base += (U32)(sym) * (length >>= 8);           // new interval base and length
 
@@ -199,6 +204,7 @@ public:
 
     void writeShort(U16 sym)
     {
+        anyEncoded = true;
         U32 init_base = base;
         base += (U32)(sym) * (length >>= 16);          // new interval base and length
 
@@ -210,6 +216,7 @@ public:
 
     void writeInt(U32 sym)
     {
+        anyEncoded = true;
         writeShort((U16)(sym & 0xFFFF)); // lower 16 bits
         writeShort((U16)(sym >> 16));    // UPPER 16 bits
     }
@@ -219,11 +226,13 @@ public:
         U32I32F32 u32i32f32;
         u32i32f32.f32 = sym;
 
+        anyEncoded = true;
         writeInt(u32i32f32.u32);
     }
 
     void writeInt64(U64 sym)
     {
+        anyEncoded = true;
         writeInt((U32)(sym & 0xFFFFFFFF)); // lower 32 bits
         writeInt((U32)(sym >> 32));        // UPPER 32 bits
     }
@@ -233,6 +242,7 @@ public:
         U64I64F64 u64i64f64;
         u64i64f64.f64 = sym;
 
+        anyEncoded = true;
         writeInt64(u64i64f64.u64);
     }
 
@@ -243,17 +253,18 @@ public:
 
     uint32_t num_encoded()
     {
-        return outstream.numBytesPut();
+        return anyEncoded ? outstream.numBytesPut() : 0;
     }
 
     const uint8_t *encoded_bytes()
     {
-        return outstream.data();
+        return anyEncoded ? outstream.data() : nullptr;
     }
 
 private:
     void init()
     {
+        anyEncoded = false;
         outbuffer = new U8[2*AC_BUFFER_SIZE];
         endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
 
@@ -319,7 +330,7 @@ private:
     uint8_t* outbyte;
     uint8_t* endbyte;
     uint32_t base, value, length;
-    uint32_t bytesEncoded;  //ABELL - Seems strange this is 32 bits, but LAZ1.4...
+    bool anyEncoded;
 
     std::unique_ptr<TOutStream> pOut;
     TOutStream& outstream;

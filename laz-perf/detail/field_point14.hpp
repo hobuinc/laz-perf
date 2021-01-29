@@ -163,20 +163,20 @@ struct field<las::point14>
             last_gpstime_{}, last_gpstime_diff_{}, multi_extreme_counter_{},
             gps_time_change_{}
         {
-            for (models::arithmetic *m : changed_values_model_)
+            for (models::arithmetic * & m : changed_values_model_)
                 m = new models::arithmetic(128);
             scanner_channel_model_ = new models::arithmetic(3);
             rn_gps_same_model_ = new models::arithmetic(13);
-            for (models::arithmetic *m : nr_model_)
+            for (models::arithmetic * & m : nr_model_)
                 m = new models::arithmetic(16);
-            for (models::arithmetic *m : rn_model_)
+            for (models::arithmetic * & m : rn_model_)
                 m = new models::arithmetic(16);
 
-            for (models::arithmetic *m : class_model_)
+            for (models::arithmetic * & m : class_model_)
                 m = new models::arithmetic(256);
-            for (models::arithmetic *m : flag_model_)
+            for (models::arithmetic * & m : flag_model_)
                 m = new models::arithmetic(64);
-            for (models::arithmetic *m : user_data_model_)
+            for (models::arithmetic * & m : user_data_model_)
                 m = new models::arithmetic(256);
 
             gpstime_multi_model_ = new models::arithmetic(GpstimeMultiTotal);
@@ -221,12 +221,16 @@ struct field<las::point14>
         // last stuff and move on
         if (last_channel_ == -1)
         {
+            std::cerr << "Writing first point!\n";
             ChannelCtx& c = chan_ctxs_[sc];
             stream.putBytes((const unsigned char*)buf, sizeof(las::point14));
             c.last_ = point;
             c.have_last_ = true;
+            c.last_gpstime_[0] = point.gpsTime();
             last_channel_ = sc;
 
+            for (auto& z : c.last_z_)
+                z = point.z();
             for (auto& last_intensity : c.last_intensity_)
                 last_intensity = point.intensity();
 
@@ -273,6 +277,7 @@ struct field<las::point14>
             ((point.pointSourceID() != c.last_.pointSourceID()) << 5) |
             ((sc != old.last_.scannerChannel()) << 6);
 
+        auto& m = *c.changed_values_model_[change_stream];
         xy_enc_.encodeSymbol(*c.changed_values_model_[change_stream], changed_values);
 
         if (sc > old.last_.scannerChannel())
@@ -351,6 +356,7 @@ struct field<las::point14>
                 (c.last_.scanDirFlag() << 4) |
                 (c.last_.eofFlag() << 5);
 
+            std::cerr << "Last Flags/flags = " << last_flags << "/" << flags << "!\n";
             flags_enc_.encodeSymbol(*c.flag_model_[last_flags], flags);
         }
 
@@ -388,17 +394,17 @@ struct field<las::point14>
 
         // GPS Time
         {
-            auto findSeq = [&c](double gpstime, int seq, int start, int32_t& diff)
+            auto findSeq = [&c](double gpstime, int start, int32_t& diff)
             {
                 auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
 
                 for (int i = start; i < 4; ++i)
                 {
-                    seq = (seq + i) & 0x3;
-                    int64_t diff64 = i64(gpstime) - i64(c.last_gpstime_[seq]);
+                    int testseq = (c.last_gps_seq_ + i) & 0x3;
+                    int64_t diff64 = i64(gpstime) - i64(c.last_gpstime_[testseq]);
                     diff = (int32_t)diff64;
                     if (diff64 == diff)
-                        return seq;
+                        return i;
                 }
                 return -1;
             };
@@ -413,19 +419,19 @@ struct field<las::point14>
             {
                 int32_t diff;  // Difference between current time and last time in the sequence,
                                // as 32 bit int.
-                int seq = findSeq(point.gpsTime(), c.last_gps_seq_, 0, diff);
-                if (seq == 0)
+                int idx = findSeq(point.gpsTime(), 0, diff);
+
+                if (idx == 0)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, seq);
+                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 0);
                     c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 0);
                     c.last_gpstime_diff_[c.last_gps_seq_] = diff;
                     c.multi_extreme_counter_[c.last_gps_seq_] = 0;
                 }
-                else if (seq > 0)
+                else if (idx > 0)
                 {
-                    seq = (seq + 1) & 3;
-                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, seq);
-                    c.last_gps_seq_ = seq;
+                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, idx + 1);
+                    c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
                     //ABELL - Seems like this is just going to get into the case above.
                     //  and be done.
                     goto loop;
@@ -515,16 +521,12 @@ struct field<las::point14>
                 else
                 {
                     int32_t diff;
-                    int seq = findSeq(point.gpsTime(), c.last_gps_seq_, 1, diff);
-                    if (seq > 0)
+                    int idx = findSeq(point.gpsTime(), 1, diff);
+                    if (idx > 0)
                     {
-                        int i = seq - c.last_gps_seq_;
-                        if (i < 0)
-                            i = 4 - i;
-
                         gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
-                            GpstimeMultiCodeFull + i);
-                        c.last_gps_seq_ = (c.last_gps_seq_ + i) & 3;
+                            GpstimeMultiCodeFull + idx);
+                        c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
                         goto loop;
                     }
                     gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMultiCodeFull);
@@ -554,9 +556,19 @@ struct field<las::point14>
         intensity_enc_.done();
         scan_angle_enc_.done();
         user_data_enc_.done();
+std::cerr << "++ Point source bytes = " << point_source_id_enc_.num_encoded() << "\n";
         point_source_id_enc_.done();
         gpstime_enc_.done();
 
+std::cerr << "XY bytes = " << xy_enc_.num_encoded() << "\n";
+std::cerr << "Z bytes = " << z_enc_.num_encoded() << "\n";
+std::cerr << "Class bytes = " << class_enc_.num_encoded() << "\n";
+std::cerr << "Flags bytes = " << flags_enc_.num_encoded() << "\n";
+std::cerr << "Intensity bytes = " << intensity_enc_.num_encoded() << "\n";
+std::cerr << "Scan angle bytes = " << scan_angle_enc_.num_encoded() << "\n";
+std::cerr << "User bytes = " << user_data_enc_.num_encoded() << "\n";
+std::cerr << "Point source bytes = " << point_source_id_enc_.num_encoded() << "\n";
+std::cerr << "GPStime bytes = " << gpstime_enc_.num_encoded() << "\n";
         stream << xy_enc_.num_encoded();
         stream << z_enc_.num_encoded();
         if (class_enc_.num_encoded())
@@ -574,6 +586,23 @@ struct field<las::point14>
         if (gpstime_enc_.num_encoded())
             stream << gpstime_enc_.num_encoded();
 
+auto sum = [](const uint8_t *buf, uint32_t size)
+{
+    int32_t sum = 0;
+    while (size--)
+        sum += *buf++;
+    return sum;
+};
+
+std::cerr << sum(xy_enc_.encoded_bytes(), xy_enc_.num_encoded()) << "!\n";
+std::cerr << sum(z_enc_.encoded_bytes(), z_enc_.num_encoded()) << "!\n";
+std::cerr << sum(class_enc_.encoded_bytes(), class_enc_.num_encoded()) << "!\n";
+std::cerr << sum(flags_enc_.encoded_bytes(), flags_enc_.num_encoded()) << "!\n";
+std::cerr << sum(intensity_enc_.encoded_bytes(), intensity_enc_.num_encoded()) << "!\n";
+std::cerr << sum(scan_angle_enc_.encoded_bytes(), scan_angle_enc_.num_encoded()) << "!\n";
+std::cerr << sum(user_data_enc_.encoded_bytes(), user_data_enc_.num_encoded()) << "!\n";
+std::cerr << sum(point_source_id_enc_.encoded_bytes(), point_source_id_enc_.num_encoded()) << "!\n";
+std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!\n";
         stream.putBytes(xy_enc_.encoded_bytes(), xy_enc_.num_encoded());
         stream.putBytes(z_enc_.encoded_bytes(), z_enc_.num_encoded());
         if (class_enc_.num_encoded())
