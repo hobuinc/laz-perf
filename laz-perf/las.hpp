@@ -231,8 +231,11 @@ struct point_compressor_base_1_4 : public formats::las_compressor
 
     virtual void done()
     {
+        std::cerr << "Chunk count = " << chunk_count_ << "!\n";
         stream_ << chunk_count_;
+        std::cerr << "Stream pos = " << stream_.f_.tellp() << "!\n";
         point_.done(stream_);
+        std::cerr << "Done Stream pos = " << stream_.f_.tellp() << "!\n";
     }
 
     TStream& stream_;

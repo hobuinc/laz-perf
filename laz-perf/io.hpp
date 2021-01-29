@@ -980,6 +980,7 @@ private:
         // take note of where we're writing the chunk table, we need this later
         int64_t chunk_table_offset = static_cast<int64_t>(f_.tellp());
 
+std::cerr << "Chunk table position = " << chunk_table_offset << "!\n";
         // write out the chunk table header (version and total chunks)
 #pragma pack(push, 1)
         struct
@@ -999,6 +1000,7 @@ private:
 
         comp.init();
 
+        std::cerr << "Writing chunk sizes = " << chunk_sizes_.size() << "!\n";
         for (size_t i = 0 ; i < chunk_sizes_.size() ; i ++)
         {
             comp.compress(encoder, i ? static_cast<int>(chunk_sizes_[i-1]) : 0,

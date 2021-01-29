@@ -1,7 +1,7 @@
 /*
 ===============================================================================
 
-  FILE:  field_point10.hpp
+  FILE:  field_point14.hpp
 
   CONTENTS:
 
@@ -221,7 +221,6 @@ struct field<las::point14>
         // last stuff and move on
         if (last_channel_ == -1)
         {
-            std::cerr << "Writing first point!\n";
             ChannelCtx& c = chan_ctxs_[sc];
             stream.putBytes((const unsigned char*)buf, sizeof(las::point14));
             c.last_ = point;
@@ -241,7 +240,6 @@ struct field<las::point14>
         ChannelCtx& old = chan_ctxs_[last_channel_];
         // c is the context for this point.
         ChannelCtx& c = chan_ctxs_[sc];
-
         // If we haven't initialized the current context, do so.
         if (!c.have_last_)
         {
@@ -356,7 +354,6 @@ struct field<las::point14>
                 (c.last_.scanDirFlag() << 4) |
                 (c.last_.eofFlag() << 5);
 
-            std::cerr << "Last Flags/flags = " << last_flags << "/" << flags << "!\n";
             flags_enc_.encodeSymbol(*c.flag_model_[last_flags], flags);
         }
 
@@ -393,157 +390,176 @@ struct field<las::point14>
         }
 
         // GPS Time
-        {
-            auto findSeq = [&c](double gpstime, int start, int32_t& diff)
-            {
-                auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
+        encodeGpsTime(point, c);
 
-                for (int i = start; i < 4; ++i)
-                {
-                    int testseq = (c.last_gps_seq_ + i) & 0x3;
-                    int64_t diff64 = i64(gpstime) - i64(c.last_gpstime_[testseq]);
-                    diff = (int32_t)diff64;
-                    if (diff64 == diff)
-                        return i;
-                }
-                return -1;
-            };
-
-            if (point.iGpsTime() == c.last_.iGpsTime())
-                return buf + sizeof(las::point14);
-
-            auto u64 = [](double d){ return *reinterpret_cast<uint64_t *>(&d); };
-
-            loop: 
-            if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
-            {
-                int32_t diff;  // Difference between current time and last time in the sequence,
-                               // as 32 bit int.
-                int idx = findSeq(point.gpsTime(), 0, diff);
-
-                if (idx == 0)
-                {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 0);
-                    c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 0);
-                    c.last_gpstime_diff_[c.last_gps_seq_] = diff;
-                    c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                }
-                else if (idx > 0)
-                {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, idx + 1);
-                    c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
-                    //ABELL - Seems like this is just going to get into the case above.
-                    //  and be done.
-                    goto loop;
-                }
-                else
-                {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 1);
-                    c.gpstime_compr_->compress(gpstime_enc_,
-                        u64(c.last_gpstime_[c.last_gps_seq_]) >> 32, point.uGpsTime() >> 32, 8);
-                    gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
-                    c.last_gps_seq_ = c.next_gps_seq_ = (c.next_gps_seq_ + 1) % 3;
-                    c.last_gpstime_diff_[c.last_gps_seq_] = 0;
-                    c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                }
-                c.last_gpstime_[c.last_gps_seq_] = point.gpsTime();
-            }
-            else  // Last diff nonzero.
-            {
-                auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
-
-                int64_t diff64 = point.iGpsTime() - i64(c.last_gpstime_[c.last_gps_seq_]);
-                int32_t diff = (int32_t)diff64;
-
-                // 32 bit difference.
-                if (diff64 == diff)
-                {
-                    // Compute multiplier between current and last int difference.
-                    int32_t multi =
-                        (int32_t)std::round(diff / (float)c.last_gpstime_diff_[c.last_gps_seq_]);
-                    if (multi > 0 && multi < GpstimeMulti)
-                    {
-                        int tag = 1;  // The case for regular spaced pulses.
-                        if (multi > 1 && multi < 10)
-                            tag = 2;
-                        else
-                            tag = 3;
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, multi);
-                        c.gpstime_compr_->compress(gpstime_enc_,
-                            multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, tag);
-                        if (tag == 1)
-                            c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                    }
-                    else if (multi >= GpstimeMulti)
-                    {
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti);
-                        c.gpstime_compr_->compress(gpstime_enc_,
-                            GpstimeMulti * c.last_gpstime_diff_[c.last_gps_seq_], diff, 4);
-                        c.multi_extreme_counter_[c.last_gps_seq_]++;
-                        if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
-                        {
-                            c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                            c.last_gpstime_diff_[c.last_gps_seq_] = diff;
-                        }
-                    }
-                    else if (multi < 0 && multi > GpstimeMultiMinus)
-                    {
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti - multi);
-                        c.gpstime_compr_->compress(gpstime_enc_,
-                            multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, 5);
-                    }
-                    else if (multi <= GpstimeMultiMinus)
-                    {
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
-                            GpstimeMulti - GpstimeMultiMinus);
-                        c.gpstime_compr_->compress(gpstime_enc_,
-                            GpstimeMultiMinus * c.last_gpstime_diff_[c.last_gps_seq_], diff, 6);
-                        c.multi_extreme_counter_[c.last_gps_seq_]++;
-                        if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
-                        {
-                            c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                            c.last_gpstime_diff_[c.last_gps_seq_] = diff;
-                        }
-                    }
-                    else if (multi == 0)
-                    {
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, 0);
-                        c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 7);
-                        c.multi_extreme_counter_[c.last_gps_seq_]++;
-                        if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
-                        {
-                            c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                            c.last_gpstime_diff_[c.last_gps_seq_] = diff;
-                        }
-                    }
-                }
-                // Large difference
-                else
-                {
-                    int32_t diff;
-                    int idx = findSeq(point.gpsTime(), 1, diff);
-                    if (idx > 0)
-                    {
-                        gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
-                            GpstimeMultiCodeFull + idx);
-                        c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
-                        goto loop;
-                    }
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMultiCodeFull);
-                    c.gpstime_compr_->compress(gpstime_enc_,
-                        int32_t(u64(c.last_gpstime_[c.last_gps_seq_]) >> 32),
-                        int32_t(point.uGpsTime() >> 32), 8);
-                    gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
-                    c.next_gps_seq_ = c.last_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
-                    c.last_gpstime_diff_[c.last_gps_seq_] = 0;
-                    c.multi_extreme_counter_[c.last_gps_seq_] = 0;
-                }
-                c.last_gpstime_[c.last_gps_seq_] = point.gpsTime();
-            }
-        }
         last_channel_ = sc;
+        c.gps_time_change_ = (point.gpsTime() != c.last_.gpsTime());
         c.last_ = point;
         return buf + sizeof(las::point14);
+    }
+
+    void encodeGpsTime(const las::point14& point, ChannelCtx& c)
+    {
+        auto findSeq = [&c](double gpstime, int start, int32_t& diff)
+        {
+            auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
+
+            for (int i = start; i < 4; ++i)
+            {
+                int testseq = (c.last_gps_seq_ + i) & 0x3;
+                int64_t diff64 = i64(gpstime) - i64(c.last_gpstime_[testseq]);
+                diff = (int32_t)diff64;
+                if (diff64 == diff)
+                    return i;
+            }
+            return -1;
+        };
+
+        if (point.iGpsTime() == c.last_.iGpsTime())
+            return;
+
+        auto u64 = [](double d){ return *reinterpret_cast<uint64_t *>(&d); };
+
+        loop: 
+        if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
+        {
+            int32_t diff;  // Difference between current time and last time in the sequence,
+                           // as 32 bit int.
+            int idx = findSeq(point.gpsTime(), 0, diff);
+
+            if (idx == 0)
+            {
+//std::cerr << "Encode 0!\n";
+                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 0);
+                c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 0);
+                c.last_gpstime_diff_[c.last_gps_seq_] = diff;
+                c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+            }
+            else if (idx > 0)
+            {
+//std::cerr << "Encode Seq = " << (idx + 1) << "!\n";
+                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, idx + 1);
+                c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
+                //ABELL - Seems like this is just going to get into the case above.
+                //  and be done.
+                goto loop;
+            }
+            else
+            {
+//std::cerr << "Encode New = 1!\n";
+                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 1);
+                c.gpstime_compr_->compress(gpstime_enc_,
+                    u64(c.last_gpstime_[c.last_gps_seq_]) >> 32, point.uGpsTime() >> 32, 8);
+                gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
+                c.last_gps_seq_ = c.next_gps_seq_ = (c.next_gps_seq_ + 1) % 3;
+                c.last_gpstime_diff_[c.last_gps_seq_] = 0;
+                c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+            }
+            c.last_gpstime_[c.last_gps_seq_] = point.gpsTime();
+        }
+        else  // Last diff nonzero.
+        {
+            auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
+
+            int64_t diff64 = point.iGpsTime() - i64(c.last_gpstime_[c.last_gps_seq_]);
+            int32_t diff = (int32_t)diff64;
+
+            // 32 bit difference.
+            if (diff64 == diff)
+            {
+                // Compute multiplier between current and last int difference.
+//std::cerr << "Curr/last = " << (float)diff << "/" << (float)(c.last_gpstime_diff_[c.last_gps_seq_]) << "!\n";
+                int32_t multi =
+                    (int32_t)std::round(diff / (float)c.last_gpstime_diff_[c.last_gps_seq_]);
+                if (multi > 0 && multi < GpstimeMulti)
+                {
+                    int tag;
+                    if (multi == 1)
+                        tag = 1;  // The case for regular spaced pulses.
+                    else if (multi > 1 && multi < 10)
+                        tag = 2;
+                    else
+                        tag = 3;
+//std::cerr << "Encode multi = " << multi << "!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, multi);
+                    c.gpstime_compr_->compress(gpstime_enc_,
+                        multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, tag);
+                    if (tag == 1)
+                        c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+                }
+                else if (multi >= GpstimeMulti)
+                {
+//std::cerr << "Encode multi MULTI!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti);
+                    c.gpstime_compr_->compress(gpstime_enc_,
+                        GpstimeMulti * c.last_gpstime_diff_[c.last_gps_seq_], diff, 4);
+                    c.multi_extreme_counter_[c.last_gps_seq_]++;
+                    if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
+                    {
+                        c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+                        c.last_gpstime_diff_[c.last_gps_seq_] = diff;
+                    }
+                }
+                else if (multi < 0 && multi > GpstimeMultiMinus)
+                {
+//std::cerr << "Encode multi minus = " << (GpstimeMulti - multi) << "!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti - multi);
+                    c.gpstime_compr_->compress(gpstime_enc_,
+                        multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, 5);
+                }
+                else if (multi <= GpstimeMultiMinus)
+                {
+//std::cerr << "Encode multi minus std = " << (GpstimeMulti - GpstimeMultiMinus) << "!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
+                        GpstimeMulti - GpstimeMultiMinus);
+                    c.gpstime_compr_->compress(gpstime_enc_,
+                        GpstimeMultiMinus * c.last_gpstime_diff_[c.last_gps_seq_], diff, 6);
+                    c.multi_extreme_counter_[c.last_gps_seq_]++;
+                    if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
+                    {
+                        c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+                        c.last_gpstime_diff_[c.last_gps_seq_] = diff;
+                    }
+                }
+                else if (multi == 0)
+                {
+//std::cerr << "Encode multi 0!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, 0);
+                    c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 7);
+                    c.multi_extreme_counter_[c.last_gps_seq_]++;
+                    if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
+                    {
+                        c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+                        c.last_gpstime_diff_[c.last_gps_seq_] = diff;
+                    }
+                }
+            }
+            // Large difference
+            else
+            {
+                int32_t diff;
+                int idx = findSeq(point.gpsTime(), 1, diff);
+                if (idx > 0)
+                {
+//std::cerr << "Encode FULL + = " << (GpstimeMultiCodeFull + idx) << "!\n";
+                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
+                        GpstimeMultiCodeFull + idx);
+                    c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
+                    goto loop;
+                }
+//std::cerr << "Encode FULL base = " << (GpstimeMultiCodeFull) << "!\n";
+                gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMultiCodeFull);
+                c.gpstime_compr_->compress(gpstime_enc_,
+                    int32_t(u64(c.last_gpstime_[c.last_gps_seq_]) >> 32),
+                    int32_t(point.uGpsTime() >> 32), 8);
+//std::cerr << "Write raw = " << point.uGpsTime() << "!\n";
+                gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
+                c.next_gps_seq_ = c.last_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
+                c.last_gpstime_diff_[c.last_gps_seq_] = 0;
+                c.multi_extreme_counter_[c.last_gps_seq_] = 0;
+            }
+            c.last_gpstime_[c.last_gps_seq_] = point.gpsTime();
+        }
     }
 
     template <typename TStream>
@@ -556,7 +572,6 @@ struct field<las::point14>
         intensity_enc_.done();
         scan_angle_enc_.done();
         user_data_enc_.done();
-std::cerr << "++ Point source bytes = " << point_source_id_enc_.num_encoded() << "\n";
         point_source_id_enc_.done();
         gpstime_enc_.done();
 
@@ -569,22 +584,16 @@ std::cerr << "Scan angle bytes = " << scan_angle_enc_.num_encoded() << "\n";
 std::cerr << "User bytes = " << user_data_enc_.num_encoded() << "\n";
 std::cerr << "Point source bytes = " << point_source_id_enc_.num_encoded() << "\n";
 std::cerr << "GPStime bytes = " << gpstime_enc_.num_encoded() << "\n";
+
         stream << xy_enc_.num_encoded();
         stream << z_enc_.num_encoded();
-        if (class_enc_.num_encoded())
-            stream << class_enc_.num_encoded();
-        if (flags_enc_.num_encoded())
-            stream << flags_enc_.num_encoded();
-        if (intensity_enc_.num_encoded())
-            stream << intensity_enc_.num_encoded();
-        if (scan_angle_enc_.num_encoded())
-            stream << scan_angle_enc_.num_encoded();
-        if (user_data_enc_.num_encoded())
-            stream << user_data_enc_.num_encoded();
-        if (point_source_id_enc_.num_encoded())
-            stream << point_source_id_enc_.num_encoded();
-        if (gpstime_enc_.num_encoded())
-            stream << gpstime_enc_.num_encoded();
+        stream << class_enc_.num_encoded();
+        stream << flags_enc_.num_encoded();
+        stream << intensity_enc_.num_encoded();
+        stream << scan_angle_enc_.num_encoded();
+        stream << user_data_enc_.num_encoded();
+        stream << point_source_id_enc_.num_encoded();
+        stream << gpstime_enc_.num_encoded();
 
 auto sum = [](const uint8_t *buf, uint32_t size)
 {
