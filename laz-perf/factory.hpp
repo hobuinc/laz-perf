@@ -95,7 +95,7 @@ struct record_item
 
     static const record_item point14()
     {
-        static record_item item(POINT14, 30, 4);
+        static record_item item(POINT14, 30, 3);
         return item;
     }
 };

@@ -334,13 +334,13 @@ struct laz_vlr {
         laz_vlr r;
 
         // We only do pointwise chunking.
-        r.compressor = 2;
+        r.compressor = (s.format() <= 5) ? 2 : 3;
         r.coder = 0;
 
         // the version we're compatible with
-        r.version.major = 2;
-        r.version.minor = 2;
-        r.version.revision = 0;
+        r.version.major = 3;
+        r.version.minor = 4;
+        r.version.revision = 3;
 
         r.options = 0;
         r.chunk_size = chunksize;
