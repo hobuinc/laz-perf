@@ -137,9 +137,13 @@ namespace laszip {
 
                 int returnNum() const
                 { return returns_ & 0xF; }
+                void setReturnNum(int rn)
+                { returns_ = rn | (returns_ & 0xF0); }
 
                 uint8_t numReturns() const
                 { return returns_ >> 4; }
+                void setNumReturns(int nr)
+                { returns_ = (nr << 4) | (returns_ & 0xF); }
 
                 uint8_t flags() const
                 { return flags_; }
@@ -148,15 +152,23 @@ namespace laszip {
 
                 int classFlags() const
                 { return (flags_ & 0xF); }
+                void setClassFlags(int flags)
+                { flags_ = flags | (flags_ & 0xF0); }
 
                 int scannerChannel() const
                 { return (flags_ >> 4) & 0x03; }
+                void setScannerChannel(int c)
+                { flags_ = (c << 4) | (flags_ & ~0x30); }
 
                 int scanDirFlag() const
                 { return ((flags_ >> 6) & 1); }
+                void setScanDirFlag(int flag)
+                { flags_ = (flag << 6) | (flags_ & 0xBF); }
 
                 int eofFlag() const
                 { return ((flags_ >> 7) & 1); }
+                void setEofFlag(int flag)
+                { flags_ = (flag << 7) | (flags_ & 0x7F); }
 
                 uint8_t classification() const
                 { return classification_; }
@@ -226,35 +238,20 @@ struct point_compressor_base_1_2 : public formats::las_compressor
 template<typename TStream>
 struct point_compressor_base_1_4 : public formats::las_compressor
 {
-    point_compressor_base_1_4(TStream& stream) : stream_(stream)
+    point_compressor_base_1_4(TStream& stream) : stream_(stream), chunk_count_(0)
     {}
 
     virtual void done()
     {
-        std::cerr << "Chunk count = " << chunk_count_ << "!\n";
+        //ABELL - This probably needs to be byte-ordered.
+        //ABELL - There is only one chunk count, even if there are many field<>s in the output.
         stream_ << chunk_count_;
-        std::cerr << "Stream pos = " << stream_.f_.tellp() << "!\n";
         point_.done(stream_);
-        std::cerr << "Done Stream pos = " << stream_.f_.tellp() << "!\n";
     }
 
     TStream& stream_;
     field<point14> point_;
     uint32_t chunk_count_;
-};
-
-//ABELL - Move this
-template<typename TStream>
-struct point_compressor_6 : public point_compressor_base_1_4<TStream>
-{
-    point_compressor_6(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
-    {}
-
-    virtual const char *compress(const char *in)
-    {
-        in = this->point_.compressWith(this->stream_, in);
-        return in;
-    }
 };
 
 template<typename TStream>
@@ -328,6 +325,20 @@ struct point_compressor_3 : public point_compressor_base_1_2<TStream>
     }
 };
 
+template<typename TStream>
+struct point_compressor_6 : public point_compressor_base_1_4<TStream>
+{
+    point_compressor_6(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    {}
+
+    virtual const char *compress(const char *in)
+    {
+        this->chunk_count_++;
+        in = this->point_.compressWith(this->stream_, in);
+        return in;
+    }
+};
+
 
 // Decompressor
 
@@ -338,7 +349,7 @@ struct point_decompressor_base_1_2 : public formats::las_decompressor
         decoder_(stream), extrabytes_(ebCount), first_(true)
     {}
 
-    //ABELL - This is a bad hack that should by changing the call site.
+    //ABELL - This is a bad hack. Do something better.
     void handleFirst()
     {
         if (first_)
@@ -351,6 +362,19 @@ struct point_decompressor_base_1_2 : public formats::las_decompressor
     decoders::arithmetic<TStream> decoder_;
     field<point10> point_;
     field<extrabytes> extrabytes_;
+    bool first_;
+};
+
+template<typename TStream>
+struct point_decompressor_base_1_4 : public formats::las_decompressor
+{
+    point_decompressor_base_1_4(TStream& stream) : stream_(stream), first_(true)
+    {
+    }
+
+    TStream& stream_;
+    field<point14> point_;
+    uint32_t chunk_count_;
     bool first_;
 };
 
@@ -418,14 +442,37 @@ struct point_decompressor_3 : public point_decompressor_base_1_2<TStream>
     field<gpstime> gpstime_;
     field<rgb> rgb_;
 
-    virtual char *decompress(char *in)
+    virtual char *decompress(char *out)
     {
-        in = this->point_.decompressWith(this->decoder_, in);
-        in = gpstime_.decompressWith(this->decoder_, in);
-        in = rgb_.decompressWith(this->decoder_, in);
-        in = this->extrabytes_.decompressWith(this->decoder_, in);
+        out = this->point_.decompressWith(this->decoder_, out);
+        out = gpstime_.decompressWith(this->decoder_, out);
+        out = rgb_.decompressWith(this->decoder_, out);
+        out = this->extrabytes_.decompressWith(this->decoder_, out);
         this->handleFirst();
-        return in;
+        return out;
+    }
+};
+
+//ABELL - Move this
+template<typename TStream>
+struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
+{
+    point_decompressor_6(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    {}
+
+    virtual char *decompress(char *out)
+    {
+        out = this->point_.decompressWith(this->stream_, out);
+
+        if (this->first_)
+        {
+            // Read the point count the streams for each data member.
+            this->stream_ >> this->chunk_count_;
+            this->point_.initDecompression(this->stream_);
+            this->first_ = false;
+        }
+
+        return out;
     }
 };
 

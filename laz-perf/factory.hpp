@@ -241,6 +241,10 @@ formats::las_decompressor::ptr build_las_decompressor(TStream& stream, int forma
     case 3:
         decompressor.reset(new las::point_decompressor_3<TStream>(stream, ebCount));
         break;
+    case 6:
+        if (ebCount != 0)
+            throw error("Can't create point data format 6 compressor with extra bytes.");
+        decompressor.reset(new las::point_decompressor_6<TStream>(stream));
     }
     return decompressor;
 }

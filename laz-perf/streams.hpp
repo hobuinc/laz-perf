@@ -67,6 +67,13 @@ struct MemoryStream
         return buf.size();
     }
 
+    template <typename TSrc>
+    void copy(TSrc& in, size_t bytes)
+    {
+        buf.resize(bytes);
+        in.getBytes(buf.data(), bytes);
+    }
+
     const uint8_t *data() const
     { return buf.data(); }
 
@@ -79,6 +86,15 @@ TStream& operator << (TStream& stream, uint32_t u)
 {
     uint32_t uLe = htole32(u);
     stream.putBytes(reinterpret_cast<const unsigned char *>(&uLe), sizeof(uLe));
+    return stream;
+}
+
+template <typename TStream>
+TStream& operator >> (TStream& stream, uint32_t& u)
+{
+    uint32_t uLe;
+    stream.getBytes(reinterpret_cast<unsigned char *>(&uLe), sizeof(u));
+    u = le32toh(uLe);
     return stream;
 }
 
