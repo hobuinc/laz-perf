@@ -28,6 +28,9 @@
 ===============================================================================
 */
 
+//ABELL
+#include <iomanip>
+
 #include <cmath>
 
 #ifndef __las_hpp__
@@ -727,13 +730,14 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             (old.gps_time_change_ << 2);                                  // bit 2
 
         int32_t changed_values = xy_dec_.decodeSymbol(*old.changed_values_model_[change_stream]);
+std::cerr << "Change values = " << changed_values << "!\n";
         bool scanner_channel_changed = (changed_values >> 6) & 1;
         bool point_source_changed = (changed_values >> 5) & 1;
         bool gpstime_changed = (changed_values >> 4) & 1;
         bool scan_angle_changed = (changed_values >> 3) & 1;
         bool nr_changes = (changed_values >> 2) & 1;
-        bool rn_plus = (changed_values >> 1) & 1;
-        bool rn_minus = (changed_values >> 0) & 1;
+        bool rn_minus = (changed_values >> 1) & 1;
+        bool rn_plus = (changed_values >> 0) & 1;
         bool rn_increments = rn_plus && !rn_minus;
         bool rn_decrements = rn_minus && !rn_plus;
         bool rn_misc_change = rn_plus && rn_minus;
@@ -757,12 +761,20 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
         c.last_.setNumReturns(nr);
 
         uint32_t rn = c.last_.returnNum();
+std::cerr << "Last RN = " << rn << "!\n";
         if (rn_increments)
+{
+std::cerr << "RN increments!\n";
             rn = (rn + 1) % 16;
+}
         else if (rn_decrements)
+{
+std::cerr << "RN decrements!\n";
             rn = ((rn + 15) % 16);
+}
         else if (rn_misc_change)
         {
+std::cerr << "RN misc change!\n";
             if (gpstime_changed)
                 rn = xy_dec_.decodeSymbol(*c.rn_model_[rn]);
             else
@@ -770,27 +782,34 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
         }
         c.last_.setReturnNum(rn);
 
+//std::cerr << "nr/rn/gc = " << nr << "/" << rn << "/" << gpstime_changed << "!\n";
         uint32_t ctx = (number_return_map_6ctx[nr][rn] << 1) | gpstime_changed;
+//std::cerr << "Context = " << ctx << "!\n";
         // X
         {
             int32_t median = c.last_x_diff_median5_[ctx].get();
             int32_t diff = c.dx_decomp_->decompress(xy_dec_, median, nr == 1);
             c.last_.setX(c.last_.x() + diff);
             c.last_x_diff_median5_[ctx].add(diff);
+std::cerr << "\tX = " << c.last_.x() << "!\n";
         }
 
         // Y
         {
-            uint32_t kbits = (std::min)(c.dx_compr_->getK(), 20U) & ~1;
+            uint32_t kbits = (std::min)(c.dx_decomp_->getK(), 20U) & ~1;
+//std::cerr << "kbits = " << kbits << "!\n";
             int32_t median = c.last_y_diff_median5_[ctx].get();
+//std::cerr << "median = " << median << "!\n";
             int32_t diff = c.dy_decomp_->decompress(xy_dec_, median, (nr == 1) | kbits);
             c.last_.setY(c.last_.y() + diff);
+//std::cerr << "Diff = " << diff << "!\n";
             c.last_y_diff_median5_[ctx].add(diff);
+std::cerr << "\tY = " << c.last_.y() << "!\n";
         }
 
         // Z
         {
-            uint32_t kbits = (c.dx_compr_->getK() + c.dy_compr_->getK()) / 2;
+            uint32_t kbits = (c.dx_decomp_->getK() + c.dy_decomp_->getK()) / 2;
             kbits = (std::min)(kbits, 18U) & ~1;
             uint32_t ctx = number_return_level_8ctx[nr][rn];
             int32_t z = c.z_decomp_->decompress(z_dec_, c.last_z_[ctx], (nr == 1) | kbits);
@@ -850,6 +869,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
 
         if (gpstime_changed)
             decodeGpsTime(c);
+        c.gps_time_change_ = gpstime_changed;
         las::point14 *point = reinterpret_cast<las::point14 *>(buf);
         *point = c.last_;
         return buf + sizeof(las::point14);
@@ -868,6 +888,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             int32_t multi = gpstime_dec_.decodeSymbol(*c.gpstime_0diff_model_);
             if (multi == 0)
             {
+//std::cerr << "Last 0/Multi 0!\n";
                 int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_, 0, 0);
 
                 c.last_gpstime_diff_[c.last_gps_seq_] = sym;
@@ -877,11 +898,12 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             }
             else if (multi == 1)
             {
-                c.last_gps_seq_ = (c.last_gps_seq_ + 1) & 3;
+//std::cerr << "Last 0/Multi 1!\n";
+                c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
                 double lasttime = c.last_gpstime_[c.last_gps_seq_];
                 int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
                     (int32_t)(u64(lasttime) >> 32), 8);
-                c.last_gpstime_[c.last_gps_seq_] =
+                c.last_gpstime_[c.next_gps_seq_] =
                     u2d(((uint64_t)sym << 32) | gpstime_dec_.readInt());
                 c.last_gps_seq_ = c.next_gps_seq_;
                 c.last_gpstime_diff_[c.last_gps_seq_] = 0;
@@ -889,6 +911,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             }
             else
             {
+//std::cerr << "Last 0/Multi N!\n";
                 c.last_gps_seq_ = (c.last_gps_seq_ + multi - 1) & 3;
                 goto loop;
             }
@@ -899,15 +922,17 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             int32_t gpstime_diff;
             if (multi == 1)
             {
+//std::cerr << "Last non-zero/Multi 1!\n";
                 int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
                     c.last_gpstime_diff_[c.last_gps_seq_], 1);
-                c.last_gpstime_[c.last_gps_seq_] = i2d((int64_t)sym);
+                c.last_gpstime_[c.last_gps_seq_] = i2d((int64_t)sym + u64(c.last_gpstime_[c.last_gps_seq_]));
                 c.multi_extreme_counter_[c.last_gps_seq_] = 0;
             }
             else if (multi < GpstimeMultiCodeFull)
             {
                 if (multi == 0)
                 {
+//std::cerr << "Last non-zero/Multi 0!\n";
                     gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_, 0, 7);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -918,6 +943,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
                 }
                 else if (multi < GpstimeMulti)
                 {
+//std::cerr << "Last non-zero/Multi small!\n";
                     int tag;
                     if (multi < 10)
                         tag = 2;
@@ -928,6 +954,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
                 }
                 else if (multi == GpstimeMulti)
                 {
+//std::cerr << "Last non-zero/Multi multi!\n";
                     gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
                         GpstimeMulti * c.last_gpstime_diff_[c.last_gps_seq_], 4);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
@@ -942,11 +969,13 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
                     multi = GpstimeMulti - multi;
                     if (multi > GpstimeMultiMinus)
                     {
+//std::cerr << "Last non-zero/Multi > Minus!\n";
                         gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
                             multi * c.last_gpstime_diff_[c.last_gps_seq_], 5);
                     }
                     else
                     {
+//std::cerr << "Last non-zero/Multi < Minus!\n";
                         gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
                             GpstimeMultiMinus * c.last_gpstime_diff_[c.last_gps_seq_], 6);
                         if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -962,6 +991,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             //ABELL - Check next/last thing on encoder and here.
             else if (multi == GpstimeMultiCodeFull)
             {
+//std::cerr << "Multi code full!\n";
                 c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
                 uint64_t lasttime = u64(c.last_gpstime_[c.last_gps_seq_]);
                 int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
@@ -972,10 +1002,14 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             }
             else if (multi >= GpstimeMultiCodeFull)
             {
+//std::cerr << ">>> Multi code full!\n";
                 c.last_gps_seq_ = (c.last_gps_seq_ + multi - GpstimeMultiCodeFull) & 3;
                 goto loop;
             }
         }
+static int cnt = 1;
+std::cerr << "\t" << cnt << " Time = " << std::setprecision(15) << c.last_gpstime_[c.last_gps_seq_] << "!\n";
+cnt++;
         c.last_.setGpsTime(c.last_gpstime_[c.last_gps_seq_]);
     }
 
