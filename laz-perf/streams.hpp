@@ -67,6 +67,7 @@ struct MemoryStream
         return buf.size();
     }
 
+    // Copy bytes from the source stream to this stream.
     template <typename TSrc>
     void copy(TSrc& in, size_t bytes)
     {

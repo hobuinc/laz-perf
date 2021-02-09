@@ -119,11 +119,75 @@ struct packers<las::point14>
     }
 }; // packers
 
+struct Summer
+{
+    Summer() : sum(0), cnt(0)
+    {}
+
+    template <typename T>
+    void add(const T& t)
+    {
+        const uint8_t *b = reinterpret_cast<const uint8_t *>(&t);
+        for (size_t i = 0; i < sizeof(T); ++i)
+            sum += *b++;
+        cnt++;
+    }
+
+    uint32_t value()
+    {
+        uint32_t v = sum;
+        sum = 0;
+        return v;
+    }
+
+    uint64_t count() const
+    {
+        return cnt;
+    }
+
+    uint32_t sum;
+    uint64_t cnt;
+};
+
 // specialize field to compress point 10
 //
 template<>
 struct field<las::point14>
 {
+  Summer sumChange;
+  Summer sumReturn;
+  Summer sumX;
+  Summer sumY;
+  Summer sumZ;
+  Summer sumClass;
+  Summer sumFlags;
+  Summer sumIntensity;
+  Summer sumScanAngle;
+  Summer sumUserData;
+  Summer sumPointSourceId;
+  Summer sumGpsTime;
+
+    ~field<las::point14>()
+    {
+      if (sumChange.count() == 0)
+          return;
+
+      std::cout << "Change   : " << sumChange.value() << "\n";
+      std::cout << "Return   : " << sumReturn.value() << "\n";
+      std::cout << "X        : " << sumX.value() << "\n";
+      std::cout << "Y        : " << sumY.value() << "\n";
+      std::cout << "Z        : " << sumZ.value() << "\n";
+      std::cout << "Class    : " << sumClass.value() << "\n";
+      std::cout << "Flags    : " << sumFlags.value() << "\n";
+      std::cout << "Intensity: " << sumIntensity.value() << "\n";
+      std::cout << "Scan angl: " << sumScanAngle.value() << "\n";
+      std::cout << "User data: " << sumUserData.value() << "\n";
+      std::cout << "Point src: " << sumPointSourceId.value() << "\n";
+      std::cout << "GPS time : " << sumGpsTime.value() << "\n";
+      std::cout << "\n";
+    }
+
+
     typedef las::point14 type;
 
     struct ChannelCtx
@@ -230,6 +294,10 @@ struct field<las::point14>
             for (auto& yd : last_y_diff_median5_)
                 yd.init();
         }
+
+        //ABELL - Fix me.
+        ~ChannelCtx()
+        {}
     };  // ChannelCtx
 
     field() : last_channel_(-1)
@@ -363,6 +431,8 @@ struct field<las::point14>
                 // Class 0 - 31, shifted.
                 ((c.last_.classification() & 0x1F) << 1);
 
+            if (point.classification() != c.last_.classification())
+                class_enc_.makeValid();
             class_enc_.encodeSymbol(*c.class_model_[ctx], point.classification());
         }
 
@@ -379,6 +449,11 @@ struct field<las::point14>
                 (c.last_.scanDirFlag() << 4) |
                 (c.last_.eofFlag() << 5);
 
+//std::cerr << "Last/Cur flags = " << (int)last_flags << "/" << (int)flags << "!\n";
+//std::cerr << "Flags/Class/Scan/Eof = " << flags << "/" << point.classFlags() << "/" << point.scanDirFlag() << "/" <<
+//    point.eofFlag() << "!\n";
+            if (flags != last_flags)
+                flags_enc_.makeValid();;
             flags_enc_.encodeSymbol(*c.flag_model_[last_flags], flags);
         }
 
@@ -389,6 +464,8 @@ struct field<las::point14>
                 ((point.returnNum() >= point.numReturns()) << 1) |
                 ((point.returnNum() == 1) << 2);
 
+            if (point.intensity() != c.last_.intensity())
+                intensity_enc_.makeValid();
             c.intensity_compr_->compress(intensity_enc_,
                 c.last_intensity_[ctx], point.intensity(), ctx >> 1);
             c.last_intensity_[ctx] = point.intensity();
@@ -397,21 +474,29 @@ struct field<las::point14>
         // Scan angle
         {
             if (point.scanAngle() != c.last_.scanAngle())
+            {
+                scan_angle_enc_.makeValid();
                 c.scan_angle_compr_->compress(scan_angle_enc_, c.last_.scanAngle(),
                     point.scanAngle(), point.iGpsTime() != c.last_.iGpsTime());
+            }
         }
 
         // User data
         {
             int32_t ctx = c.last_.userData() / 4;
+            if (point.userData() != c.last_.userData())
+                user_data_enc_.makeValid();
             user_data_enc_.encodeSymbol(*c.user_data_model_[ctx], point.userData());
         }
 
         // Point Source ID
         {
             if (point.pointSourceID() != c.last_.pointSourceID())
+            {
+                point_source_id_enc_.makeValid();
                 c.point_source_id_compr_->compress(point_source_id_enc_,
                     c.last_.pointSourceID(), point.pointSourceID(), 0);
+            }
         }
 
         // GPS Time
@@ -443,6 +528,7 @@ struct field<las::point14>
         if (point.iGpsTime() == c.last_.iGpsTime())
             return;
 
+        gpstime_enc_.makeValid();
         auto u64 = [](double d){ return *reinterpret_cast<uint64_t *>(&d); };
 
         loop: 
@@ -474,9 +560,10 @@ struct field<las::point14>
 //std::cerr << "Encode New = 1!\n";
                 gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 1);
                 c.gpstime_compr_->compress(gpstime_enc_,
-                    u64(c.last_gpstime_[c.last_gps_seq_]) >> 32, point.uGpsTime() >> 32, 8);
+                    u64(c.last_gpstime_[c.last_gps_seq_]) >> 32,
+                    (int32_t)(point.uGpsTime() >> 32), 8);
                 gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
-                c.last_gps_seq_ = c.next_gps_seq_ = (c.next_gps_seq_ + 1) % 3;
+                c.last_gps_seq_ = c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
                 c.last_gpstime_diff_[c.last_gps_seq_] = 0;
                 c.multi_extreme_counter_[c.last_gps_seq_] = 0;
             }
@@ -493,7 +580,6 @@ struct field<las::point14>
             if (diff64 == diff)
             {
                 // Compute multiplier between current and last int difference.
-//std::cerr << "Curr/last = " << (float)diff << "/" << (float)(c.last_gpstime_diff_[c.last_gps_seq_]) << "!\n";
                 int32_t multi =
                     (int32_t)std::round(diff / (float)c.last_gpstime_diff_[c.last_gps_seq_]);
                 if (multi > 0 && multi < GpstimeMulti)
@@ -600,16 +686,6 @@ struct field<las::point14>
         point_source_id_enc_.done();
         gpstime_enc_.done();
 
-std::cerr << "XY bytes = " << xy_enc_.num_encoded() << "\n";
-std::cerr << "Z bytes = " << z_enc_.num_encoded() << "\n";
-std::cerr << "Class bytes = " << class_enc_.num_encoded() << "\n";
-std::cerr << "Flags bytes = " << flags_enc_.num_encoded() << "\n";
-std::cerr << "Intensity bytes = " << intensity_enc_.num_encoded() << "\n";
-std::cerr << "Scan angle bytes = " << scan_angle_enc_.num_encoded() << "\n";
-std::cerr << "User bytes = " << user_data_enc_.num_encoded() << "\n";
-std::cerr << "Point source bytes = " << point_source_id_enc_.num_encoded() << "\n";
-std::cerr << "GPStime bytes = " << gpstime_enc_.num_encoded() << "\n";
-
         stream << xy_enc_.num_encoded();
         stream << z_enc_.num_encoded();
         stream << class_enc_.num_encoded();
@@ -628,15 +704,18 @@ auto sum = [](const uint8_t *buf, uint32_t size)
     return sum;
 };
 
-std::cerr << sum(xy_enc_.encoded_bytes(), xy_enc_.num_encoded()) << "!\n";
-std::cerr << sum(z_enc_.encoded_bytes(), z_enc_.num_encoded()) << "!\n";
-std::cerr << sum(class_enc_.encoded_bytes(), class_enc_.num_encoded()) << "!\n";
-std::cerr << sum(flags_enc_.encoded_bytes(), flags_enc_.num_encoded()) << "!\n";
-std::cerr << sum(intensity_enc_.encoded_bytes(), intensity_enc_.num_encoded()) << "!\n";
-std::cerr << sum(scan_angle_enc_.encoded_bytes(), scan_angle_enc_.num_encoded()) << "!\n";
-std::cerr << sum(user_data_enc_.encoded_bytes(), user_data_enc_.num_encoded()) << "!\n";
-std::cerr << sum(point_source_id_enc_.encoded_bytes(), point_source_id_enc_.num_encoded()) << "!\n";
-std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!\n";
+static uint64_t count = 0;
+std::cerr << "Count: " << count++ << "\n";
+std::cerr << "XY        : " << sum(xy_enc_.encoded_bytes(), xy_enc_.num_encoded()) << "\n";
+std::cerr << "Z         : " << sum(z_enc_.encoded_bytes(), z_enc_.num_encoded()) << "\n";
+std::cerr << "Class     : " << sum(class_enc_.encoded_bytes(), class_enc_.num_encoded()) << "\n";
+std::cerr << "Flags     : " << sum(flags_enc_.encoded_bytes(), flags_enc_.num_encoded()) << "\n";
+std::cerr << "Intensity : " << sum(intensity_enc_.encoded_bytes(), intensity_enc_.num_encoded()) << "\n";
+std::cerr << "Scan angle: " << sum(scan_angle_enc_.encoded_bytes(), scan_angle_enc_.num_encoded()) << "\n";
+std::cerr << "User data : " << sum(user_data_enc_.encoded_bytes(), user_data_enc_.num_encoded()) << "\n";
+std::cerr << "Point src : " << sum(point_source_id_enc_.encoded_bytes(), point_source_id_enc_.num_encoded()) << "\n";
+std::cerr << "GPS time  : " << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "\n";
+std::cerr << "\n";
         stream.putBytes(xy_enc_.encoded_bytes(), xy_enc_.num_encoded());
         stream.putBytes(z_enc_.encoded_bytes(), z_enc_.num_encoded());
         if (class_enc_.num_encoded())
@@ -730,7 +809,7 @@ std::cerr << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "!
             (old.gps_time_change_ << 2);                                  // bit 2
 
         int32_t changed_values = xy_dec_.decodeSymbol(*old.changed_values_model_[change_stream]);
-std::cerr << "Change values = " << changed_values << "!\n";
+sumChange.add(changed_values);
         bool scanner_channel_changed = (changed_values >> 6) & 1;
         bool point_source_changed = (changed_values >> 5) & 1;
         bool gpstime_changed = (changed_values >> 4) & 1;
@@ -761,50 +840,41 @@ std::cerr << "Change values = " << changed_values << "!\n";
         c.last_.setNumReturns(nr);
 
         uint32_t rn = c.last_.returnNum();
-std::cerr << "Last RN = " << rn << "!\n";
         if (rn_increments)
-{
-std::cerr << "RN increments!\n";
             rn = (rn + 1) % 16;
-}
         else if (rn_decrements)
-{
-std::cerr << "RN decrements!\n";
             rn = ((rn + 15) % 16);
-}
         else if (rn_misc_change)
         {
-std::cerr << "RN misc change!\n";
             if (gpstime_changed)
                 rn = xy_dec_.decodeSymbol(*c.rn_model_[rn]);
             else
                 rn = (rn + xy_dec_.decodeSymbol(*c.rn_gps_same_model_) + 2) % 16;
         }
         c.last_.setReturnNum(rn);
+sumReturn.add(nr);
+sumReturn.add(rn);
 
-//std::cerr << "nr/rn/gc = " << nr << "/" << rn << "/" << gpstime_changed << "!\n";
         uint32_t ctx = (number_return_map_6ctx[nr][rn] << 1) | gpstime_changed;
-//std::cerr << "Context = " << ctx << "!\n";
         // X
         {
             int32_t median = c.last_x_diff_median5_[ctx].get();
             int32_t diff = c.dx_decomp_->decompress(xy_dec_, median, nr == 1);
             c.last_.setX(c.last_.x() + diff);
             c.last_x_diff_median5_[ctx].add(diff);
-std::cerr << "\tX = " << c.last_.x() << "!\n";
+sumX.add(c.last_.x());
+//std::cerr << "\tX = " << c.last_.x() << "!\n";
         }
 
         // Y
         {
             uint32_t kbits = (std::min)(c.dx_decomp_->getK(), 20U) & ~1;
-//std::cerr << "kbits = " << kbits << "!\n";
             int32_t median = c.last_y_diff_median5_[ctx].get();
-//std::cerr << "median = " << median << "!\n";
             int32_t diff = c.dy_decomp_->decompress(xy_dec_, median, (nr == 1) | kbits);
             c.last_.setY(c.last_.y() + diff);
-//std::cerr << "Diff = " << diff << "!\n";
             c.last_y_diff_median5_[ctx].add(diff);
-std::cerr << "\tY = " << c.last_.y() << "!\n";
+sumY.add(c.last_.y());
+//std::cerr << "\tY = " << c.last_.y() << "!\n";
         }
 
         // Z
@@ -815,12 +885,14 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
             int32_t z = c.z_decomp_->decompress(z_dec_, c.last_z_[ctx], (nr == 1) | kbits);
             c.last_.setZ(z);
             c.last_z_[ctx] = z;
+sumZ.add(c.last_.z());
         }
 
         // Classification
         {
             int32_t ctx = ((rn == 1 && rn >= nr) | ((c.last_.classification() & 0x1F) << 1));
             c.last_.setClassification(class_dec_.decodeSymbol(*c.class_model_[ctx]));
+sumClass.add(c.last_.classification());
         }
 
         // Flags
@@ -830,6 +902,7 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
                 (c.last_.eofFlag() << 5);
 
             uint32_t flags = flags_dec_.decodeSymbol(*c.flag_model_[last_flags]);
+sumFlags.add(flags);
             c.last_.setEofFlag((flags >> 5) & 1);
             c.last_.setScanDirFlag((flags >> 4) & 1);
             c.last_.setClassFlags(flags & 0x0F);
@@ -843,6 +916,7 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
                 c.last_intensity_[ctx], ctx >> 1);
             c.last_intensity_[ctx] = intensity;
             c.last_.setIntensity(intensity);
+sumIntensity.add(c.last_.intensity());
         }
 
         // Scan angle
@@ -852,12 +926,14 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
                 c.last_.setScanAngle(c.scan_angle_decomp_->decompress(scan_angle_dec_,
                     c.last_.scanAngle(), gpstime_changed));
             }
+sumScanAngle.add(c.last_.scanAngle());
         }
 
         // User data
         {
             int32_t ctx = c.last_.userData() / 4;
             c.last_.setUserData(user_data_dec_.decodeSymbol(*c.user_data_model_[ctx]));
+sumUserData.add(c.last_.userData());
         }
 
         // Point source ID
@@ -865,10 +941,12 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
             if (point_source_changed)
                 c.last_.setPointSourceID(c.point_source_id_decomp_->decompress(
                     point_source_id_dec_, c.last_.pointSourceID(), 0));
+sumPointSourceId.add(c.last_.pointSourceID());
         }
 
         if (gpstime_changed)
             decodeGpsTime(c);
+sumGpsTime.add(c.last_.gpsTime());
         c.gps_time_change_ = gpstime_changed;
         las::point14 *point = reinterpret_cast<las::point14 *>(buf);
         *point = c.last_;
@@ -1007,9 +1085,6 @@ std::cerr << "\tY = " << c.last_.y() << "!\n";
                 goto loop;
             }
         }
-static int cnt = 1;
-std::cerr << "\t" << cnt << " Time = " << std::setprecision(15) << c.last_gpstime_[c.last_gps_seq_] << "!\n";
-cnt++;
         c.last_.setGpsTime(c.last_gpstime_[c.last_gps_seq_]);
     }
 
@@ -1019,15 +1094,15 @@ cnt++;
     static const int GpstimeMultiTotal = GpstimeMulti - GpstimeMultiMinus + 5;
 
     std::array<ChannelCtx, 4> chan_ctxs_;
-    encoders::arithmetic<MemoryStream> xy_enc_;
-    encoders::arithmetic<MemoryStream> z_enc_;
-    encoders::arithmetic<MemoryStream> class_enc_;
-    encoders::arithmetic<MemoryStream> flags_enc_;
-    encoders::arithmetic<MemoryStream> intensity_enc_;
-    encoders::arithmetic<MemoryStream> scan_angle_enc_;
-    encoders::arithmetic<MemoryStream> user_data_enc_;
-    encoders::arithmetic<MemoryStream> point_source_id_enc_;
-    encoders::arithmetic<MemoryStream> gpstime_enc_;
+    encoders::arithmetic<MemoryStream> xy_enc_ {true};
+    encoders::arithmetic<MemoryStream> z_enc_ {true};
+    encoders::arithmetic<MemoryStream> class_enc_ {false};
+    encoders::arithmetic<MemoryStream> flags_enc_ {false};
+    encoders::arithmetic<MemoryStream> intensity_enc_ {false};
+    encoders::arithmetic<MemoryStream> scan_angle_enc_ {false};
+    encoders::arithmetic<MemoryStream> user_data_enc_ {false};
+    encoders::arithmetic<MemoryStream> point_source_id_enc_ {false};
+    encoders::arithmetic<MemoryStream> gpstime_enc_ {false};
 
     decoders::arithmetic<MemoryStream> xy_dec_;
     decoders::arithmetic<MemoryStream> z_dec_;
