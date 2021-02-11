@@ -101,6 +101,15 @@ struct header
     vector3 maximum;
 };
 
+struct header14 : public header
+{
+    uint64_t wave_offset {0};
+    uint64_t evlr_offset {0};
+    uint32_t elvr_count {0};
+    uint64_t point_count_14 {0};
+    uint64_t points_by_return_14[15] {};
+};
+
 // A Single LAZ Item representation
 struct laz_item
 {
@@ -473,6 +482,7 @@ struct __ofstream_wrapper
     StreamType& f_;
 };
 
+
 namespace reader
 {
 
@@ -483,7 +493,7 @@ class basic_file
     typedef __ifstream_wrapper<StreamType> LazPerfStream;
 
 public:
-    basic_file(StreamType& st) : f_(st), stream_(f_)
+    basic_file(StreamType& st) : f_(st), stream_(f_), header_(header14_), compressed_(false)
     {
         _open();
     }
@@ -508,18 +518,24 @@ public:
 
      void readPoint(char *out)
      {
+         if (!compressed_)
+             stream_.getBytes(reinterpret_cast<unsigned char *>(out), schema_.size_in_bytes());
+
          // read the next point in
-         if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
+         else
          {
-             pdecomperssor_ = factory::build_las_decompressor(stream_, schema_);
+            if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
+            {
+                pdecomperssor_ = factory::build_las_decompressor(stream_, schema_);
 
-             // reset chunk state
-             chunk_state_.current++;
-             chunk_state_.points_read = 0;
+                // reset chunk state
+                chunk_state_.current++;
+                chunk_state_.points_read = 0;
+            }
+
+            pdecomperssor_->decompress(out);
+            chunk_state_.points_read++;
          }
-
-         pdecomperssor_->decompress(out);
-         chunk_state_.points_read++;
      }
 
 private:
@@ -535,26 +551,39 @@ private:
         // Read the header in
         f_.seekg(0);
         f_.read((char*)&header_, sizeof(header_));
+        if (header_.version.minor == 4)
+        {
+            f_.seekg(0);
+            f_.read((char *)&header14_, sizeof(header14));
+        }
+        if (header_.point_format_id & 0x80)
+            compressed_ = true;
 
         // The mins and maxes are in a weird order, fix them
         _fixMinMax(header_);
 
-        // Make sure everything is valid with the header, note that validators are allowed
-        // to manipulate the header, since certain validators depend on a header's orignial state
-        // to determine what its final stage is going to be
-        for (auto f : _validators())
-            f(header_);
+        if (compressed_)
+        {
+            // Make sure everything is valid with the header, note that validators are allowed
+            // to manipulate the header, since certain validators depend on a header's
+            // original state to determine what its final stage is going to be
+            for (auto f : _validators())
+                f(header_);
 
-        // things look fine, move on with VLR extraction
-        _parseLASZIP();
+            // things look fine, move on with VLR extraction
+            _parseLASZIP();
 
-        // parse the chunk table offset
-        _parseChunkTable();
+            // parse the chunk table offset
+            _parseChunkTable();
+        }
 
         // set the file pointer to the beginning of data to start reading
         // may have treaded past the EOL, so reset everything before we start reading
         f_.clear();
-        f_.seekg(header_.point_offset + sizeof(int64_t));
+        uint64_t offset = header_.point_offset;
+        if (compressed_)
+            offset += sizeof(int64_t);
+        f_.seekg(offset);
         stream_.reset();
     }
 
@@ -743,9 +772,11 @@ private:
 
     StreamType& f_;
     LazPerfStream stream_;
-    header header_;
+    header& header_;
+    header14 header14_;
     laz_vlr laz_;
     std::vector<uint64_t> chunk_table_offsets_;
+    bool compressed_;
 
     // the schema of this file, the LAZ items converted into factory recognizable description,
     factory::record_schema schema_;
@@ -776,16 +807,19 @@ struct config
     vector3 scale;
     vector3 offset;
     unsigned int chunk_size;
+    bool compressed;
+    int minor_version;
 
-    explicit config() : scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0), chunk_size(DefaultChunkSize)
+    explicit config() :
+        scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0), chunk_size(DefaultChunkSize), compressed(true)
     {}
 
     config(const vector3& s, const vector3& o, unsigned int cs = DefaultChunkSize) :
-        scale(s), offset(o), chunk_size(cs)
+        scale(s), offset(o), chunk_size(cs), compressed(true)
     {}
 
     config(const header& h) : scale(h.scale.x, h.scale.y, h.scale.z),
-        offset(h.offset.x, h.offset.y, h.offset.z), chunk_size(DefaultChunkSize)
+        offset(h.offset.x, h.offset.y, h.offset.z), chunk_size(DefaultChunkSize), compressed(true)
     {}
 
     header to_header() const
@@ -807,23 +841,27 @@ struct config
         h.scale.z = scale.z;
 
         return h;
-   }
+    }
 };
 
 class file
 {
 public:
-    file() : wrapper_(f_)
+    file() : wrapper_(f_), header_(header14_)
     {}
 
     file(const std::string& filename, const factory::record_schema& s, const config& config) :
-        wrapper_(f_), schema_(s), header_(config.to_header()), chunk_size_(config.chunk_size)
+        wrapper_(f_), schema_(s), header_(header14_)
     {
         open(filename, s, config);
     }
 
     void open(const std::string& filename, const factory::record_schema& s, const config& c)
     {
+        chunk_size_ = c.chunk_size;
+        compressed_ = c.compressed;
+        minor_version_ = c.minor_version;
+
         // open the file and move to offset of data, we'll write
         // headers and all other things on file close
         f_.open(filename, std::ios::binary | std::ios::trunc);
@@ -836,11 +874,12 @@ public:
 
         // write junk to our prelude, we'll overwrite this with
         // awesome data later
-        size_t preludeSize =
-            sizeof(header) +    // the LAS header
-            54 + // size of one vlr header
-            (34 + s.records_.size() * 6) + // the LAZ vlr size
-            sizeof(int64_t); // chunk table offset
+        size_t preludeSize = c.minor_version == 4 ? sizeof(header14) : sizeof(header);
+        if (compressed_)
+            preludeSize +=
+                54 + // size of one vlr header
+                (34 + s.records_.size() * 6) + // the LAZ vlr size
+                sizeof(int64_t); // chunk table offset
 
         char *junk = new char[preludeSize];
         std::fill(junk, junk + preludeSize, 0);
@@ -851,27 +890,33 @@ public:
 
     void writePoint(const char *p)
     {
-        //ABELL - This first bit can go away if we simply always create compressor and
-        //  decompressor.
-        if (!pcompressor_)
+        if (!compressed_)
         {
-            pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+            wrapper_.putBytes(reinterpret_cast<const unsigned char *>(p), schema_.size_in_bytes());
         }
-        else if (chunk_state_.points_in_chunk == chunk_size_)
+        else
         {
-            pcompressor_->done();
-            chunk_state_.points_in_chunk = 0;
-            std::streamsize offset = f_.tellp();
-            chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
-            chunk_state_.last_chunk_write_offset = offset;
-            pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
-        }
+            //ABELL - This first bit can go away if we simply always create compressor and
+            //  decompressor.
+            if (!pcompressor_)
+            {
+                pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+            }
+            else if (chunk_state_.points_in_chunk == chunk_size_)
+            {
+                pcompressor_->done();
+                chunk_state_.points_in_chunk = 0;
+                std::streamsize offset = f_.tellp();
+                chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
+                chunk_state_.last_chunk_write_offset = offset;
+                pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+            }
 
-        // now write the point
-        pcompressor_->compress(p);
+            // now write the point
+            pcompressor_->compress(p);
+        }
         chunk_state_.total_written++;
         chunk_state_.points_in_chunk++;
-
         _update_min_max(*(reinterpret_cast<const formats::las::point10*>(p)));
     }
 
@@ -901,11 +946,15 @@ private:
 
     void _flush()
     {
-        // flush out the encoder
-        pcompressor_->done();
+        if (compressed_)
+        {
+            // flush out the encoder
+            pcompressor_->done();
 
-        // Note down the size of the offset of this last chunk
-        chunk_sizes_.push_back((std::streamsize)f_.tellp() - chunk_state_.last_chunk_write_offset);
+            // Note down the size of the offset of this last chunk
+            chunk_sizes_.push_back((std::streamsize)f_.tellp() -
+                chunk_state_.last_chunk_write_offset);
+        }
 
         // Time to write our header
         // Fill up things not filled up by our header
@@ -913,16 +962,23 @@ private:
         header_.magic[2] = 'S'; header_.magic[3] = 'F';
 
         header_.version.major = 1;
-        header_.version.minor = 2;
-
-        // 54 is the size of one vlr header
-        header_.header_size = sizeof(header_);
-        header_.point_offset = sizeof(header) + 54 +
-            (34 + static_cast<unsigned int>(schema_.records_.size()) * 6);
-        header_.vlr_count = 1;
+        header_.version.minor = minor_version_;
 
         header_.point_format_id = schema_.format();
-        header_.point_format_id |= (1 << 7);
+
+        header_.header_size = minor_version_ == 4 ? sizeof(header14) : sizeof(header);
+        header_.point_offset = header_.header_size;
+        if (compressed_)
+        {
+            // 54 is the size of one vlr header
+            header_.point_offset += 54 +
+            (34 + static_cast<unsigned int>(schema_.records_.size()) * 6);
+            header_.vlr_count = 1;
+            header_.point_format_id |= (1 << 7);
+        }
+        else
+            header_.vlr_count = 0;
+
         header_.point_record_length = static_cast<unsigned short>(schema_.size_in_bytes());
         header_.point_count = static_cast<unsigned int>(chunk_state_.total_written);
 
@@ -936,40 +992,50 @@ private:
         header_.minimum.z = my; header_.maximum.x = ny;
         header_.maximum.y = mz; header_.maximum.z = nz;
 
-        f_.seekp(0);
-        f_.write(reinterpret_cast<char*>(&header_), sizeof(header_));
-
-        // before we can write the VLR, we need to write the LAS VLR definition
-        // for it
-#pragma pack(push, 1)
-        struct
+        if (minor_version_ == 4)
         {
-            unsigned short reserved;
-            char user_id[16];
-            unsigned short record_id;
-            unsigned short record_length_after_header;
-            char description[32];
-        } las_vlr_header;
+            header14_.point_count_14 = header_.point_count;
+            // Set the WKT bit.
+            header_.global_encoding |= (1 << 4);
+        }
+
+        f_.seekp(0);
+        f_.write(reinterpret_cast<char*>(&header_), header_.header_size);
+
+        if (compressed_)
+        {
+            // before we can write the VLR, we need to write the LAS VLR definition
+            // for it
+#pragma pack(push, 1)
+            struct
+            {
+                unsigned short reserved;
+                char user_id[16];
+                unsigned short record_id;
+                unsigned short record_length_after_header;
+                char description[32];
+            } las_vlr_header;
 #pragma pack(pop)
 
-        las_vlr_header.reserved = 0;
-        las_vlr_header.record_id = 22204;
-        las_vlr_header.record_length_after_header =
+            las_vlr_header.reserved = 0;
+            las_vlr_header.record_id = 22204;
+            las_vlr_header.record_length_after_header =
             static_cast<unsigned short>(34 + (schema_.records_.size() * 6));
 
-        strcpy(las_vlr_header.user_id, "laszip encoded");
-        strcpy(las_vlr_header.description, "laz-perf variant");
+            strcpy(las_vlr_header.user_id, "laszip encoded");
+            strcpy(las_vlr_header.description, "laz-perf variant");
 
-        // write the las vlr header
-        f_.write(reinterpret_cast<char*>(&las_vlr_header), sizeof(las_vlr_header));
+            // write the las vlr header
+            f_.write(reinterpret_cast<char*>(&las_vlr_header), sizeof(las_vlr_header));
 
-        // prep our VLR so we can write it
-        laz_vlr vlr = laz_vlr::from_schema(schema_, chunk_size_);
+            // prep our VLR so we can write it
+            laz_vlr vlr = laz_vlr::from_schema(schema_, chunk_size_);
 
-        std::unique_ptr<char> vlrbuf(new char[vlr.size()]);
-        vlr.extract(vlrbuf.get());
-        f_.write(vlrbuf.get(), vlr.size());
-        _writeChunks();
+            std::unique_ptr<char> vlrbuf(new char[vlr.size()]);
+            vlr.extract(vlrbuf.get());
+            f_.write(vlrbuf.get(), vlr.size());
+            _writeChunks();
+        }
     }
 
     void _writeChunks()
@@ -980,7 +1046,6 @@ private:
         // take note of where we're writing the chunk table, we need this later
         int64_t chunk_table_offset = static_cast<int64_t>(f_.tellp());
 
-std::cerr << "Chunk table position = " << chunk_table_offset << "!\n";
         // write out the chunk table header (version and total chunks)
 #pragma pack(push, 1)
         struct
@@ -1000,7 +1065,6 @@ std::cerr << "Chunk table position = " << chunk_table_offset << "!\n";
 
         comp.init();
 
-        std::cerr << "Writing chunk sizes = " << chunk_sizes_.size() << "!\n";
         for (size_t i = 0 ; i < chunk_sizes_.size() ; i ++)
         {
             comp.compress(encoder, i ? static_cast<int>(chunk_sizes_[i-1]) : 0,
@@ -1019,8 +1083,11 @@ std::cerr << "Chunk table position = " << chunk_table_offset << "!\n";
     formats::las_compressor::ptr pcompressor_;
 
     factory::record_schema schema_;
-    header header_;
+    header& header_;
+    header14 header14_;
     unsigned int chunk_size_;
+    bool compressed_;
+    int minor_version_;
 
     struct __chunk_state
     {

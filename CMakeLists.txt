@@ -154,6 +154,7 @@ endif()
 
 add_subdirectory(examples)
 add_subdirectory(benchmarks)
+add_subdirectory(tools)
 
 if (EMSCRIPTEN)
 	add_subdirectory(emscripten)

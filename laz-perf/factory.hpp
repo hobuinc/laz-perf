@@ -105,6 +105,34 @@ struct record_schema
     record_schema() : valid_(false)
     {}
 
+    record_schema(int pdrf, int extra_bytes = 0)
+    {
+        switch (pdrf)
+        {
+        case 0:
+            push(record_item::point());
+            break;
+        case 1:
+            push(record_item::point());
+            push(record_item::gpstime());
+            break;
+        case 2:
+            push(record_item::point());
+            push(record_item::rgb());
+            break;
+        case 3:
+            push(record_item::point());
+            push(record_item::gpstime());
+            push(record_item::rgb());
+            break;
+        case 6:
+            push(record_item::point14());
+            break;
+        }
+        if (extra_bytes && pdrf < 6)
+            push(record_item::eb(extra_bytes));
+    }
+
     void push(const record_item& item)
     {
         records_.push_back(item);

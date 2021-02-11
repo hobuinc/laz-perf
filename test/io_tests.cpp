@@ -176,19 +176,6 @@ TEST(io_tests, can_report_invalid_magic) {
     }
 }
 
-TEST(io_tests, can_check_for_no_compression) {
-    using namespace laszip;
-
-    {
-        std::ifstream file(testFile("point10.las"), std::ios::binary);
-        auto func = [&file]() {
-            io::reader::file f(file);
-        };
-        EXPECT_THROW(func(), error);
-        file.close();
-    }
-}
-
 TEST(io_tests, doesnt_throw_any_errors_for_valid_laz) {
     using namespace laszip;
     {
@@ -397,7 +384,6 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     {
         ucStream.read(ucBuf, pointLen);
         c.readPoint(cBuf);
-        std::cerr << "Testing point " << i << "!\n";
         testPoint(header.point_format_id, pointLen, ucBuf, cBuf);
     }
 }

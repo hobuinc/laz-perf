@@ -93,7 +93,6 @@ namespace laszip {
 
 			struct point14
             {
-            private:
 				int32_t x_;
 				int32_t y_;
 				int32_t z_;
@@ -106,7 +105,6 @@ namespace laszip {
                 uint16_t point_source_ID_;
                 double gpstime_;
 
-            public:
                 point14()
                 {}
 
