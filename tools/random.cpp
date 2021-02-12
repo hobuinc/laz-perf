@@ -58,7 +58,13 @@ void createFile(const std::string filename, int pdrf, double percent)
     std::unique_ptr<char> buf(new char(100));
     char *pos = buf.get();
     factory::record_schema schema(pdrf);
-    std::mt19937 gen(std::random_device{}());
+    using GENERATOR = std::mt19937;
+    std::random_device rd;
+    std::vector<int32_t> seed;
+    for (size_t i = 0; i < GENERATOR::state_size; ++i)
+        seed.push_back(rd());
+    std::seed_seq seedSeq(seed.begin(), seed.end());
+    std::mt19937 gen(seedSeq);
     writer::file f(filename, schema, c);
     if (pdrf < 6)
     {
