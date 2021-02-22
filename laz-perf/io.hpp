@@ -43,6 +43,7 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 #include "laz_vlr.hpp"
+#include "eb_vlr.hpp"
 #include "util.hpp"
 #include "portable_endian.hpp"
 
@@ -278,6 +279,8 @@ private:
         // The mins and maxes are in a weird order, fix them
         _fixMinMax(header_);
 
+        parseVLRs();
+
         if (compressed_)
         {
             // Make sure everything is valid with the header, note that validators are allowed
@@ -285,9 +288,6 @@ private:
             // original state to determine what its final stage is going to be
             for (auto f : _validators())
                 f(header_);
-
-            // things look fine, move on with VLR extraction
-            _parseLASZIP();
 
             // parse the chunk table offset
             _parseChunkTable();
@@ -316,7 +316,7 @@ private:
         h.minimum.z = nz; h.maximum.z = mz;
     }
 
-    void _parseLASZIP()
+    void parseVLRs()
     {
         // move the pointer to the begining of the VLRs
         f_.seekg(header_.header_size);
@@ -353,7 +353,7 @@ private:
             count++;
         }
 
-        if (!laszipFound)
+        if (compressed_ && !laszipFound)
             throw error("Couldn't find LASZIP VLR");
         schema_ = laz_vlr::to_schema(laz_, header_.point_record_length);
     }
@@ -588,14 +588,18 @@ public:
         header_ = c.to_header();
         chunk_size_ = c.chunk_size;
 
-        // write junk to our prelude, we'll overwrite this with
-        // awesome data later
         size_t preludeSize = c.minor_version == 4 ? sizeof(header14) : sizeof(header);
+        preludeSize += sizeof(int64_t);  // Chunk table offset.
         if (compressed_)
-            preludeSize +=
-                54 + // size of one vlr header
-                (34 + s.records_.size() * 6) + // the LAZ vlr size
-                sizeof(int64_t); // chunk table offset
+        {
+            laz_vlr vlr = laz_vlr::from_schema(s, DefaultChunkSize);
+            preludeSize += vlr.size() + vlr.header().size();
+        }
+        if (s.extrabytes())
+        {
+            eb_vlr vlr(s.extrabytes());
+            preludeSize += vlr.size() + vlr.header().size();
+        }
 
         char *junk = new char[preludeSize];
         std::fill(junk, junk + preludeSize, 0);
@@ -662,6 +666,9 @@ private:
 
     void _flush()
     {
+        laz_vlr lazVlr = laz_vlr::from_schema(schema_, chunk_size_);
+        eb_vlr ebVlr(schema_.extrabytes());
+
         if (compressed_)
         {
             // flush out the encoder
@@ -684,16 +691,18 @@ private:
 
         header_.header_size = minor_version_ == 4 ? sizeof(header14) : sizeof(header);
         header_.point_offset = header_.header_size;
+        header_.vlr_count = 0;
         if (compressed_)
         {
-            // 54 is the size of one vlr header
-            header_.point_offset += 54 +
-                (34 + static_cast<unsigned int>(schema_.records_.size()) * 6);
-            header_.vlr_count = 1;
+            header_.point_offset += lazVlr.size() + lazVlr.header().size();
+            header_.vlr_count++;
             header_.point_format_id |= (1 << 7);
         }
-        else
-            header_.vlr_count = 0;
+        if (schema_.extrabytes())
+        {
+            header_.point_offset += ebVlr.size() + ebVlr.header().size();
+            header_.vlr_count++;
+        }
 
         header_.point_record_length = static_cast<unsigned short>(schema_.size_in_bytes());
         header_.point_count = static_cast<unsigned int>(chunk_state_.total_written);
@@ -721,16 +730,23 @@ private:
         if (compressed_)
         {
             // Write the VLR.
-            laz_vlr vlr = laz_vlr::from_schema(schema_, chunk_size_);
-
-            vlr::vlr_header h = vlr.header();
+            vlr::vlr_header h = lazVlr.header();
             f_.write(reinterpret_cast<char *>(&h), sizeof(h));
 
-            std::unique_ptr<char> vlrbuf(new char[vlr.size()]);
-            vlr.extract(vlrbuf.get());
-            f_.write(vlrbuf.get(), vlr.size());
-            _writeChunks();
+            std::unique_ptr<char> vlrbuf(new char[lazVlr.size()]);
+            lazVlr.extract(vlrbuf.get());
+            f_.write(vlrbuf.get(), lazVlr.size());
         }
+        if (schema_.extrabytes())
+        {
+            vlr::vlr_header h = ebVlr.header();
+
+            f_.write(reinterpret_cast<char *>(&h), sizeof(h));
+            f_.write((const char *)ebVlr.data(), ebVlr.size());
+        }
+
+        if (compressed_)
+            _writeChunks();
     }
 
     void _writeChunks()

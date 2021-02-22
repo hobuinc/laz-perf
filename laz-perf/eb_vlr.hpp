@@ -59,14 +59,23 @@ struct eb_vlr : public vlr
     int cnt;
     std::vector<uint8_t> buf;
 
+    eb_vlr(size_t bytes)
+    {
+        for (size_t i = 0; i < bytes; ++i)
+            addField();
+    }
+
     void addField()
     {
         struct eb field;
 
-        name = "FIELD_" + std::to_string(cnt++);
+        std::string name = "FIELD_" + std::to_string(cnt++);
         strcpy(field.name, name.data());
         field.data_type = htole32(1); // Unsigned char
-        buf.append((uint8_t *)&field, ((uint8_t)&field) + sizeof(eb));
+
+        uint8_t *pos =  (uint8_t *)&field;
+        for (size_t i = 0; i < sizeof(eb); ++i)
+            buf.push_back(*pos++);
     }
 
     size_t size() const
@@ -86,7 +95,7 @@ struct eb_vlr : public vlr
 
     virtual vlr::vlr_header header()
     {
-        vlr_header h { 0, 4, "LASF_Spec", (uint32_t)size(), "" };
+        vlr_header h { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
 
         return h;
     }

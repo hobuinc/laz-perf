@@ -83,7 +83,7 @@ struct laz_vlr : public vlr
 
     virtual size_t size() const
     {
-        return sizeof(laz_vlr) - sizeof(laz_item *) +
+        return sizeof(laz_vlr) - sizeof(vlr) - sizeof(laz_item *) +
             (num_items * sizeof(laz_item));
     }
 

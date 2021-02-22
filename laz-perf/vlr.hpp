@@ -45,6 +45,9 @@ struct vlr
         uint16_t record_id;
         uint16_t record_length_after_header;
         char description[32];
+
+        size_t size() const
+        { return sizeof(vlr_header); }
     };
 #pragma pack(pop)
 
