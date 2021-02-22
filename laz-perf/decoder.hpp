@@ -52,6 +52,13 @@ public:
         init();
     }
 
+    arithmetic(const arithmetic<TInputStream>& src) :
+        pIn(new TInputStream(*src.pIn)), instream(*pIn)
+    {
+        value = src.value;
+        length = src.length;
+    }
+
     ~arithmetic() {
     }
 
@@ -251,7 +258,6 @@ public:
         return instream;
     }
 
-    arithmetic<TInputStream>(const arithmetic<TInputStream>&) = delete;
     arithmetic<TInputStream>& operator = (const arithmetic<TInputStream>&) = delete;
 
 private:

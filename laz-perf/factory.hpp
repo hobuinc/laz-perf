@@ -50,7 +50,10 @@ struct record_item
         POINT10 = 6,
         GPSTIME = 7,
         RGB12 = 8,
-        POINT14 = 10
+        POINT14 = 10,
+        RGB14 = 11,
+        RGBNIR14 = 12,
+        BYTE14 = 14
     };
 
     int type;
@@ -98,6 +101,18 @@ struct record_item
         static record_item item(POINT14, 30, 3);
         return item;
     }
+
+    static const record_item rgb14()
+    {
+        static record_item item(RGB14, 6, 3);
+        return item;
+    }
+
+    static const record_item rgbnir14()
+    {
+        static record_item item(RGBNIR14, 8, 3);
+        return item;
+    }
 };
 
 struct record_schema
@@ -127,6 +142,14 @@ struct record_schema
             break;
         case 6:
             push(record_item::point14());
+            break;
+        case 7:
+            push(record_item::point14());
+            push(record_item::rgb14());
+            break;
+        case 8:
+            push(record_item::point14());
+            push(record_item::rgbnir14());
             break;
         }
         if (extra_bytes && pdrf < 6)
@@ -178,10 +201,14 @@ struct record_schema
 
         if (count == 2)
         {
-            if (records_[1] == record_item::gpstime())
+            if (records_[0] == record_item::point() && records_[1] == record_item::gpstime())
                 return 1;
-            else if (records_[1] == record_item::rgb())
+            else if (records_[0] == record_item::point() && records_[1] == record_item::rgb())
                 return 2;
+            if (records_[0] == record_item::point14() && records_[1] == record_item::rgb14())
+                return 7;
+            if (records_[0] == record_item::point14() && records_[1] == record_item::rgbnir14())
+                return 8;
         }
         if (count == 3 && records_[1] == record_item::gpstime() &&
                 records_[2] == record_item::rgb())
@@ -236,6 +263,14 @@ formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, i
         if (ebCount != 0)
             throw error("Can't create point data format 6 compressor with extra bytes.");
         compressor.reset(new las::point_compressor_6<TStream>(stream));
+    case 7:
+        if (ebCount != 0)
+            throw error("Can't create point data format 7 compressor with extra bytes.");
+        compressor.reset(new las::point_compressor_7<TStream>(stream));
+    case 8:
+        if (ebCount != 0)
+            throw error("Can't create point data format 8 compressor with extra bytes.");
+        compressor.reset(new las::point_compressor_8<TStream>(stream));
     }
     return compressor;
 }
@@ -273,6 +308,14 @@ formats::las_decompressor::ptr build_las_decompressor(TStream& stream, int forma
         if (ebCount != 0)
             throw error("Can't create point data format 6 compressor with extra bytes.");
         decompressor.reset(new las::point_decompressor_6<TStream>(stream));
+    case 7:
+        if (ebCount != 0)
+            throw error("Can't create point data format 7 compressor with extra bytes.");
+        decompressor.reset(new las::point_decompressor_7<TStream>(stream));
+    case 8:
+        if (ebCount != 0)
+            throw error("Can't create point data format 8 compressor with extra bytes.");
+        decompressor.reset(new las::point_decompressor_8<TStream>(stream));
     }
     return decompressor;
 }

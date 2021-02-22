@@ -137,22 +137,21 @@ struct memory_stream
 
 std::string makeTempFileName()
 {
+    std::string filename;
 #ifdef _WIN32
-    char *fnTemplate = "fnXXXXXX";
+    const char *fnTemplate = "fnXXXXXX";
     char name[9];
-    strcpy_s(name, sizeof(name), fnTemplate);
-    size_t size = strnlen(name, 9) + 1;
-    _mktemp_s(name, size);
+    strncpy(name, fnTemplate, 9);
+    _mktemp_s(name, 9);
     char path[MAX_PATH];
     GetTempPath(MAX_PATH, path);
-
-    return std::string(path) + std::string(name, 8);
+    filename = std::string(path) + name;
 #else
-    char name[L_tmpnam];
-    std::tmpnam(name);
-
-    return std::string(name);
+    std::string s("/var/tmp/fnXXXXXX");
+    mkstemp(const_cast<char *>(s.data()));
+    filename = s;
 #endif
+    return filename;
 }
 
 TEST(io_tests, io_structs_are_of_correct_size) {

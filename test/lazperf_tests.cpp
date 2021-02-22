@@ -1180,6 +1180,7 @@ TEST(lazperf_tests, schema_to_point_format_works) {
 	}
 }
 
+/**
 TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
     const int POINT_COUNT = 100000;
 
@@ -1224,6 +1225,7 @@ TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
 		EXPECT_EQ(input.z, rvalue);
 	}
 }
+**/
 
 TEST(lazperf_tests, dynamic_field_compressor_works) {
     const int POINT_COUNT = 1000;

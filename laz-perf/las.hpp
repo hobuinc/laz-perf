@@ -73,12 +73,33 @@ namespace laszip {
 			};
 
 			struct rgb {
-				unsigned short r, g, b;
+				uint16_t r, g, b;
 
 				rgb(): r(0), g(0), b(0) {}
 				rgb(unsigned short _r, unsigned short _g, unsigned short _b) :
 					r(_r), g(_g), b(_b) {}
 			};
+
+            struct rgb14 : public rgb
+            {
+                rgb14()
+                {}
+                rgb14(const rgb& val) : rgb(val)
+                {}
+            };
+
+            struct nir14
+            {
+                uint16_t val;
+
+                nir14() : val(0)
+                {}
+
+                nir14(uint16_t v) : val(v)
+                {}
+            };
+
+            using byte14 = std::vector<uint8_t>;
 
             // just the XYZ fields out of the POINT10 struct
 			struct xyz {
@@ -207,7 +228,9 @@ namespace laszip {
 #include "detail/field_point14.hpp"
 #include "detail/field_gpstime.hpp"
 #include "detail/field_rgb.hpp"
-#include "detail/field_xyz.hpp"
+#include "detail/field_rgb14.hpp"
+#include "detail/field_nir14.hpp"
+#include "detail/field_byte14.hpp"
 
 namespace laszip
 {
@@ -231,25 +254,6 @@ struct point_compressor_base_1_2 : public formats::las_compressor
     encoders::arithmetic<TStream> encoder_;
     field<point10> point_;
     field<extrabytes> extrabytes_;
-};
-
-template<typename TStream>
-struct point_compressor_base_1_4 : public formats::las_compressor
-{
-    point_compressor_base_1_4(TStream& stream) : stream_(stream), chunk_count_(0)
-    {}
-
-    virtual void done()
-    {
-        //ABELL - This probably needs to be byte-ordered.
-        //ABELL - There is only one chunk count, even if there are many field<>s in the output.
-        stream_ << chunk_count_;
-        point_.done(stream_);
-    }
-
-    TStream& stream_;
-    field<point14> point_;
-    uint32_t chunk_count_;
 };
 
 template<typename TStream>
@@ -324,6 +328,18 @@ struct point_compressor_3 : public point_compressor_base_1_2<TStream>
 };
 
 template<typename TStream>
+struct point_compressor_base_1_4 : public formats::las_compressor
+{
+    point_compressor_base_1_4(TStream& stream) : stream_(stream), chunk_count_(0)
+    {}
+
+    TStream& stream_;
+    field<point14> point_;
+    uint32_t chunk_count_;
+};
+
+
+template<typename TStream>
 struct point_compressor_6 : public point_compressor_base_1_4<TStream>
 {
     point_compressor_6(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
@@ -331,9 +347,80 @@ struct point_compressor_6 : public point_compressor_base_1_4<TStream>
 
     virtual const char *compress(const char *in)
     {
+        int channel = 0;
         this->chunk_count_++;
-        in = this->point_.compressWith(this->stream_, in);
+        in = this->point_.compressWith(this->stream_, in, channel);
         return in;
+    }
+
+    virtual void done()
+    {
+        //ABELL - This probably needs to be byte-ordered.
+        //ABELL - There is only one chunk count, even if there are many field<>s in the output.
+        this->stream_ << this->chunk_count_;
+        this->point_.writeSizes(this->stream_);
+        this->point_.writeData(this->stream_);
+    }
+};
+
+template<typename TStream>
+struct point_compressor_7 : public point_compressor_base_1_4<TStream>
+{
+    field<rgb14> rgb_;
+
+    point_compressor_7(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    {}
+
+    virtual const char *compress(const char *in)
+    {
+        int channel = 0;
+        this->chunk_count_++;
+        in = this->point_.compressWith(this->stream_, in, channel);
+        in = rgb_.compressWith(this->stream_, in, channel);
+        return in;
+    }
+
+    virtual void done()
+    {
+        //ABELL - This probably needs to be byte-ordered.
+        //ABELL - There is only one chunk count, even if there are many field<>s in the output.
+        this->stream_ << this->chunk_count_;
+        this->point_.writeSizes(this->stream_);
+        rgb_.writeSizes(this->stream_);
+        this->point_.writeData(this->stream_);
+        rgb_.writeData(this->stream_);
+    }
+};
+
+template<typename TStream>
+struct point_compressor_8 : public point_compressor_base_1_4<TStream>
+{
+    field<rgb14> rgb_;
+    field<nir14> nir_;
+
+    point_compressor_8(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    {}
+
+    virtual const char *compress(const char *in)
+    {
+        int channel = 0;
+        this->chunk_count_++;
+        in = this->point_.compressWith(this->stream_, in, channel);
+        in = rgb_.compressWith(this->stream_, in, channel);
+        in = nir_.compressWith(this->stream_, in, channel);
+        return in;
+    }
+
+    virtual void done()
+    {
+        //ABELL - This probably needs to be byte-ordered.
+        this->stream_ << this->chunk_count_;
+        this->point_.writeSizes(this->stream_);
+        rgb_.writeSizes(this->stream_);
+        nir_.writeSizes(this->stream_);
+        this->point_.writeData(this->stream_);
+        rgb_.writeData(this->stream_);
+        nir_.writeData(this->stream_);
     }
 };
 
@@ -360,19 +447,6 @@ struct point_decompressor_base_1_2 : public formats::las_decompressor
     decoders::arithmetic<TStream> decoder_;
     field<point10> point_;
     field<extrabytes> extrabytes_;
-    bool first_;
-};
-
-template<typename TStream>
-struct point_decompressor_base_1_4 : public formats::las_decompressor
-{
-    point_decompressor_base_1_4(TStream& stream) : stream_(stream), first_(true)
-    {
-    }
-
-    TStream& stream_;
-    field<point14> point_;
-    uint32_t chunk_count_;
     bool first_;
 };
 
@@ -451,27 +525,124 @@ struct point_decompressor_3 : public point_decompressor_base_1_2<TStream>
     }
 };
 
-//ABELL - Move this
+template<typename TStream>
+struct point_decompressor_base_1_4 : public formats::las_decompressor
+{
+    point_decompressor_base_1_4(TStream& stream) : stream_(stream), first_(true)
+    {
+    }
+
+    TStream& stream_;
+    field<point14> point_;
+    uint32_t chunk_count_;
+    bool first_;
+};
+
 template<typename TStream>
 struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
 {
     point_decompressor_6(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
     {}
 
+    ~point_decompressor_6()
+    {
+        this->point_.dumpSums();
+        std::cerr << "\n";
+    }
+
     virtual char *decompress(char *out)
     {
-        out = this->point_.decompressWith(this->stream_, out);
+        int channel = 0;
+        out = this->point_.decompressWith(this->stream_, out, channel);
 
         if (this->first_)
         {
             // Read the point count the streams for each data member.
             this->stream_ >> this->chunk_count_;
-            this->point_.initDecompression(this->stream_);
+            this->point_.readSizes(this->stream_);
+            this->point_.readData(this->stream_);
             this->first_ = false;
         }
 
         return out;
     }
+};
+
+template<typename TStream>
+struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
+{
+    point_decompressor_7(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    {}
+
+    ~point_decompressor_7()
+    {
+        this->point_.dumpSums();
+        rgb_.dumpSums();
+        std::cerr << "\n";
+    }
+
+    virtual char *decompress(char *out)
+    {
+        int channel = 0;
+        out = this->point_.decompressWith(this->stream_, out, channel);
+        out = rgb_.decompressWith(this->stream_, out, channel);
+
+        if (this->first_)
+        {
+            // Read the point count the streams for each data member.
+            this->stream_ >> this->chunk_count_;
+            this->point_.readSizes(this->stream_);
+            rgb_.readSizes(this->stream_);
+            this->point_.readData(this->stream_);
+            rgb_.readData(this->stream_);
+            this->first_ = false;
+        }
+
+        return out;
+    }
+
+    field<rgb14> rgb_;
+};
+
+template<typename TStream>
+struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
+{
+    point_decompressor_8(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    {}
+
+    ~point_decompressor_8()
+    {
+        this->point_.dumpSums();
+        rgb_.dumpSums();
+        nir_.dumpSums();
+        std::cerr << "\n";
+    }
+
+    virtual char *decompress(char *out)
+    {
+        int channel = 0;
+        out = this->point_.decompressWith(this->stream_, out, channel);
+        out = rgb_.decompressWith(this->stream_, out, channel);
+        out = nir_.decompressWith(this->stream_, out, channel);
+
+        if (this->first_)
+        {
+            // Read the point count the streams for each data member.
+            this->stream_ >> this->chunk_count_;
+            this->point_.readSizes(this->stream_);
+            rgb_.readSizes(this->stream_);
+            nir_.readSizes(this->stream_);
+            this->point_.readData(this->stream_);
+            rgb_.readData(this->stream_);
+            nir_.readData(this->stream_);
+            this->first_ = false;
+        }
+
+        return out;
+    }
+
+    field<rgb14> rgb_;
+    field<nir14> nir_;
 };
 
 } // namespace las

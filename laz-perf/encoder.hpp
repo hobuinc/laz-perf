@@ -52,6 +52,12 @@ public:
         init(valid);
     }
 
+    arithmetic(const arithmetic<TOutStream>& src) :
+        pOut(new TOutStream(*src.pOut)), outstream(*pOut)
+    {
+        init(src);
+    }
+
     ~arithmetic()
     {
         delete [] outbuffer;
@@ -254,6 +260,7 @@ public:
         return valid ? outstream.data() : nullptr;
     }
 
+
 private:
     void init(bool v)
     {
@@ -265,6 +272,18 @@ private:
         length = AC__MaxLength;
         outbyte = outbuffer;
         endbyte = endbuffer;
+    }
+
+    void init(const arithmetic<TOutStream>& src)
+    {
+        valid = src.valid;
+        outbuffer = new U8[2*AC_BUFFER_SIZE];
+        endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
+
+        base   = src.base;
+        length = src.length;
+        outbyte = outbuffer + (src.outbyte - src.outbuffer);
+        endbyte = outbuffer + (src.endbyte - src.outbuffer);
     }
 
     void propagate_carry()
@@ -314,7 +333,6 @@ void manage_outbuffer()
     assert(outbyte < endbuffer);
 }
 
-arithmetic<TOutStream>(const arithmetic<TOutStream>&) = delete;
 arithmetic<TOutStream>& operator = (const arithmetic<TOutStream>&) = delete;
 
 private:

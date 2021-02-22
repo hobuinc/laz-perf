@@ -59,7 +59,7 @@ int main() {
     } data;
 
     auto compressor = make_dynamic_compressor(s);
-    compressor->add_field<las::xyz>();
+//    compressor->add_field<las::xyz>();
     compressor->add_field<int>();
     compressor->add_field<int>();
     compressor->add_field<short>();
@@ -67,9 +67,11 @@ int main() {
     // Encode some dummy data
     //
     for (int i = 0 ; i < 1000; i ++) {
+/**
         data.p.x = i;
         data.p.y = i;
         data.p.z = i;
+**/
         data.a = i + 50000;
         data.b = i + 10;
         data.c = static_cast<short>( i + 10000 );
@@ -88,7 +90,7 @@ int main() {
     // Print some fun stuff about compression
 
     auto decompressor = make_dynamic_decompressor(s);
-    decompressor->add_field<las::xyz>();
+//    decompressor->add_field<las::xyz>();
     decompressor->add_field<int>();
     decompressor->add_field<int>();
     decompressor->add_field<short>();
@@ -101,9 +103,12 @@ int main() {
         decompressor->decompress((char *)&data);
 
         // Finally make sure things match, otherwise bail
-        if (data.p.x != i ||
-                data.p.y != i ||
-                data.p.z != i ||
+        if (
+            /**
+            data.p.x != i ||
+            data.p.y != i ||
+            data.p.z != i ||
+                **/
                 data.a != i + 50000 ||
                 data.b != i + 10 ||
                 data.c != i + 10000)

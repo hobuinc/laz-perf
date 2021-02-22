@@ -55,8 +55,8 @@ void createFile(const std::string filename, int pdrf, double percent)
     c.compressed = false;
     c.minor_version = 4;
 
-    std::unique_ptr<char> buf(new char(100));
-    char *pos = buf.get();
+    char buf[100];
+    char *pos = buf;
     factory::record_schema schema(pdrf);
     using GENERATOR = std::mt19937;
     std::random_device rd;
@@ -112,10 +112,26 @@ void createFile(const std::string filename, int pdrf, double percent)
         p->point_source_ID_ = std::uniform_int_distribution<uint16_t>()(gen);
         p->gpstime_ = std::uniform_real_distribution<>()(gen);
         pos += sizeof(las::point14);
+
+        if (pdrf == 7 || pdrf == 8)
+        {
+            las::rgb14 *color = reinterpret_cast<las::rgb14 *>(pos);
+            color->r = std::uniform_int_distribution<uint16_t>()(gen);
+            color->g = std::uniform_int_distribution<uint16_t>()(gen);
+            color->b = std::uniform_int_distribution<uint16_t>()(gen);
+            pos += sizeof(las::rgb14);
+
+            if (pdrf == 8)
+            {
+                las::nir14 *nir = reinterpret_cast<las::nir14 *>(pos);
+                nir->val = std::uniform_int_distribution<uint16_t>()(gen);
+                pos += sizeof(las::nir14);
+            }
+        }
     }
-    size_t len = pos - buf.get();
+    size_t len = pos - buf;
     size_t bits = len * CHAR_BIT;
-    f.writePoint(buf.get());
+    f.writePoint(buf);
     auto dist = std::uniform_int_distribution<>(0, bits - 1);
     for (size_t cnt = 1; cnt < 50000; ++cnt)
     {
@@ -125,7 +141,7 @@ void createFile(const std::string filename, int pdrf, double percent)
         while (rbits--)
         {
             int val = dist(gen);
-            char& c = *(buf.get() + (val / CHAR_BIT));
+            char& c = *(buf + (val / CHAR_BIT));
             size_t bit = val % CHAR_BIT;
             char mask = (1 << bit);
             if (c & mask)
@@ -133,7 +149,7 @@ void createFile(const std::string filename, int pdrf, double percent)
             else
                 c = c | mask;
         }
-        f.writePoint(buf.get());
+        f.writePoint(buf);
     }
 
     f.close();

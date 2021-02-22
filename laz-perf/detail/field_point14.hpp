@@ -164,7 +164,7 @@ struct field<las::point14>
   Summer sumPointSourceId;
   Summer sumGpsTime;
 
-    ~field<las::point14>()
+    void dumpSums()
     {
       if (sumChange.count() == 0)
           return;
@@ -181,7 +181,6 @@ struct field<las::point14>
       std::cout << "User data: " << sumUserData.value() << "\n";
       std::cout << "Point src: " << sumPointSourceId.value() << "\n";
       std::cout << "GPS time : " << sumGpsTime.value() << "\n";
-      std::cout << "\n";
     }
 
 
@@ -308,7 +307,7 @@ struct field<las::point14>
     }
 
     template<typename TStream>
-    inline const char *compressWith(TStream& stream, const char *buf)
+    inline const char *compressWith(TStream& stream, const char *buf, int& scArg)
     {
         const las::point14 point = packers<las::point14>::unpack(buf);
 
@@ -316,7 +315,6 @@ struct field<las::point14>
         // is called the context.
         int sc = point.scannerChannel();
         assert (sc >= 0 && sc <= 3);
-
 
         // don't have the first data for this channel yet, just push it to our have
         // last stuff and move on
@@ -333,6 +331,8 @@ struct field<las::point14>
                 z = point.z();
             for (auto& last_intensity : c.last_intensity_)
                 last_intensity = point.intensity();
+            //ABELL - See note at end of function.
+            scArg = sc;
 
             return buf + sizeof(las::point14);
         }
@@ -363,7 +363,10 @@ struct field<las::point14>
         //  true if both of the values are NaN. This probably wasn't what was intended but
         //  I don't think it really matters as long as the decoding is in sync. Care should
         //  be taken if a change is made.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
         bool gps_time_change = (point.gpsTime() != old.last_.gpsTime());
+#pragma GCC diagnostic pop
         bool point_source_change = (point.pointSourceID() != old.last_.pointSourceID());
         bool scan_angle_change = (point.scanAngle() != old.last_.scanAngle());
         uint32_t last_n = old.last_.numReturns();
@@ -523,6 +526,11 @@ struct field<las::point14>
         if (gps_time_change)
             encodeGpsTime(point, c);
 
+//ABELL - There is a bug in laszip where the context does not get set unless there is a *change*
+//  in context. This means that if the context is non-zero and never changes, it will
+//  always be zero. This test maintains that behavior.
+        if (sc != last_channel_)
+            scArg = sc;
         last_channel_ = sc;
         c.gps_time_change_ = gps_time_change;
         c.last_ = point;
@@ -679,7 +687,7 @@ struct field<las::point14>
     }
 
     template <typename TStream>
-    void done(TStream& stream)
+    void writeSizes(TStream& stream)
     {
         xy_enc_.done();
         z_enc_.done();
@@ -700,7 +708,11 @@ struct field<las::point14>
         stream << user_data_enc_.num_encoded();
         stream << point_source_id_enc_.num_encoded();
         stream << gpstime_enc_.num_encoded();
+    }
 
+    template <typename TStream>
+    void writeData(TStream& stream)
+    {
 auto sum = [](const uint8_t *buf, uint32_t size)
 {
     int32_t sum = 0;
@@ -710,7 +722,7 @@ auto sum = [](const uint8_t *buf, uint32_t size)
 };
 
 static uint64_t count = 0;
-std::cerr << "Count: " << count++ << "\n";
+std::cerr << "\nCount: " << count++ << "\n";
 std::cerr << "XY        : " << sum(xy_enc_.encoded_bytes(), xy_enc_.num_encoded()) << "\n";
 std::cerr << "Z         : " << sum(z_enc_.encoded_bytes(), z_enc_.num_encoded()) << "\n";
 std::cerr << "Class     : " << sum(class_enc_.encoded_bytes(), class_enc_.num_encoded()) << "\n";
@@ -720,7 +732,6 @@ std::cerr << "Scan angle: " << sum(scan_angle_enc_.encoded_bytes(), scan_angle_e
 std::cerr << "User data : " << sum(user_data_enc_.encoded_bytes(), user_data_enc_.num_encoded()) << "\n";
 std::cerr << "Point src : " << sum(point_source_id_enc_.encoded_bytes(), point_source_id_enc_.num_encoded()) << "\n";
 std::cerr << "GPS time  : " << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.num_encoded()) << "\n";
-std::cerr << "\n";
 
         stream.putBytes(xy_enc_.encoded_bytes(), xy_enc_.num_encoded());
         stream.putBytes(z_enc_.encoded_bytes(), z_enc_.num_encoded());
@@ -742,7 +753,7 @@ std::cerr << "\n";
     }
 
     template <typename TStream>
-    void initDecompression(TStream& stream)
+    void readSizes(TStream& stream)
     {
         uint32_t xy_cnt;
         uint32_t z_cnt;
@@ -765,20 +776,36 @@ std::cerr << "\n";
         stream >> point_source_id_cnt;
         stream >> gpstime_cnt;
 
-        // Copy data and read the init bytes.
-        xy_dec_.initStream(stream, xy_cnt);
-        z_dec_.initStream(stream, z_cnt);
-        class_dec_.initStream(stream, class_cnt);
-        flags_dec_.initStream(stream, flags_cnt);
-        intensity_dec_.initStream(stream, intensity_cnt);
-        scan_angle_dec_.initStream(stream, scan_angle_cnt);
-        user_data_dec_.initStream(stream, user_data_cnt);
-        point_source_id_dec_.initStream(stream, point_source_id_cnt);
-        gpstime_dec_.initStream(stream, gpstime_cnt);
+        sizes_.push_back(xy_cnt);
+        sizes_.push_back(z_cnt);
+        sizes_.push_back(class_cnt);
+        sizes_.push_back(flags_cnt);
+        sizes_.push_back(intensity_cnt);
+        sizes_.push_back(scan_angle_cnt);
+        sizes_.push_back(user_data_cnt);
+        sizes_.push_back(point_source_id_cnt);
+        sizes_.push_back(gpstime_cnt);
     }
 
     template<typename TStream>
-    inline char *decompressWith(TStream& stream, char *buf)
+    void readData(TStream& stream)
+    {
+        auto cnt = sizes_.begin();
+        // Copy data and read the init bytes.
+        xy_dec_.initStream(stream, *cnt++);
+        z_dec_.initStream(stream, *cnt++);
+        class_dec_.initStream(stream, *cnt++);
+        flags_dec_.initStream(stream, *cnt++);
+        intensity_dec_.initStream(stream, *cnt++);
+        scan_angle_dec_.initStream(stream, *cnt++);
+        user_data_dec_.initStream(stream, *cnt++);
+        point_source_id_dec_.initStream(stream, *cnt++);
+        gpstime_dec_.initStream(stream, *cnt++);
+        sizes_.clear();
+    }
+
+    template<typename TStream>
+    inline char *decompressWith(TStream& stream, char *buf, int& scArg)
     {
         // This is weird, but the first point, stored raw, is written *before* the point
         // count.
@@ -788,12 +815,12 @@ std::cerr << "\n";
             stream.getBytes((unsigned char *)buf, sizeof(las::point14));
             las::point14 point = packers<las::point14>::unpack(buf);
 
-            int sc = point.scannerChannel();
-            ChannelCtx& c = chan_ctxs_[sc];
+            scArg = point.scannerChannel();
+            ChannelCtx& c = chan_ctxs_[scArg];
             c.last_ = point;
             c.have_last_ = true;
             c.last_gpstime_[0] = point.gpsTime();
-            last_channel_ = sc;
+            last_channel_ = scArg;
 
             for (auto& z : c.last_z_)
                 z = point.z();
@@ -827,12 +854,13 @@ sumChange.add(changed_values);
         bool rn_decrements = rn_minus && !rn_plus;
         bool rn_misc_change = rn_plus && rn_minus;
 
-        uint32_t sc = prev.last_.scannerChannel();
+        int sc = prev.last_.scannerChannel();
         if (scanner_channel_changed)
         {
             uint32_t diff = xy_dec_.decodeSymbol(*prev.scanner_channel_model_);
             sc = (sc + diff + 1) % 4;
             last_channel_ = sc;
+            scArg = sc;
         }
 
         ChannelCtx& c = chan_ctxs_[sc];
@@ -972,7 +1000,7 @@ sumGpsTime.add(c.last_.gpsTime());
         auto u64 = [](double d) { return *reinterpret_cast<uint64_t *>(&d); };
         auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
 
-static uint64_t cnt = 0;
+//static uint64_t cnt = 0;
         loop:
 //std::cerr << "Last diff/last/ctx = " << c.last_gpstime_diff_[c.last_gps_seq_] << "/" << c.last_gps_seq_ << "/" << c.ctx_num_ << "!\n";
         if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
@@ -1111,6 +1139,7 @@ static uint64_t cnt = 0;
     static const int GpstimeMultiCodeFull = GpstimeMulti - GpstimeMultiMinus + 1;
     static const int GpstimeMultiTotal = GpstimeMulti - GpstimeMultiMinus + 5;
 
+    std::vector<uint32_t> sizes_;
     std::array<ChannelCtx, 4> chan_ctxs_;
     encoders::arithmetic<MemoryStream> xy_enc_ {true};
     encoders::arithmetic<MemoryStream> z_enc_ {true};
