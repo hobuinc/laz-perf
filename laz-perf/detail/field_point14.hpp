@@ -130,6 +130,13 @@ struct Summer
         cnt++;
     }
 
+    void add(uint8_t *b, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i)
+            sum += *b++;
+        cnt++;
+    }
+
     uint32_t value()
     {
         uint32_t v = sum;

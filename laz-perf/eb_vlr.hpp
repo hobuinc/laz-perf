@@ -53,6 +53,10 @@ struct eb_vlr : public vlr
         double scale[3];
         double offset[3];
         char description[32];
+
+        eb() : reserved{}, data_type{ htole32(1) }, options{}, name{}, unused{},
+            no_data{}, minval{}, maxval{}, scale{}, offset{}, description{}
+        {}
     };
 #pragma pack(pop)
 
@@ -70,8 +74,7 @@ struct eb_vlr : public vlr
         struct eb field;
 
         std::string name = "FIELD_" + std::to_string(cnt++);
-        strcpy(field.name, name.data());
-        field.data_type = htole32(1); // Unsigned char
+        strncpy(field.name, name.data(), 32);
 
         uint8_t *pos =  (uint8_t *)&field;
         for (size_t i = 0; i < sizeof(eb); ++i)

@@ -51,7 +51,6 @@ namespace laszip
 {
 namespace io
 {
-static const int DefaultChunkSize = 50000;
 
 #pragma pack(push, 1)
 struct vector3
@@ -525,6 +524,7 @@ struct config
     unsigned int chunk_size;
     bool compressed;
     int minor_version;
+    int extra_bytes;
 
     explicit config() :
         scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0), chunk_size(DefaultChunkSize), compressed(true)
@@ -589,9 +589,9 @@ public:
         chunk_size_ = c.chunk_size;
 
         size_t preludeSize = c.minor_version == 4 ? sizeof(header14) : sizeof(header);
-        preludeSize += sizeof(int64_t);  // Chunk table offset.
         if (compressed_)
         {
+            preludeSize += sizeof(int64_t);  // Chunk table offset.
             laz_vlr vlr = laz_vlr::from_schema(s, DefaultChunkSize);
             preludeSize += vlr.size() + vlr.header().size();
         }
@@ -643,7 +643,6 @@ public:
     void close()
     {
         _flush();
-
         if (f_.is_open())
             f_.close();
     }

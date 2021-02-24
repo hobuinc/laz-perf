@@ -9,7 +9,7 @@
 #include "las.hpp"
 
 void outputHelp();
-void createFile(const std::string filename, int pdrf, double percent);
+void createFile(const std::string filename, int pdrf, int extra_bytes, double percent);
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +19,14 @@ int main(int argc, char *argv[])
     std::string filename = argv[1];
     std::string format_string = argv[2];
     std::string percent_string = argv[3];
+
+    int extra_bytes = 0;
+    size_t pos = format_string.find('/');
+    if (pos != std::string::npos)
+    {
+        extra_bytes = std::stoi(format_string.substr(pos + 1));
+        format_string = format_string.substr(0, pos);
+    }
 
     size_t cnt;
     int pdrf = std::stoi(format_string, &cnt);
@@ -36,16 +44,16 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    createFile(filename, pdrf, percent);
+    createFile(filename, pdrf, extra_bytes, percent);
 }
 
 void outputHelp()
 {
-    std::cout << "random <filename> <LAS format> <random percent>\n";
+    std::cout << "random <filename> <LAS format[/eb count]>  <random percent>\n";
     exit(0);
 }
 
-void createFile(const std::string filename, int pdrf, double percent)
+void createFile(const std::string filename, int pdrf, int extra_bytes, double percent)
 {
     using namespace laszip;
     using namespace laszip::formats;
@@ -57,7 +65,7 @@ void createFile(const std::string filename, int pdrf, double percent)
 
     char buf[100];
     char *pos = buf;
-    factory::record_schema schema(pdrf);
+    factory::record_schema schema(pdrf, extra_bytes);
     using GENERATOR = std::mt19937;
     std::random_device rd;
     std::vector<int32_t> seed;
@@ -129,6 +137,9 @@ void createFile(const std::string filename, int pdrf, double percent)
             }
         }
     }
+    for (int i = 0; i < extra_bytes; ++i)
+        *pos++ = std::uniform_int_distribution<char>()(gen);
+
     size_t len = pos - buf;
     size_t bits = len * CHAR_BIT;
     f.writePoint(buf);

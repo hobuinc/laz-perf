@@ -32,6 +32,8 @@
 #ifndef MYDEFS_HPP
 #define MYDEFS_HPP
 
+static const int DefaultChunkSize = 50000;
+
 typedef char               CHAR;
 
 typedef int                I32;

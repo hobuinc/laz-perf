@@ -285,7 +285,7 @@ struct laz_vlr : public vlr
     }
 
     static laz_vlr from_schema(const factory::record_schema& s,
-        uint32_t chunksize)
+        uint32_t chunksize = DefaultChunkSize)
     {
         laz_vlr r;
 

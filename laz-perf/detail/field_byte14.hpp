@@ -48,6 +48,11 @@ struct field<las::byte14>
         byte_dec_(count_, decoders::arithmetic<MemoryStream>())
     {}
 
+    size_t count() const
+    {
+        return count_;
+    }
+
     void dumpSums()
     {
         std::cout << "BYTE     : " << sumByte.value() << "\n";
@@ -72,7 +77,6 @@ struct field<las::byte14>
     template <typename TStream>
     void writeData(TStream& stream)
     {
-
 auto sum = [](const uint8_t *buf, uint32_t size)
 {
     int32_t sum = 0;
@@ -101,7 +105,7 @@ std::cerr << "BYTE      : " << total << "\n";
         if (last_channel_ == -1)
         {
             ChannelCtx& c = chan_ctxs_[sc];
-            stream.putBytes(buf, count_);
+            stream.putBytes((const unsigned char *)buf, count_);
             c.last_.assign(buf, buf + count_);
             c.have_last_ = true;
             last_channel_ = sc;
@@ -113,6 +117,7 @@ std::cerr << "BYTE      : " << total << "\n";
         if (!c.have_last_)
         {
             c.have_last_ = true;
+            c.last_ = *pLastBytes;
             pLastBytes = &c.last_;
         }
         // This mess is because of the broken-ness of the handling for last in v3, where
@@ -121,8 +126,8 @@ std::cerr << "BYTE      : " << total << "\n";
 
         for (size_t i = 0; i < count_; ++i, ++buf)
         {
-            int32_t diff = *buf - lastBytes[i];
-            byte_enc_[i].encodeSymbol(c.byte_model_[i], diff);
+            int32_t diff = *(const uint8_t *)buf - lastBytes[i];
+            byte_enc_[i].encodeSymbol(c.byte_model_[i], (uint8_t)diff);
             if (diff)
             {
                 valid_[i] = true;
@@ -154,7 +159,8 @@ std::cerr << "BYTE      : " << total << "\n";
         if (last_channel_ == -1)
         {
             ChannelCtx& c = chan_ctxs_[sc];
-            stream.getBytes(c.last_.data(), count_);
+            stream.getBytes((unsigned char *)buf, count_);
+            c.last_.assign(buf, buf + count_);
             c.have_last_ = true;
             last_channel_ = sc;
             return buf + count_;
@@ -184,7 +190,7 @@ std::cerr << "BYTE      : " << total << "\n";
             else
                 *buf = lastByte[i];
         }
-sumByte.add(lastByte);
+sumByte.add(lastByte.data(), count_);
 
         return buf;
     }
@@ -196,7 +202,8 @@ sumByte.add(lastByte);
         las::byte14 last_;
         std::vector<models::arithmetic> byte_model_;
 
-        ChannelCtx(size_t count) : have_last_{false}, byte_model_(count, models::arithmetic(256))
+        ChannelCtx(size_t count) : have_last_{false}, last_(count),
+            byte_model_(count, models::arithmetic(256))
         {}
     };
 

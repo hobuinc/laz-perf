@@ -330,11 +330,13 @@ struct point_compressor_3 : public point_compressor_base_1_2<TStream>
 template<typename TStream>
 struct point_compressor_base_1_4 : public formats::las_compressor
 {
-    point_compressor_base_1_4(TStream& stream) : stream_(stream), chunk_count_(0)
+    point_compressor_base_1_4(TStream& stream, int ebCount) :
+        stream_(stream), eb_(ebCount), chunk_count_(0)
     {}
 
     TStream& stream_;
     field<point14> point_;
+    field<byte14> eb_;
     uint32_t chunk_count_;
 };
 
@@ -342,7 +344,8 @@ struct point_compressor_base_1_4 : public formats::las_compressor
 template<typename TStream>
 struct point_compressor_6 : public point_compressor_base_1_4<TStream>
 {
-    point_compressor_6(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    point_compressor_6(TStream& stream, int ebCount) :
+        point_compressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     virtual const char *compress(const char *in)
@@ -350,6 +353,8 @@ struct point_compressor_6 : public point_compressor_base_1_4<TStream>
         int channel = 0;
         this->chunk_count_++;
         in = this->point_.compressWith(this->stream_, in, channel);
+        if (this->eb_.count())
+            in = this->eb_.compressWith(this->stream_, in, channel);
         return in;
     }
 
@@ -358,8 +363,14 @@ struct point_compressor_6 : public point_compressor_base_1_4<TStream>
         //ABELL - This probably needs to be byte-ordered.
         //ABELL - There is only one chunk count, even if there are many field<>s in the output.
         this->stream_ << this->chunk_count_;
+
         this->point_.writeSizes(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeSizes(this->stream_);
+
         this->point_.writeData(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeData(this->stream_);
     }
 };
 
@@ -368,7 +379,8 @@ struct point_compressor_7 : public point_compressor_base_1_4<TStream>
 {
     field<rgb14> rgb_;
 
-    point_compressor_7(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    point_compressor_7(TStream& stream, int ebCount) :
+        point_compressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     virtual const char *compress(const char *in)
@@ -377,6 +389,8 @@ struct point_compressor_7 : public point_compressor_base_1_4<TStream>
         this->chunk_count_++;
         in = this->point_.compressWith(this->stream_, in, channel);
         in = rgb_.compressWith(this->stream_, in, channel);
+        if (this->eb_.count())
+            in = this->eb_.compressWith(this->stream_, in, channel);
         return in;
     }
 
@@ -387,8 +401,13 @@ struct point_compressor_7 : public point_compressor_base_1_4<TStream>
         this->stream_ << this->chunk_count_;
         this->point_.writeSizes(this->stream_);
         rgb_.writeSizes(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeSizes(this->stream_);
+
         this->point_.writeData(this->stream_);
         rgb_.writeData(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeData(this->stream_);
     }
 };
 
@@ -398,7 +417,8 @@ struct point_compressor_8 : public point_compressor_base_1_4<TStream>
     field<rgb14> rgb_;
     field<nir14> nir_;
 
-    point_compressor_8(TStream& stream) : point_compressor_base_1_4<TStream>(stream)
+    point_compressor_8(TStream& stream, int ebCount) :
+        point_compressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     virtual const char *compress(const char *in)
@@ -408,6 +428,9 @@ struct point_compressor_8 : public point_compressor_base_1_4<TStream>
         in = this->point_.compressWith(this->stream_, in, channel);
         in = rgb_.compressWith(this->stream_, in, channel);
         in = nir_.compressWith(this->stream_, in, channel);
+        if (this->eb_.count())
+            in = this->eb_.compressWith(this->stream_, in, channel);
+
         return in;
     }
 
@@ -418,9 +441,14 @@ struct point_compressor_8 : public point_compressor_base_1_4<TStream>
         this->point_.writeSizes(this->stream_);
         rgb_.writeSizes(this->stream_);
         nir_.writeSizes(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeSizes(this->stream_);
+
         this->point_.writeData(this->stream_);
         rgb_.writeData(this->stream_);
         nir_.writeData(this->stream_);
+        if (this->eb_.count())
+            this->eb_.writeData(this->stream_);
     }
 };
 
@@ -528,12 +556,14 @@ struct point_decompressor_3 : public point_decompressor_base_1_2<TStream>
 template<typename TStream>
 struct point_decompressor_base_1_4 : public formats::las_decompressor
 {
-    point_decompressor_base_1_4(TStream& stream) : stream_(stream), first_(true)
+    point_decompressor_base_1_4(TStream& stream, int ebCount) :
+        stream_(stream), eb_(ebCount), first_(true)
     {
     }
 
     TStream& stream_;
     field<point14> point_;
+    field<byte14> eb_;
     uint32_t chunk_count_;
     bool first_;
 };
@@ -541,12 +571,15 @@ struct point_decompressor_base_1_4 : public formats::las_decompressor
 template<typename TStream>
 struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
 {
-    point_decompressor_6(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    point_decompressor_6(TStream& stream, int ebCount) :
+        point_decompressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     ~point_decompressor_6()
     {
         this->point_.dumpSums();
+        if (this->eb_.count())
+            this->eb_.dumpSums();
         std::cerr << "\n";
     }
 
@@ -554,13 +587,20 @@ struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
     {
         int channel = 0;
         out = this->point_.decompressWith(this->stream_, out, channel);
+        if (this->eb_.count())
+            out = this->eb_.decompressWith(this->stream_, out, channel);
 
         if (this->first_)
         {
             // Read the point count the streams for each data member.
             this->stream_ >> this->chunk_count_;
             this->point_.readSizes(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readSizes(this->stream_);
+
             this->point_.readData(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readData(this->stream_);
             this->first_ = false;
         }
 
@@ -571,13 +611,16 @@ struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
 template<typename TStream>
 struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
 {
-    point_decompressor_7(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    point_decompressor_7(TStream& stream, int ebCount) :
+        point_decompressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     ~point_decompressor_7()
     {
         this->point_.dumpSums();
         rgb_.dumpSums();
+        if (this->eb_.count())
+            this->eb_.dumpSums();
         std::cerr << "\n";
     }
 
@@ -586,6 +629,8 @@ struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
         int channel = 0;
         out = this->point_.decompressWith(this->stream_, out, channel);
         out = rgb_.decompressWith(this->stream_, out, channel);
+        if (this->eb_.count())
+            out = this->eb_.decompressWith(this->stream_, out, channel);
 
         if (this->first_)
         {
@@ -593,8 +638,13 @@ struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
             this->stream_ >> this->chunk_count_;
             this->point_.readSizes(this->stream_);
             rgb_.readSizes(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readSizes(this->stream_);
+
             this->point_.readData(this->stream_);
             rgb_.readData(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readData(this->stream_);
             this->first_ = false;
         }
 
@@ -607,7 +657,8 @@ struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
 template<typename TStream>
 struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
 {
-    point_decompressor_8(TStream& stream) : point_decompressor_base_1_4<TStream>(stream)
+    point_decompressor_8(TStream& stream, int ebCount) :
+        point_decompressor_base_1_4<TStream>(stream, ebCount)
     {}
 
     ~point_decompressor_8()
@@ -615,6 +666,8 @@ struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
         this->point_.dumpSums();
         rgb_.dumpSums();
         nir_.dumpSums();
+        if (this->eb_.count())
+            this->eb_.dumpSums();
         std::cerr << "\n";
     }
 
@@ -624,6 +677,8 @@ struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
         out = this->point_.decompressWith(this->stream_, out, channel);
         out = rgb_.decompressWith(this->stream_, out, channel);
         out = nir_.decompressWith(this->stream_, out, channel);
+        if (this->eb_.count())
+            out = this->eb_.decompressWith(this->stream_, out, channel);
 
         if (this->first_)
         {
@@ -632,9 +687,14 @@ struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
             this->point_.readSizes(this->stream_);
             rgb_.readSizes(this->stream_);
             nir_.readSizes(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readSizes(this->stream_);
+
             this->point_.readData(this->stream_);
             rgb_.readData(this->stream_);
             nir_.readData(this->stream_);
+            if (this->eb_.count())
+                this->eb_.readData(this->stream_);
             this->first_ = false;
         }
 

@@ -113,6 +113,12 @@ struct record_item
         static record_item item(RGBNIR14, 8, 3);
         return item;
     }
+
+    static const record_item eb14(size_t count)
+    {
+        static record_item item(BYTE14, count, 3);
+        return item;
+    }
 };
 
 struct record_schema
@@ -152,8 +158,13 @@ struct record_schema
             push(record_item::rgbnir14());
             break;
         }
-        if (extra_bytes && pdrf < 6)
-            push(record_item::eb(extra_bytes));
+        if (extra_bytes)
+        {
+            if (pdrf < 6)
+                push(record_item::eb(extra_bytes));
+            else
+                push(record_item::eb14(extra_bytes));
+        }
     }
 
     void push(const record_item& item)
@@ -223,6 +234,8 @@ struct record_schema
             auto ri = records_.rbegin();
             if (ri->type == record_item::BYTE && ri->version == 2)
                 return ri->size;
+            else if (ri->type == record_item::BYTE14 && ri->version == 3)
+                return ri->size;
         }
         return 0;
     }
@@ -260,17 +273,13 @@ formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, i
         compressor.reset(new las::point_compressor_3<TStream>(stream, ebCount));
         break;
     case 6:
-        if (ebCount != 0)
-            throw error("Can't create point data format 6 compressor with extra bytes.");
-        compressor.reset(new las::point_compressor_6<TStream>(stream));
+        compressor.reset(new las::point_compressor_6<TStream>(stream, ebCount));
+        break;
     case 7:
-        if (ebCount != 0)
-            throw error("Can't create point data format 7 compressor with extra bytes.");
-        compressor.reset(new las::point_compressor_7<TStream>(stream));
+        compressor.reset(new las::point_compressor_7<TStream>(stream, ebCount));
+        break;
     case 8:
-        if (ebCount != 0)
-            throw error("Can't create point data format 8 compressor with extra bytes.");
-        compressor.reset(new las::point_compressor_8<TStream>(stream));
+        compressor.reset(new las::point_compressor_8<TStream>(stream, ebCount));
     }
     return compressor;
 }
@@ -305,17 +314,14 @@ formats::las_decompressor::ptr build_las_decompressor(TStream& stream, int forma
         decompressor.reset(new las::point_decompressor_3<TStream>(stream, ebCount));
         break;
     case 6:
-        if (ebCount != 0)
-            throw error("Can't create point data format 6 compressor with extra bytes.");
-        decompressor.reset(new las::point_decompressor_6<TStream>(stream));
+        decompressor.reset(new las::point_decompressor_6<TStream>(stream, ebCount));
+        break;
     case 7:
-        if (ebCount != 0)
-            throw error("Can't create point data format 7 compressor with extra bytes.");
-        decompressor.reset(new las::point_decompressor_7<TStream>(stream));
+        decompressor.reset(new las::point_decompressor_7<TStream>(stream, ebCount));
+        break;
     case 8:
-        if (ebCount != 0)
-            throw error("Can't create point data format 8 compressor with extra bytes.");
-        decompressor.reset(new las::point_decompressor_8<TStream>(stream));
+        decompressor.reset(new las::point_decompressor_8<TStream>(stream, ebCount));
+        break;
     }
     return decompressor;
 }
