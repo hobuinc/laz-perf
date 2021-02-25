@@ -196,34 +196,33 @@ struct field<las::point14>
     struct ChannelCtx
     {
         int ctx_num_;  //ABELL - For debug.
-        std::array<models::arithmetic *, 8> changed_values_model_;
-        models::arithmetic *scanner_channel_model_;
-        models::arithmetic *rn_gps_same_model_;
-        std::array<models::arithmetic *, 16> nr_model_;
-        std::array<models::arithmetic *, 16> rn_model_;
+        std::vector<models::arithmetic> changed_values_model_;
+        models::arithmetic scanner_channel_model_;
+        models::arithmetic rn_gps_same_model_;
+        std::vector<models::arithmetic> nr_model_;
+        std::vector<models::arithmetic> rn_model_;
+        std::vector<models::arithmetic> class_model_;
+        std::vector<models::arithmetic> flag_model_;
+        std::vector<models::arithmetic> user_data_model_;
 
-        std::array<models::arithmetic *, 64> class_model_;
-        std::array<models::arithmetic *, 64> flag_model_;
-        std::array<models::arithmetic *, 64> user_data_model_;
+        models::arithmetic gpstime_multi_model_;
+        models::arithmetic gpstime_0diff_model_;
 
-        models::arithmetic *gpstime_multi_model_;
-        models::arithmetic *gpstime_0diff_model_;
+        compressors::integer dx_compr_;
+        compressors::integer dy_compr_;
+        compressors::integer z_compr_;
+        compressors::integer intensity_compr_;
+        compressors::integer scan_angle_compr_;
+        compressors::integer point_source_id_compr_;
+        compressors::integer gpstime_compr_;
 
-        compressors::integer *dx_compr_;
-        compressors::integer *dy_compr_;
-        compressors::integer *z_compr_;
-        compressors::integer *intensity_compr_;
-        compressors::integer *scan_angle_compr_;
-        compressors::integer *point_source_id_compr_;
-        compressors::integer *gpstime_compr_;
-
-        decompressors::integer *dx_decomp_;
-        decompressors::integer *dy_decomp_;
-        decompressors::integer *z_decomp_;
-        decompressors::integer *intensity_decomp_;
-        decompressors::integer *scan_angle_decomp_;
-        decompressors::integer *point_source_id_decomp_;
-        decompressors::integer *gpstime_decomp_;
+        decompressors::integer dx_decomp_;
+        decompressors::integer dy_decomp_;
+        decompressors::integer z_decomp_;
+        decompressors::integer intensity_decomp_;
+        decompressors::integer scan_angle_decomp_;
+        decompressors::integer point_source_id_decomp_;
+        decompressors::integer gpstime_decomp_;
 
         bool have_last_;
         las::point14 last_;
@@ -238,70 +237,43 @@ struct field<las::point14>
         std::array<int32_t, 4> multi_extreme_counter_;
         bool gps_time_change_;
          
-        ChannelCtx() : have_last_{false}, last_gps_seq_{0}, next_gps_seq_{0},
+        ChannelCtx() : changed_values_model_(8, models::arithmetic(128)),
+            scanner_channel_model_(3), rn_gps_same_model_(13),
+            nr_model_(16, models::arithmetic(16)), rn_model_(16, models::arithmetic(16)),
+            class_model_(64, models::arithmetic(256)), flag_model_(64, models::arithmetic(64)), 
+            user_data_model_(64, models::arithmetic(256)), gpstime_multi_model_(GpstimeMultiTotal),
+            gpstime_0diff_model_(5),
+            dx_compr_(32, 2), dy_compr_(32, 22), z_compr_(32, 20), intensity_compr_(16, 4),
+            scan_angle_compr_(16, 2), point_source_id_compr_(16), gpstime_compr_(32, 9),
+            dx_decomp_(32, 2), dy_decomp_(32, 22), z_decomp_(32, 20), intensity_decomp_(16, 4),
+            scan_angle_decomp_(16, 2), point_source_id_decomp_(16), gpstime_decomp_(32, 9),
+            have_last_{false}, last_gps_seq_{0}, next_gps_seq_{0},
             last_gpstime_{}, last_gpstime_diff_{}, multi_extreme_counter_{},
             gps_time_change_{}
         {
-            for (models::arithmetic * & m : changed_values_model_)
-                m = new models::arithmetic(128);
-            scanner_channel_model_ = new models::arithmetic(3);
-            rn_gps_same_model_ = new models::arithmetic(13);
-            for (models::arithmetic * & m : nr_model_)
-                m = new models::arithmetic(16);
-            for (models::arithmetic * & m : rn_model_)
-                m = new models::arithmetic(16);
-
-            for (models::arithmetic * & m : class_model_)
-                m = new models::arithmetic(256);
-            for (models::arithmetic * & m : flag_model_)
-                m = new models::arithmetic(64);
-            for (models::arithmetic * & m : user_data_model_)
-                m = new models::arithmetic(256);
-
-            gpstime_multi_model_ = new models::arithmetic(GpstimeMultiTotal);
-            gpstime_0diff_model_ = new models::arithmetic(5);
-
             //ABELL - Move the init into the ctor, I think.
             // Also, the encoder should be passed to the ctor.
-            dx_compr_ = new compressors::integer(32, 2);
-            dx_compr_->init();
-            dy_compr_ = new compressors::integer(32, 22);
-            dy_compr_->init();
-            z_compr_ = new compressors::integer(32, 20);
-            z_compr_->init();
-            intensity_compr_ = new compressors::integer(16, 4);
-            intensity_compr_->init();
-            scan_angle_compr_ = new compressors::integer(16, 2);
-            scan_angle_compr_->init();
-            point_source_id_compr_ = new compressors::integer(16);
-            point_source_id_compr_->init();
-            gpstime_compr_ = new compressors::integer(32, 9);
-            gpstime_compr_->init(); 
+            dx_compr_.init();
+            dy_compr_.init();
+            z_compr_.init();
+            intensity_compr_.init();
+            scan_angle_compr_.init();
+            point_source_id_compr_.init();
+            gpstime_compr_.init(); 
 
-            dx_decomp_ = new decompressors::integer(32, 2);
-            dx_decomp_->init();
-            dy_decomp_ = new decompressors::integer(32, 22);
-            dy_decomp_->init();
-            z_decomp_ = new decompressors::integer(32, 20);
-            z_decomp_->init();
-            intensity_decomp_ = new decompressors::integer(16, 4);
-            intensity_decomp_->init();
-            scan_angle_decomp_ = new decompressors::integer(16, 2);
-            scan_angle_decomp_->init();
-            point_source_id_decomp_ = new decompressors::integer(16);
-            point_source_id_decomp_->init();
-            gpstime_decomp_ = new decompressors::integer(32, 9);
-            gpstime_decomp_->init(); 
+            dx_decomp_.init();
+            dy_decomp_.init();
+            z_decomp_.init();
+            intensity_decomp_.init();
+            scan_angle_decomp_.init();
+            point_source_id_decomp_.init();
+            gpstime_decomp_.init(); 
 
             for (auto& xd : last_x_diff_median5_)
                 xd.init();
             for (auto& yd : last_y_diff_median5_)
                 yd.init();
         }
-
-        //ABELL - Fix me.
-        ~ChannelCtx()
-        {}
     };  // ChannelCtx
 
     field() : last_channel_(-1)
@@ -393,12 +365,12 @@ struct field<las::point14>
             (point_source_change << 5) |
             ((sc != last_channel_) << 6);
 
-        xy_enc_.encodeSymbol(*prev.changed_values_model_[change_stream], changed_values);
+        xy_enc_.encodeSymbol(prev.changed_values_model_[change_stream], changed_values);
 
         if (sc > last_channel_)
-            xy_enc_.encodeSymbol(*prev.scanner_channel_model_, sc - last_channel_ - 1);
+            xy_enc_.encodeSymbol(prev.scanner_channel_model_, sc - last_channel_ - 1);
         else if (sc < last_channel_)
-            xy_enc_.encodeSymbol(*prev.scanner_channel_model_, sc - last_channel_ - 1 + 4);
+            xy_enc_.encodeSymbol(prev.scanner_channel_model_, sc - last_channel_ - 1 + 4);
 
         // If we haven't initialized the current context, do so.
         if (!c.have_last_)
@@ -413,21 +385,21 @@ struct field<las::point14>
         }
 
         if (n != last_n)
-            xy_enc_.encodeSymbol(*c.nr_model_[last_n], n);
+            xy_enc_.encodeSymbol(c.nr_model_[last_n], n);
 
         if (returnMiscChange)
         {
             if (gps_time_change)
-                xy_enc_.encodeSymbol(*c.rn_model_[last_r], r);
+                xy_enc_.encodeSymbol(c.rn_model_[last_r], r);
             else
             {
                 //ABELL - I believe this is broken for the case when diff == -15, as
                 //  it results in a symbol of -1, which is coerced into an unsigned value.
                 int diff = r - last_r;
                 if (diff > 1)
-                    xy_enc_.encodeSymbol(*c.rn_gps_same_model_, diff - 2);
+                    xy_enc_.encodeSymbol(c.rn_gps_same_model_, diff - 2);
                 else
-                    xy_enc_.encodeSymbol(*c.rn_gps_same_model_, diff - 2 + 16);
+                    xy_enc_.encodeSymbol(c.rn_gps_same_model_, diff - 2 + 16);
             }
         }
 
@@ -436,23 +408,23 @@ struct field<las::point14>
             uint32_t ctx = (number_return_map_6ctx[n][r] << 1) | gps_time_change;
             int32_t median = c.last_x_diff_median5_[ctx].get();
             int32_t diff = point.x() - c.last_.x();
-            c.dx_compr_->compress(xy_enc_, median, diff, point.numReturns() == 1);
+            c.dx_compr_.compress(xy_enc_, median, diff, point.numReturns() == 1);
             c.last_x_diff_median5_[ctx].add(diff);
 
             // Max of 20, low bit cleared to allow for numReturns change.
-            uint32_t kbits = (std::min)(c.dx_compr_->getK(), 20U) & ~1;
+            uint32_t kbits = (std::min)(c.dx_compr_.getK(), 20U) & ~1;
             median = c.last_y_diff_median5_[ctx].get();
             diff = point.y() - c.last_.y();
-            c.dy_compr_->compress(xy_enc_, median, diff, kbits | (n == 1));
+            c.dy_compr_.compress(xy_enc_, median, diff, kbits | (n == 1));
             c.last_y_diff_median5_[ctx].add(diff);
         }
 
         // Z
         {
-            uint32_t kbits = (c.dx_compr_->getK() + c.dy_compr_->getK()) / 2;
+            uint32_t kbits = (c.dx_compr_.getK() + c.dy_compr_.getK()) / 2;
             kbits = (std::min)(kbits, 18U) & ~1;
             uint32_t ctx = number_return_level_8ctx[n][r];
-            c.z_compr_->compress(z_enc_, c.last_z_[ctx], point.z(), kbits | (n == 1));
+            c.z_compr_.compress(z_enc_, c.last_z_[ctx], point.z(), kbits | (n == 1));
             c.last_z_[ctx] = point.z();
         }
 
@@ -466,7 +438,7 @@ struct field<las::point14>
 
             if (point.classification() != c.last_.classification())
                 class_enc_.makeValid();
-            class_enc_.encodeSymbol(*c.class_model_[ctx], point.classification());
+            class_enc_.encodeSymbol(c.class_model_[ctx], point.classification());
         }
 
         // Flags
@@ -484,7 +456,7 @@ struct field<las::point14>
 
             if (flags != last_flags)
                 flags_enc_.makeValid();;
-            flags_enc_.encodeSymbol(*c.flag_model_[last_flags], flags);
+            flags_enc_.encodeSymbol(c.flag_model_[last_flags], flags);
         }
 
         // Intensity
@@ -496,7 +468,7 @@ struct field<las::point14>
 
             if (point.intensity() != c.last_.intensity())
                 intensity_enc_.makeValid();
-            c.intensity_compr_->compress(intensity_enc_,
+            c.intensity_compr_.compress(intensity_enc_,
                 c.last_intensity_[ctx], point.intensity(), ctx >> 1);
             c.last_intensity_[ctx] = point.intensity();
         }
@@ -506,7 +478,7 @@ struct field<las::point14>
             if (point.scanAngle() != c.last_.scanAngle())
             {
                 scan_angle_enc_.makeValid();
-                c.scan_angle_compr_->compress(scan_angle_enc_, c.last_.scanAngle(),
+                c.scan_angle_compr_.compress(scan_angle_enc_, c.last_.scanAngle(),
                     point.scanAngle(), gps_time_change);
             }
         }
@@ -516,7 +488,7 @@ struct field<las::point14>
             int32_t ctx = c.last_.userData() / 4;
             if (point.userData() != c.last_.userData())
                 user_data_enc_.makeValid();
-            user_data_enc_.encodeSymbol(*c.user_data_model_[ctx], point.userData());
+            user_data_enc_.encodeSymbol(c.user_data_model_[ctx], point.userData());
         }
 
         // Point Source ID
@@ -524,7 +496,7 @@ struct field<las::point14>
             if (point_source_change)
             {
                 point_source_id_enc_.makeValid();
-                c.point_source_id_compr_->compress(point_source_id_enc_,
+                c.point_source_id_compr_.compress(point_source_id_enc_,
                     c.last_.pointSourceID(), point.pointSourceID(), 0);
             }
         }
@@ -573,21 +545,21 @@ struct field<las::point14>
 
             if (idx == 0)
             {
-                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 0);
-                c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 0);
+                gpstime_enc_.encodeSymbol(c.gpstime_0diff_model_, 0);
+                c.gpstime_compr_.compress(gpstime_enc_, 0, diff, 0);
                 c.last_gpstime_diff_[c.last_gps_seq_] = diff;
                 c.multi_extreme_counter_[c.last_gps_seq_] = 0;
             }
             else if (idx > 0)
             {
-                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, idx + 1);
+                gpstime_enc_.encodeSymbol(c.gpstime_0diff_model_, idx + 1);
                 c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
                 goto loop;
             }
             else
             {
-                gpstime_enc_.encodeSymbol(*c.gpstime_0diff_model_, 1);
-                c.gpstime_compr_->compress(gpstime_enc_,
+                gpstime_enc_.encodeSymbol(c.gpstime_0diff_model_, 1);
+                c.gpstime_compr_.compress(gpstime_enc_,
                     u64(c.last_gpstime_[c.last_gps_seq_]) >> 32,
                     (int32_t)(point.uGpsTime() >> 32), 8);
                 gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
@@ -619,16 +591,16 @@ struct field<las::point14>
                         tag = 2;
                     else
                         tag = 3;
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, multi);
-                    c.gpstime_compr_->compress(gpstime_enc_,
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, multi);
+                    c.gpstime_compr_.compress(gpstime_enc_,
                         multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, tag);
                     if (tag == 1)
                         c.multi_extreme_counter_[c.last_gps_seq_] = 0;
                 }
                 else if (multi >= GpstimeMulti)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti);
-                    c.gpstime_compr_->compress(gpstime_enc_,
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, GpstimeMulti);
+                    c.gpstime_compr_.compress(gpstime_enc_,
                         GpstimeMulti * c.last_gpstime_diff_[c.last_gps_seq_], diff, 4);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -639,15 +611,15 @@ struct field<las::point14>
                 }
                 else if (multi < 0 && multi > GpstimeMultiMinus)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMulti - multi);
-                    c.gpstime_compr_->compress(gpstime_enc_,
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, GpstimeMulti - multi);
+                    c.gpstime_compr_.compress(gpstime_enc_,
                         multi * c.last_gpstime_diff_[c.last_gps_seq_], diff, 5);
                 }
                 else if (multi <= GpstimeMultiMinus)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_,
                         GpstimeMulti - GpstimeMultiMinus);
-                    c.gpstime_compr_->compress(gpstime_enc_,
+                    c.gpstime_compr_.compress(gpstime_enc_,
                         GpstimeMultiMinus * c.last_gpstime_diff_[c.last_gps_seq_], diff, 6);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -658,8 +630,8 @@ struct field<las::point14>
                 }
                 else if (multi == 0)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, 0);
-                    c.gpstime_compr_->compress(gpstime_enc_, 0, diff, 7);
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, 0);
+                    c.gpstime_compr_.compress(gpstime_enc_, 0, diff, 7);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
                     {
@@ -675,13 +647,13 @@ struct field<las::point14>
                 int idx = findSeq(point.gpsTime(), 1, diff);
                 if (idx > 0)
                 {
-                    gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_,
+                    gpstime_enc_.encodeSymbol(c.gpstime_multi_model_,
                         GpstimeMultiCodeFull + idx);
                     c.last_gps_seq_ = (c.last_gps_seq_ + idx) & 3;
                     goto loop;
                 }
-                gpstime_enc_.encodeSymbol(*c.gpstime_multi_model_, GpstimeMultiCodeFull);
-                c.gpstime_compr_->compress(gpstime_enc_,
+                gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, GpstimeMultiCodeFull);
+                c.gpstime_compr_.compress(gpstime_enc_,
                     int32_t(u64(c.last_gpstime_[c.last_gps_seq_]) >> 32),
                     int32_t(point.uGpsTime() >> 32), 8);
                 gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
@@ -847,7 +819,7 @@ std::cerr << "GPS time  : " << sum(gpstime_enc_.encoded_bytes(), gpstime_enc_.nu
             ((prev.last_.returnNum() >= prev.last_.numReturns()) << 1) |    // bit 1
             (prev.gps_time_change_ << 2);                                   // bit 2
 
-        int32_t changed_values = xy_dec_.decodeSymbol(*prev.changed_values_model_[change_stream]);
+        int32_t changed_values = xy_dec_.decodeSymbol(prev.changed_values_model_[change_stream]);
 sumChange.add(changed_values);
 
         bool scanner_channel_changed = (changed_values >> 6) & 1;
@@ -864,7 +836,7 @@ sumChange.add(changed_values);
         int sc = prev.last_.scannerChannel();
         if (scanner_channel_changed)
         {
-            uint32_t diff = xy_dec_.decodeSymbol(*prev.scanner_channel_model_);
+            uint32_t diff = xy_dec_.decodeSymbol(prev.scanner_channel_model_);
             sc = (sc + diff + 1) % 4;
             last_channel_ = sc;
             scArg = sc;
@@ -886,7 +858,7 @@ sumChange.add(changed_values);
         uint32_t n = c.last_.numReturns();
         uint32_t r = c.last_.returnNum();
         if (nr_changes)
-            n = xy_dec_.decodeSymbol(*c.nr_model_[c.last_.numReturns()]);
+            n = xy_dec_.decodeSymbol(c.nr_model_[c.last_.numReturns()]);
         c.last_.setNumReturns(n);
 
         if (rn_increments)
@@ -896,9 +868,9 @@ sumChange.add(changed_values);
         else if (rn_misc_change)
         {
             if (gps_time_changed)
-                r = xy_dec_.decodeSymbol(*c.rn_model_[r]);
+                r = xy_dec_.decodeSymbol(c.rn_model_[r]);
             else
-                r = (r + xy_dec_.decodeSymbol(*c.rn_gps_same_model_) + 2) % 16;
+                r = (r + xy_dec_.decodeSymbol(c.rn_gps_same_model_) + 2) % 16;
         }
         c.last_.setReturnNum(r);
 sumReturn.add(n);
@@ -908,7 +880,7 @@ sumReturn.add(r);
         // X
         {
             int32_t median = c.last_x_diff_median5_[ctx].get();
-            int32_t diff = c.dx_decomp_->decompress(xy_dec_, median, n == 1);
+            int32_t diff = c.dx_decomp_.decompress(xy_dec_, median, n == 1);
             c.last_.setX(c.last_.x() + diff);
             c.last_x_diff_median5_[ctx].add(diff);
 sumX.add(c.last_.x());
@@ -916,9 +888,9 @@ sumX.add(c.last_.x());
 
         // Y
         {
-            uint32_t kbits = (std::min)(c.dx_decomp_->getK(), 20U) & ~1;
+            uint32_t kbits = (std::min)(c.dx_decomp_.getK(), 20U) & ~1;
             int32_t median = c.last_y_diff_median5_[ctx].get();
-            int32_t diff = c.dy_decomp_->decompress(xy_dec_, median, (n == 1) | kbits);
+            int32_t diff = c.dy_decomp_.decompress(xy_dec_, median, (n == 1) | kbits);
             c.last_.setY(c.last_.y() + diff);
             c.last_y_diff_median5_[ctx].add(diff);
 sumY.add(c.last_.y());
@@ -926,10 +898,10 @@ sumY.add(c.last_.y());
 
         // Z
         {
-            uint32_t kbits = (c.dx_decomp_->getK() + c.dy_decomp_->getK()) / 2;
+            uint32_t kbits = (c.dx_decomp_.getK() + c.dy_decomp_.getK()) / 2;
             kbits = (std::min)(kbits, 18U) & ~1;
             uint32_t ctx = number_return_level_8ctx[n][r];
-            int32_t z = c.z_decomp_->decompress(z_dec_, c.last_z_[ctx], (n == 1) | kbits);
+            int32_t z = c.z_decomp_.decompress(z_dec_, c.last_z_[ctx], (n == 1) | kbits);
             c.last_.setZ(z);
             c.last_z_[ctx] = z;
 sumZ.add(c.last_.z());
@@ -938,7 +910,7 @@ sumZ.add(c.last_.z());
         // Classification
         {
             int32_t ctx = ((r == 1 && r >= n) | ((c.last_.classification() & 0x1F) << 1));
-            c.last_.setClassification(class_dec_.decodeSymbol(*c.class_model_[ctx]));
+            c.last_.setClassification(class_dec_.decodeSymbol(c.class_model_[ctx]));
 sumClass.add(c.last_.classification());
         }
 
@@ -948,7 +920,7 @@ sumClass.add(c.last_.classification());
                 (c.last_.scanDirFlag() << 4) |
                 (c.last_.eofFlag() << 5);
 
-            uint32_t flags = flags_dec_.decodeSymbol(*c.flag_model_[last_flags]);
+            uint32_t flags = flags_dec_.decodeSymbol(c.flag_model_[last_flags]);
 sumFlags.add(flags);
             c.last_.setEofFlag((flags >> 5) & 1);
             c.last_.setScanDirFlag((flags >> 4) & 1);
@@ -959,7 +931,7 @@ sumFlags.add(flags);
         {
             int32_t ctx = gps_time_changed | ((r >= n) << 1) | ((r == 1) << 2);
 
-            uint16_t intensity = c.intensity_decomp_->decompress(intensity_dec_,
+            uint16_t intensity = c.intensity_decomp_.decompress(intensity_dec_,
                 c.last_intensity_[ctx], ctx >> 1);
             c.last_intensity_[ctx] = intensity;
             c.last_.setIntensity(intensity);
@@ -970,7 +942,7 @@ sumIntensity.add(c.last_.intensity());
         {
             if (scan_angle_changed)
             {
-                c.last_.setScanAngle(c.scan_angle_decomp_->decompress(scan_angle_dec_,
+                c.last_.setScanAngle(c.scan_angle_decomp_.decompress(scan_angle_dec_,
                     c.last_.scanAngle(), gps_time_changed));
             }
 sumScanAngle.add(c.last_.scanAngle());
@@ -979,14 +951,14 @@ sumScanAngle.add(c.last_.scanAngle());
         // User data
         {
             int32_t ctx = c.last_.userData() / 4;
-            c.last_.setUserData(user_data_dec_.decodeSymbol(*c.user_data_model_[ctx]));
+            c.last_.setUserData(user_data_dec_.decodeSymbol(c.user_data_model_[ctx]));
 sumUserData.add(c.last_.userData());
         }
 
         // Point source ID
         {
             if (point_source_changed)
-                c.last_.setPointSourceID(c.point_source_id_decomp_->decompress(
+                c.last_.setPointSourceID(c.point_source_id_decomp_.decompress(
                     point_source_id_dec_, c.last_.pointSourceID(), 0));
 sumPointSourceId.add(c.last_.pointSourceID());
         }
@@ -1013,11 +985,11 @@ sumGpsTime.add(c.last_.gpsTime());
         if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
         {
 //std::cerr << "Zero diff " << cnt++ << "!\n";
-            int32_t multi = gpstime_dec_.decodeSymbol(*c.gpstime_0diff_model_);
+            int32_t multi = gpstime_dec_.decodeSymbol(c.gpstime_0diff_model_);
             if (multi == 0)
             {
 
-                int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_, 0, 0);
+                int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_, 0, 0);
 
                 c.last_gpstime_diff_[c.last_gps_seq_] = sym;
                 int64_t lasttime = i64(c.last_gpstime_[c.last_gps_seq_]) + sym;
@@ -1028,7 +1000,7 @@ sumGpsTime.add(c.last_.gpsTime());
             {
                 c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
                 double lasttime = c.last_gpstime_[c.last_gps_seq_];
-                int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
+                int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
                     (int32_t)(u64(lasttime) >> 32), 8);
                 c.last_gpstime_[c.next_gps_seq_] =
                     u2d(((uint64_t)sym << 32) | gpstime_dec_.readInt());
@@ -1045,12 +1017,12 @@ sumGpsTime.add(c.last_.gpsTime());
         else
         {
 //std::cerr << "Non-Zero diff " << cnt++ << "!\n";
-            int32_t multi = gpstime_dec_.decodeSymbol(*c.gpstime_multi_model_);
+            int32_t multi = gpstime_dec_.decodeSymbol(c.gpstime_multi_model_);
             int32_t gpstime_diff;
             if (multi == 1)
             {
 //std::cerr << "Last non-zero/Multi 1!\n";
-                int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
+                int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
                     c.last_gpstime_diff_[c.last_gps_seq_], 1);
                 c.last_gpstime_[c.last_gps_seq_] = i2d((int64_t)sym + u64(c.last_gpstime_[c.last_gps_seq_]));
                 c.multi_extreme_counter_[c.last_gps_seq_] = 0;
@@ -1060,7 +1032,7 @@ sumGpsTime.add(c.last_.gpsTime());
                 if (multi == 0)
                 {
 //std::cerr << "Last non-zero/Multi 0!\n";
-                    gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_, 0, 7);
+                    gpstime_diff = c.gpstime_decomp_.decompress(gpstime_dec_, 0, 7);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
                     {
@@ -1076,13 +1048,13 @@ sumGpsTime.add(c.last_.gpsTime());
                         tag = 2;
                     else
                         tag = 3;
-                    gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
+                    gpstime_diff = c.gpstime_decomp_.decompress(gpstime_dec_,
                         multi * c.last_gpstime_diff_[c.last_gps_seq_], tag);
                 }
                 else if (multi == GpstimeMulti)
                 {
 //std::cerr << "Last non-zero/Multi multi!\n";
-                    gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
+                    gpstime_diff = c.gpstime_decomp_.decompress(gpstime_dec_,
                         GpstimeMulti * c.last_gpstime_diff_[c.last_gps_seq_], 4);
                     c.multi_extreme_counter_[c.last_gps_seq_]++;
                     if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -1097,13 +1069,13 @@ sumGpsTime.add(c.last_.gpsTime());
                     if (multi > GpstimeMultiMinus)
                     {
 //std::cerr << "Last non-zero/Multi > Minus!\n";
-                        gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
+                        gpstime_diff = c.gpstime_decomp_.decompress(gpstime_dec_,
                             multi * c.last_gpstime_diff_[c.last_gps_seq_], 5);
                     }
                     else
                     {
 //std::cerr << "Last non-zero/Multi < Minus!\n";
-                        gpstime_diff = c.gpstime_decomp_->decompress(gpstime_dec_,
+                        gpstime_diff = c.gpstime_decomp_.decompress(gpstime_dec_,
                             GpstimeMultiMinus * c.last_gpstime_diff_[c.last_gps_seq_], 6);
                         c.multi_extreme_counter_[c.last_gps_seq_]++;
                         if (c.multi_extreme_counter_[c.last_gps_seq_] > 3)
@@ -1123,7 +1095,7 @@ sumGpsTime.add(c.last_.gpsTime());
                 c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
 
                 uint64_t lasttime = u64(c.last_gpstime_[c.last_gps_seq_]);
-                int32_t sym = c.gpstime_decomp_->decompress(gpstime_dec_,
+                int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
                     (int32_t)(lasttime >> 32), 8);
                 c.last_gpstime_[c.next_gps_seq_] =
                     u2d(((uint64_t)(sym) << 32) | gpstime_dec_.readInt());
