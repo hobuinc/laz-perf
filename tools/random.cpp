@@ -65,7 +65,6 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
 
     char buf[100];
     char *pos = buf;
-    factory::record_schema schema(pdrf, extra_bytes);
     using GENERATOR = std::mt19937;
     std::random_device rd;
     std::vector<int32_t> seed;
@@ -73,7 +72,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         seed.push_back(rd());
     std::seed_seq seedSeq(seed.begin(), seed.end());
     std::mt19937 gen(seedSeq);
-    writer::file f(filename, schema, c);
+    writer::file f(filename, pdrf, extra_bytes, c);
     if (pdrf < 6)
     {
         las::point10 *p = reinterpret_cast<las::point10 *>(pos);

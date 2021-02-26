@@ -52,6 +52,36 @@ namespace laszip
 namespace io
 {
 
+namespace
+{
+
+int baseCount(int format)
+{
+    // Martin screws with the high bits of the format, so we mask down to the low four bits.
+    switch (format & 0xF)
+    {
+    case 0:
+        return 20;
+    case 1:
+        return 28;
+    case 2:
+        return 26;
+    case 3:
+        return 34;
+    case 6:
+        return 30;
+    case 7:
+        return 36;
+    case 8:
+        return 38;
+    default:
+        return 0;
+    }
+}
+
+} // unnamed namespace
+
+
 #pragma pack(push, 1)
 struct vector3
 {
@@ -100,6 +130,12 @@ struct header
     vector3 offset;
     vector3 minimum;
     vector3 maximum;
+
+    int ebCount()
+    {
+        int baseSize = baseCount(point_format_id);
+        return (baseSize ? point_record_length - baseSize : 0);
+    }
 };
 
 struct header14 : public header
@@ -227,22 +263,18 @@ public:
          return laz_;
      }
 
-     const factory::record_schema& get_schema() const
-     {
-         return schema_;
-     }
-
      void readPoint(char *out)
      {
          if (!compressed_)
-             stream_.getBytes(reinterpret_cast<unsigned char *>(out), schema_.size_in_bytes());
+             stream_.getBytes(reinterpret_cast<unsigned char *>(out), header_.point_record_length);
 
          // read the next point in
          else
          {
             if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
             {
-                pdecomperssor_ = factory::build_las_decompressor(stream_, schema_);
+                pdecomperssor_ = factory::build_las_decompressor(stream_, header_.point_format_id,
+                    header_.ebCount());
 
                 // reset chunk state
                 chunk_state_.current++;
@@ -267,6 +299,7 @@ private:
         // Read the header in
         f_.seekg(0);
         f_.read((char*)&header_, sizeof(header_));
+        // If we're version 4, back up and do it again.
         if (header_.version.minor == 4)
         {
             f_.seekg(0);
@@ -354,7 +387,6 @@ private:
 
         if (compressed_ && !laszipFound)
             throw error("Couldn't find LASZIP VLR");
-        schema_ = laz_vlr::to_schema(laz_, header_.point_record_length);
     }
 
     void binPrint(const char *buf, int len)
@@ -493,9 +525,6 @@ private:
     std::vector<uint64_t> chunk_table_offsets_;
     bool compressed_;
 
-    // the schema of this file, the LAZ items converted into factory recognizable description,
-    factory::record_schema schema_;
-
     formats::las_decompressor::ptr pdecomperssor_;
 
     // Establish our current state as we iterate through the file
@@ -566,17 +595,18 @@ public:
     file() : wrapper_(f_), header_(header14_)
     {}
 
-    file(const std::string& filename, const factory::record_schema& s, const config& config) :
-        wrapper_(f_), schema_(s), header_(header14_)
+    file(const std::string& filename, int format, int eb_count, const config& config) :
+        wrapper_(f_), header_(header14_)
     {
-        open(filename, s, config);
+        open(filename, format, eb_count, config);
     }
 
-    void open(const std::string& filename, const factory::record_schema& s, const config& c)
+    void open(const std::string& filename, int format, int eb_count, const config& c)
     {
         chunk_size_ = c.chunk_size;
         compressed_ = c.compressed;
         minor_version_ = c.minor_version;
+
 
         // open the file and move to offset of data, we'll write
         // headers and all other things on file close
@@ -584,20 +614,21 @@ public:
         if (!f_.good())
             throw error("Couldn't open '" + filename + "' for writing.");
 
-        schema_ = s;
         header_ = c.to_header();
+        header_.point_format_id = format;
+        header_.point_record_length = baseCount(format) + eb_count;
         chunk_size_ = c.chunk_size;
 
         size_t preludeSize = c.minor_version == 4 ? sizeof(header14) : sizeof(header);
         if (compressed_)
         {
             preludeSize += sizeof(int64_t);  // Chunk table offset.
-            laz_vlr vlr = laz_vlr::from_schema(s, DefaultChunkSize);
+            laz_vlr vlr(format, eb_count, DefaultChunkSize);
             preludeSize += vlr.size() + vlr.header().size();
         }
-        if (s.extrabytes())
+        if (eb_count)
         {
-            eb_vlr vlr(s.extrabytes());
+            eb_vlr vlr(eb_count);
             preludeSize += vlr.size() + vlr.header().size();
         }
 
@@ -612,7 +643,8 @@ public:
     {
         if (!compressed_)
         {
-            wrapper_.putBytes(reinterpret_cast<const unsigned char *>(p), schema_.size_in_bytes());
+            wrapper_.putBytes(reinterpret_cast<const unsigned char *>(p),
+                header_.point_record_length);
         }
         else
         {
@@ -620,7 +652,8 @@ public:
             //  decompressor.
             if (!pcompressor_)
             {
-                pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+                pcompressor_ = factory::build_las_compressor(wrapper_, header_.point_format_id,
+                    header_.ebCount());
             }
             else if (chunk_state_.points_in_chunk == chunk_size_)
             {
@@ -629,7 +662,8 @@ public:
                 std::streamsize offset = f_.tellp();
                 chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
                 chunk_state_.last_chunk_write_offset = offset;
-                pcompressor_ = factory::build_las_compressor(wrapper_, schema_);
+                pcompressor_ = factory::build_las_compressor(wrapper_, header_.point_format_id,
+                    header_.ebCount());
             }
 
             // now write the point
@@ -665,8 +699,8 @@ private:
 
     void _flush()
     {
-        laz_vlr lazVlr = laz_vlr::from_schema(schema_, chunk_size_);
-        eb_vlr ebVlr(schema_.extrabytes());
+        laz_vlr lazVlr(header_.point_format_id, header_.ebCount(), chunk_size_);
+        eb_vlr ebVlr(header_.ebCount());
 
         if (compressed_)
         {
@@ -686,8 +720,7 @@ private:
         header_.version.major = 1;
         header_.version.minor = minor_version_;
 
-        header_.point_format_id = schema_.format();
-
+        // point_format_id and point_record_length  are set on open().
         header_.header_size = minor_version_ == 4 ? sizeof(header14) : sizeof(header);
         header_.point_offset = header_.header_size;
         header_.vlr_count = 0;
@@ -697,13 +730,12 @@ private:
             header_.vlr_count++;
             header_.point_format_id |= (1 << 7);
         }
-        if (schema_.extrabytes())
+        if (header_.ebCount())
         {
             header_.point_offset += ebVlr.size() + ebVlr.header().size();
             header_.vlr_count++;
         }
 
-        header_.point_record_length = static_cast<unsigned short>(schema_.size_in_bytes());
         header_.point_count = static_cast<unsigned int>(chunk_state_.total_written);
 
         // make sure we re-arrange mins and maxs for writing
@@ -732,16 +764,16 @@ private:
             vlr::vlr_header h = lazVlr.header();
             f_.write(reinterpret_cast<char *>(&h), sizeof(h));
 
-            std::unique_ptr<char> vlrbuf(new char[lazVlr.size()]);
-            lazVlr.extract(vlrbuf.get());
-            f_.write(vlrbuf.get(), lazVlr.size());
+            std::vector<uint8_t> vlrbuf = lazVlr.data();
+            f_.write((const char *)vlrbuf.data(), vlrbuf.size());
         }
-        if (schema_.extrabytes())
+        if (header_.ebCount())
         {
             vlr::vlr_header h = ebVlr.header();
-
             f_.write(reinterpret_cast<char *>(&h), sizeof(h));
-            f_.write((const char *)ebVlr.data(), ebVlr.size());
+
+            std::vector<uint8_t> vlrbuf = ebVlr.data();
+            f_.write((const char *)vlrbuf.data(), vlrbuf.size());
         }
 
         if (compressed_)
@@ -792,7 +824,6 @@ private:
 
     formats::las_compressor::ptr pcompressor_;
 
-    factory::record_schema schema_;
     header& header_;
     header14 header14_;
     unsigned int chunk_size_;

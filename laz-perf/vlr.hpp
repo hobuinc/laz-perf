@@ -30,9 +30,9 @@
 
 #pragma once
 
+#include <vector>
+
 namespace laszip
-{
-namespace io
 {
 
 struct vlr
@@ -52,11 +52,9 @@ struct vlr
 #pragma pack(pop)
 
     virtual size_t size() const = 0;
-    virtual uint8_t *data() = 0;
-    virtual const uint8_t *data() const = 0;
+    virtual std::vector<uint8_t> data() const = 0;
     virtual vlr_header header() = 0;
 };
 
-} // namesapce io
 } // namesapce laszip
 

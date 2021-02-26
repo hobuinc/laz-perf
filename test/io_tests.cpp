@@ -266,9 +266,9 @@ TEST(io_tests, parses_laszip_vlr_correctly) {
         EXPECT_EQ(vlr.compressor, 2);
         EXPECT_EQ(vlr.coder, 0);
 
-        EXPECT_EQ(vlr.version.major, 2);
-        EXPECT_EQ(vlr.version.minor, 2);
-        EXPECT_EQ(vlr.version.revision, 0);
+        EXPECT_EQ(vlr.ver_major, 2);
+        EXPECT_EQ(vlr.ver_minor, 2);
+        EXPECT_EQ(vlr.revision, 0);
 
         EXPECT_EQ(vlr.options, 0u);
         EXPECT_EQ(vlr.chunk_size, 50000u);
@@ -276,7 +276,7 @@ TEST(io_tests, parses_laszip_vlr_correctly) {
         EXPECT_EQ(vlr.num_points, -1);
         EXPECT_EQ(vlr.num_bytes, -1);
 
-        EXPECT_EQ(vlr.num_items, 1u);
+        EXPECT_EQ(vlr.items.size(), 1u);
         EXPECT_EQ(vlr.items[0].type, 6);
         EXPECT_EQ(vlr.items[0].size, 20);
         EXPECT_EQ(vlr.items[0].version, 2);
@@ -387,50 +387,23 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     }
 }
 
-using SchemaPtr = std::unique_ptr<laszip::factory::record_schema>;
-
-SchemaPtr makeSchema(unsigned char format, size_t record_length)
-{
-    using namespace laszip;
-
-    SchemaPtr schema(new factory::record_schema);
-    (*schema)(factory::record_item::point());
-    record_length -= factory::record_item::point().size;
-    if (format == 1 || format == 3)
-    {
-        (*schema)(factory::record_item::gpstime());
-        record_length -= factory::record_item::gpstime().size;
-    }
-    else if (format == 2 || format == 3)
-    {
-        (*schema)(factory::record_item::rgb());
-        record_length -= factory::record_item::rgb().size;
-    }
-    if (record_length)
-        (*schema)(factory::record_item::eb(record_length));
-    return schema;
-}
-
 void encode(const std::string& lasFilename, const std::string& lazFilename)
 {
     using namespace laszip;
 
-    io::header header;
+    io::header h;
     std::ifstream lasStream(lasFilename, std::ios::binary);
     if (!lasStream.good())
         FAIL() << "Unable to open uncompressed file '" << lasFilename << "'.";
 
-    lasStream.read((char *)&header, sizeof(io::header));
-    lasStream.seekg(header.point_offset);
+    lasStream.read((char *)&h, sizeof(h));
+    lasStream.seekg(h.point_offset);
 
-    SchemaPtr schema = makeSchema(header.point_format_id,
-        header.point_record_length);
-
-    io::writer::file f(lazFilename, *schema, io::writer::config(header));
+    io::writer::file f(lazFilename, h.point_format_id, h.ebCount(), io::writer::config(h));
     char buf[1000];
-    for (size_t i = 0; i < header.point_count; ++i)
+    for (size_t i = 0; i < h.point_count; ++i)
     {
-        lasStream.read(buf, header.point_record_length);
+        lasStream.read(buf, h.point_record_length);
         f.writePoint(buf);
     }
     f.close();
@@ -564,15 +537,7 @@ TEST(io_tests, can_encode_large_files) {
             las::rgb c;
         };
 
-        factory::record_schema schema;
-
-        // make schema
-        schema
-            (factory::record_item::point())
-            (factory::record_item::gpstime())
-            (factory::record_item::rgb());
-
-        io::writer::file f(makeTempFileName(), schema,
+        io::writer::file f(makeTempFileName(), 3, 0,
                 io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
         reader fin(testFile("autzen_trim.las"));
@@ -603,13 +568,7 @@ TEST(io_tests, 1_4) {
             las::point14 p;
         };
 
-        factory::record_schema schema;
-
-        // make schema
-        schema
-            (factory::record_item::point14());
-
-        io::writer::file f(fname, schema,
+        io::writer::file f(fname, 6, 0,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
         reader fin(testFile("autzen_trim.las"));
@@ -635,13 +594,6 @@ TEST(io_tests, 1_4) {
             las::rgb c;
         };
 
-        factory::record_schema schema;
-
-        // make schema
-        schema
-            (factory::record_item::point())
-            (factory::record_item::gpstime())
-            (factory::record_item::rgb());
 
         std::ifstream file(fname, std::ios::binary);
         io::reader::file f(file);
@@ -703,15 +655,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
             las::rgb c;
         };
 
-        factory::record_schema schema;
-
-        // make schema
-        schema
-            (factory::record_item::point())
-            (factory::record_item::gpstime())
-            (factory::record_item::rgb());
-
-        io::writer::file f(fname, schema,
+        io::writer::file f(fname, 3, 0,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
         reader fin(testFile("autzen_trim.las"));
@@ -734,14 +678,6 @@ TEST(io_tests, compression_decompression_is_symmetric) {
             las::gpstime t;
             las::rgb c;
         };
-
-        factory::record_schema schema;
-
-        // make schema
-        schema
-            (factory::record_item::point())
-            (factory::record_item::gpstime())
-            (factory::record_item::rgb());
 
         std::ifstream file(fname, std::ios::binary);
         io::reader::file f(file);
@@ -864,12 +800,9 @@ TEST(io_tests, writes_bbox_to_header) {
     using namespace laszip;
     using namespace laszip::formats;
 
-    factory::record_schema schema;
-    schema(factory::record_item::point());
-
     // First write a few points
     std::string filename(makeTempFileName());
-    io::writer::file f(filename, schema,
+    io::writer::file f(filename, 0, 0,
         io::writer::config(io::vector3(0.01, 0.01, 0.01), io::vector3(0.0, 0.0, 0.0)));
 
     las::point10 p1, p2;
@@ -904,9 +837,7 @@ TEST(io_tests, issue22)
     std::istream_iterator<int> it{ifs};
     std::vector<int> cls(it, std::istream_iterator<int>());
 
-    factory::record_schema schema;
-    schema(factory::record_item::point());
-    io::writer::file out(tempfile, schema,
+    io::writer::file out(tempfile, 0, 0,
             io::writer::config({0.01,0.01,0.01}, {0.0,0.0,0.0}));
 
     las::point10 p10;

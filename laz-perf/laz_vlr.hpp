@@ -34,67 +34,121 @@
 
 namespace laszip
 {
-namespace io
-{
 
 #pragma pack(push, 1)
 
 // A Single LAZ Item representation
-struct laz_item
-{
-    uint16_t type;
-    uint16_t size;
-    uint16_t version;
-};
-
 struct laz_vlr : public vlr
 {
+    enum
+    {
+        BYTE = 0,
+        POINT10 = 6,
+        GPSTIME = 7,
+        RGB12 = 8,
+        POINT14 = 10,
+        RGB14 = 11,
+        RGBNIR14 = 12,
+        BYTE14 = 14
+    };
+
+
+    struct laz_item
+    {
+        uint16_t type;
+        uint16_t size;
+        uint16_t version;
+
+        static const laz_item point()
+        {
+            return laz_item{ POINT10, 20, 2 };
+        }
+        static const laz_item gpstime()
+        {
+            return laz_item{ GPSTIME, 8, 2 };
+        }
+        static const laz_item rgb()
+        {
+            return laz_item{ RGB12, 6, 2 };
+        }
+        static const laz_item eb(uint16_t count)
+        {
+            return laz_item{ BYTE, count, 2 };
+        }
+        static const laz_item point14()
+        {
+            return laz_item{ POINT14, 30, 3 };
+        }
+        static const laz_item rgb14()
+        {
+            return laz_item{ RGB14, 6, 3 };
+        }
+        static const laz_item rgbnir14()
+        {
+            return laz_item{ RGBNIR14, 8, 3 };
+        }
+        static const laz_item eb14(uint16_t count)
+        {
+            return laz_item{ BYTE14, count, 3 };
+        }
+    };
+
+
     uint16_t compressor;
     uint16_t coder;
 
-    struct {
-        uint8_t major;
-        uint8_t minor;
-        uint16_t revision;
-    } version;
+    uint8_t ver_major;
+    uint8_t ver_minor;
+    uint16_t revision;
 
     uint32_t options;
     uint32_t chunk_size;
-
     int64_t num_points;
     int64_t num_bytes;
 
-    uint16_t num_items;
-    laz_item *items;
+    std::vector<laz_item> items;
 
-    laz_vlr() : num_items(0), items(NULL)
+    laz_vlr()
     {}
 
     ~laz_vlr()
+    {}
+
+    laz_vlr(int format, int ebCount, uint32_t chunksize) :
+        compressor(format <= 5 ? 2 : 3), coder(0), ver_major(3), ver_minor(4),
+        revision(3), options(0), chunk_size(chunksize), num_points(-1),
+        num_bytes(-1)
     {
-        delete [] items;
+        if (format >= 0 && format <= 5)
+        {
+            items.push_back(laz_item::point());
+            if (format == 1 || format == 3)
+                items.push_back(laz_item::gpstime());
+            if (format == 2 || format == 3)
+                items.push_back(laz_item::rgb());
+            if (ebCount)
+                items.push_back(laz_item::eb(ebCount));
+        }
+        else if (format >= 6 && format <= 8)
+        {
+            items.push_back(laz_item::point14());
+            if (format == 7)
+                items.push_back(laz_item::rgb14());
+            if (format == 8)
+                items.push_back(laz_item::rgbnir14());
+            if (ebCount)
+                items.push_back(laz_item::eb14(ebCount));
+        }
     }
 
     laz_vlr(const char *data)
     {
-        items = NULL;
         fill(data);
     }
 
     virtual size_t size() const
     {
-        return sizeof(laz_vlr) - sizeof(vlr) - sizeof(laz_item *) +
-            (num_items * sizeof(laz_item));
-    }
-
-    virtual uint8_t *data()
-    {
-        return (uint8_t *)this;
-    }
-
-    virtual const uint8_t *data() const
-    {
-        return (const uint8_t *)this;
+        return 34 + (items.size() * 6);
     }
 
     virtual vlr::vlr_header header()
@@ -102,59 +156,6 @@ struct laz_vlr : public vlr
         vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "laz-perf variant" };
 
         return h;
-    }
-
-    laz_vlr(const laz_vlr& rhs)
-    {
-        compressor = rhs.compressor;
-        coder = rhs.coder;
-
-        // the version we're compatible with
-        version.major = rhs.version.major;
-        version.minor = rhs.version.minor;
-        version.revision = rhs.version.revision;
-
-        options = rhs.options;
-        chunk_size = rhs.chunk_size;
-
-        num_points = rhs.num_points;
-        num_bytes = rhs.num_bytes;
-
-        num_items = rhs.num_items;
-        if (rhs.items)
-        {
-            items = new laz_item[num_items];
-            for (int i = 0 ; i < num_items ; i ++)
-                items[i] = rhs.items[i];
-        }
-    }
-
-    laz_vlr& operator = (const laz_vlr& rhs)
-    {
-        if (this == &rhs)
-            return *this;
-
-        compressor = rhs.compressor;
-        coder = rhs.coder;
-
-        // the version we're compatible with
-        version.major = rhs.version.major;
-        version.minor = rhs.version.minor;
-        version.revision = rhs.version.revision;
-
-        options = rhs.options;
-        chunk_size = rhs.chunk_size;
-
-        num_points = rhs.num_points;
-        num_bytes = rhs.num_bytes;
-
-        num_items = rhs.num_items;
-        if (rhs.items) {
-            items = new laz_item[num_items];
-            for (int i = 0 ; i < num_items ; i ++)
-                items[i] = rhs.items[i];
-        }
-        return *this;
     }
 
     void fill(const char *data)
@@ -167,12 +168,12 @@ struct laz_vlr : public vlr
         coder = le16toh(coder);
         data += sizeof(coder);
 
-        version.major = *(const unsigned char *)data++;
-        version.minor = *(const unsigned char *)data++;
+        ver_major = *(const unsigned char *)data++;
+        ver_minor = *(const unsigned char *)data++;
 
-        std::copy(data, data + sizeof(version.revision), (char *)&version.revision);
-        version.revision = le16toh(version.revision);
-        data += sizeof(version.revision);
+        std::copy(data, data + sizeof(revision), (char *)&revision);
+        revision = le16toh(revision);
+        data += sizeof(revision);
 
         std::copy(data, data + sizeof(options), (char *)&options);
         options = le32toh(options);
@@ -190,15 +191,15 @@ struct laz_vlr : public vlr
         num_bytes = le64toh(num_bytes);
         data += sizeof(num_bytes);
 
+        uint16_t num_items;
         std::copy(data, data + sizeof(num_items), (char *)&num_items);
         num_items = le16toh(num_items);
         data += sizeof(num_items);
 
-        delete [] items;
-        items = new laz_item[num_items];
+        items.clear();
         for (int i = 0 ; i < num_items ; i ++)
         {
-            laz_item& item = items[i];
+            laz_item item;
 
             std::copy(data, data + sizeof(item.type), (char *)&item.type);
             item.type = le16toh(item.type);
@@ -211,79 +212,89 @@ struct laz_vlr : public vlr
             std::copy(data, data + sizeof(item.version), (char *)&item.version);
             item.version = le16toh(item.version);
             data += sizeof(item.version);
+
+            items.push_back(item);
         }
     }
 
-    void extract(char *data)
+    std::vector<uint8_t> data() const
     {
+        std::vector<uint8_t> buf(size());
+
         uint16_t s;
         uint32_t i;
         uint64_t ll;
         char *src;
 
+        char *dst = reinterpret_cast<char *>(buf.data());
+
         s = htole16(compressor);
         src = (char *)&s;
-        std::copy(src, src + sizeof(compressor), data);
-        data += sizeof(compressor);
+        std::copy(src, src + sizeof(compressor), dst);
+        dst += sizeof(compressor);
 
         s = htole16(coder);
         src = (char *)&s;
-        std::copy(src, src + sizeof(coder), data);
-        data += sizeof(coder);
+        std::copy(src, src + sizeof(coder), dst);
+        dst += sizeof(coder);
 
-        *data++ = version.major;
-        *data++ = version.minor;
+        *dst++ = ver_major;
+        *dst++ = ver_minor;
 
-        s = htole16(version.revision);
+        s = htole16(revision);
         src = (char *)&s;
-        std::copy(src, src + sizeof(version.revision), data);
-        data += sizeof(version.revision);
+        std::copy(src, src + sizeof(revision), dst);
+        dst += sizeof(revision);
 
         i = htole32(options);
         src = (char *)&i;
-        std::copy(src, src + sizeof(options), data);
-        data += sizeof(options);
+        std::copy(src, src + sizeof(options), dst);
+        dst += sizeof(options);
 
         i = htole32(chunk_size);
         src = (char *)&i;
-        std::copy(src, src + sizeof(chunk_size), data);
-        data += sizeof(chunk_size);
+        std::copy(src, src + sizeof(chunk_size), dst);
+        dst += sizeof(chunk_size);
 
         ll = htole64(num_points);
         src = (char *)&ll;
-        std::copy(src, src + sizeof(num_points), data);
-        data += sizeof(num_points);
+        std::copy(src, src + sizeof(num_points), dst);
+        dst += sizeof(num_points);
 
         ll = htole64(num_bytes);
         src = (char *)&ll;
-        std::copy(src, src + sizeof(num_bytes), data);
-        data += sizeof(num_bytes);
+        std::copy(src, src + sizeof(num_bytes), dst);
+        dst += sizeof(num_bytes);
 
+        uint16_t num_items = (uint16_t)items.size();
         s = htole16(num_items);
         src = (char *)&s;
-        std::copy(src, src + sizeof(num_items), data);
-        data += sizeof(num_items);
+        std::copy(src, src + sizeof(num_items), dst);
+        dst += sizeof(num_items);
 
-        for (int k = 0 ; k < num_items ; k ++) {
-            laz_item& item = items[k];
+        for (size_t k = 0 ; k < items.size() ; k++)
+        {
+            const laz_item& item = items[k];
 
             s = htole16(item.type);
             src = (char *)&s;
-            std::copy(src, src + sizeof(item.type), data);
-            data += sizeof(item.type);
+            std::copy(src, src + sizeof(item.type), dst);
+            dst += sizeof(item.type);
 
             s = htole16(item.size);
             src = (char *)&s;
-            std::copy(src, src + sizeof(item.size), data);
-            data += sizeof(item.size);
+            std::copy(src, src + sizeof(item.size), dst);
+            dst += sizeof(item.size);
 
             s = htole16(item.version);
             src = (char *)&s;
-            std::copy(src, src + sizeof(item.version), data);
-            data += sizeof(item.version);
+            std::copy(src, src + sizeof(item.version), dst);
+            dst += sizeof(item.version);
         }
+        return buf;
     }
 
+    /**
     static laz_vlr from_schema(const factory::record_schema& s,
         uint32_t chunksize = DefaultChunkSize)
     {
@@ -304,20 +315,21 @@ struct laz_vlr : public vlr
         r.num_points = -1;
         r.num_bytes = -1;
 
-        r.num_items = static_cast<unsigned short>(s.records_.size());
-        r.items = new laz_item[s.records_.size()];
-        for (size_t i = 0 ; i < s.records_.size() ; i ++)
+        for (size_t i = 0 ; i < s.records_.size() ; i++)
         {
-            laz_item& item = r.items[i];
-            const factory::record_item& rec = s.records_.at(i);
+            auto& rec = s.records_[i];
+            laz_item item;
 
             item.type = static_cast<unsigned short>(rec.type);
             item.size = static_cast<unsigned short>(rec.size);
             item.version = static_cast<unsigned short>(rec.version);
+            r.items.push_back(item);
         }
         return r;
     }
+    **/
 
+    /**
     // convert the laszip items into record schema to be used by
     // compressor/decompressor
     static factory::record_schema to_schema(const laz_vlr& vlr, int point_len)
@@ -325,9 +337,9 @@ struct laz_vlr : public vlr
         using namespace factory;
         factory::record_schema schema;
 
-        for (auto i = 0 ; i < vlr.num_items ; i++)
+        for (size_t i = 0 ; i < vlr.items.size() ; i++)
         {
-            laz_item& item = vlr.items[i];
+            const laz_item& item = vlr.items[i];
             schema.push(factory::record_item(item.type, item.size, item.version));
             point_len -= item.size;
         }
@@ -344,9 +356,9 @@ struct laz_vlr : public vlr
         }
         return schema;
     }
+    **/
 };
 #pragma pack(pop)
 
-} // namesapce io
 } // namesapce laszip
 

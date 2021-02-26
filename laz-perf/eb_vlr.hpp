@@ -40,7 +40,7 @@ namespace io
 struct eb_vlr : public vlr
 {
 #pragma pack(push, 1)
-    struct eb
+    struct ebfield
     {
         uint8_t reserved[2];
         uint8_t data_type;
@@ -54,14 +54,13 @@ struct eb_vlr : public vlr
         double offset[3];
         char description[32];
 
-        eb() : reserved{}, data_type{ htole32(1) }, options{}, name{}, unused{},
+        ebfield() : reserved{}, data_type{ htole32(1) }, options{}, name{}, unused{},
             no_data{}, minval{}, maxval{}, scale{}, offset{}, description{}
         {}
     };
 #pragma pack(pop)
 
-    int cnt;
-    std::vector<uint8_t> buf;
+    std::vector<ebfield> items;
 
     eb_vlr(size_t bytes)
     {
@@ -71,36 +70,30 @@ struct eb_vlr : public vlr
 
     void addField()
     {
-        struct eb field;
+        ebfield field;
 
-        std::string name = "FIELD_" + std::to_string(cnt++);
+        std::string name = "FIELD_" + std::to_string(items.size());
         strncpy(field.name, name.data(), 32);
 
-        uint8_t *pos =  (uint8_t *)&field;
-        for (size_t i = 0; i < sizeof(eb); ++i)
-            buf.push_back(*pos++);
+        items.push_back(field);
     }
 
     size_t size() const
     {
-        return buf.size();
+        return 192 * items.size();
     }
 
-    uint8_t *data()
+    // Since all we fill in is a single byte field and a string field, we don't
+    // need to worry about byte ordering.
+    std::vector<uint8_t> data() const
     {
-        return buf.data();
-    }
-
-    const uint8_t *data() const
-    {
-        return buf.data();
+        const uint8_t *start = reinterpret_cast<const uint8_t *>(items.data());
+        return std::vector<uint8_t>(start, start + size());
     }
 
     virtual vlr::vlr_header header()
     {
-        vlr_header h { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
-
-        return h;
+        return vlr_header { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
     }
 };
 
