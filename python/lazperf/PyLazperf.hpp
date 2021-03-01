@@ -68,7 +68,7 @@ public:
     unsigned char getByte()
     {
         if (m_idx >= m_dataLength) {
-            throw std::runtime_error("access out of bounds");
+            throw std::runtime_error("Tried to read past buffer bounds");
         }
         return (unsigned char) m_data[m_idx++];
     }
@@ -76,7 +76,7 @@ public:
     void getBytes(unsigned char *b, int len)
     {
         if (m_idx + len > m_dataLength) {
-            throw std::runtime_error("access out of bounds");
+            throw std::runtime_error("Tried to read past buffer bounds");
         }
         memcpy(b, (unsigned char*) &m_data[m_idx], len);
         m_idx += len;
@@ -143,6 +143,7 @@ public:
     VlrDecompressor(
         const uint8_t *compressedData,
         size_t dataLength,
+        size_t pointSize,
         const char *vlr_data)
         : m_stream(compressedData, dataLength)
         , m_chunksize(0)
@@ -150,7 +151,7 @@ public:
     {
         laszip::io::laz_vlr zipvlr(vlr_data);
         m_chunksize = zipvlr.chunk_size;
-        m_schema = laszip::io::laz_vlr::to_schema(zipvlr);
+        m_schema = laszip::io::laz_vlr::to_schema(zipvlr, pointSize);
     }
 
     size_t getPointSize() const

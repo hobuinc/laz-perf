@@ -14,6 +14,20 @@ nice with Emscripten and provides a more rigorous software engineering approach
 to a LASzip implementation.
 
 # How do I build this?
+
+There are two ways you can build this: using Docker (which may not use the most recent Emscripten SDK) or manually, where you install the Emscripten SDK to your computer and use that for building laz-perf. 
+
+## Using Docker
+
+If you're a docker commando, you can run the provided docker build script to build both WASM and JS builds like so:
+
+    docker run -it -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash emscripten-docker-build.sh
+
+You should then end up with a `build-wasm` and `build-js` directories with respective builds.
+
+
+## Manual method
+
 You need to download the most recent version of Emscripten toolchain from [Emscripten's Web Page](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html) and follow their setup process.
 
 Once done, navigate to the root directory of laz-perf project and make a directory to stage build files in:
@@ -33,13 +47,6 @@ To perform a WebAssembly build, pass the `-DWASM=1` parameter to the command abo
 You should now be able to build JS/WASM output like so:
 
     VERBOSE=1 make
-
-
-If you're a docker commando, you can run the provided docker build script to build both WASM and JS builds like so:
-
-    docker run -it -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash emscripten-docker-build.sh
-
-You should then end up with a `build-wasm` and `build-js` directories with respective builds.
 
 
 # Benchmark results so far

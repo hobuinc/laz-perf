@@ -1,6 +1,6 @@
 # distutils: language=c++
 from libcpp.vector cimport vector
-from libc.stdint cimport uint8_t, int32_t, uint64_t
+from libc.stdint cimport uint8_t, uint64_t
 
 cdef extern from "PyLazperfTypes.hpp" namespace "pylazperf":
     enum LazPerfType "pylazperf::Type":
@@ -37,16 +37,22 @@ cdef extern from "PyLazperf.hpp" namespace "pylazperf":
         void copy_data_to(uint8_t *dest) const
 
 
-cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory::record_item":
-    cdef enum record_item "laszip::factory::record_item":
-        POINT10,
-        GPSTIME,
-        RGB12
+
+cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory":
+    cdef cppclass record_item:
+        @staticmethod
+        const record_item& point();
+        @staticmethod
+        const record_item& gpstime();
+        @staticmethod
+        const record_item& rgb();
+        @staticmethod
+        const record_item& eb(size_t count);
 
 cdef extern from "laz-perf/factory.hpp" namespace "laszip::factory":
     cdef cppclass record_schema:
         record_schema()
-        void push(record_item)
+        void push(const record_item&)
 
 
 cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
@@ -59,7 +65,7 @@ cdef extern from 'laz-perf/io.hpp' namespace "laszip::io":
 
 cdef extern from "PyLazperf.hpp" namespace "pylazperf":
     cdef cppclass VlrDecompressor:
-        VlrDecompressor(const unsigned char* compressed_data, size_t dataLength, const char *vlr) except +
+        VlrDecompressor(const unsigned char* compressed_data, size_t dataLength, size_t pointSize, const char *vlr) except +
         size_t decompress(char* buffer)  except +
         size_t getPointSize()
 

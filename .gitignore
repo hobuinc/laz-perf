@@ -25,9 +25,11 @@ emscripten/autzen.laz
 emscripten/haloe.laz
 test/raw-sets/SpaceShuttle.laz
 test/raw-sets/haloe.laz
+cpp/examples/*.wasm
+cpp/benchmarks/*.wasm
 
 # test files we don't need to version control
-/test/raw-sets/autzen.la?
+/cpp/test/raw-sets/autzen.la?
 *.vcxproj
 *.filters
 *.opensdf
@@ -44,14 +46,19 @@ test/raw-sets/haloe.laz
 *.vcxproj.user
 *.dll
 *.js.mem
+build/
+dist/
+wheelhouse
+python/lazperf/*.so
 python/VERSION.txt
-python/build
-python/lazperf.egg-info
-python/lazperf/*.pyc
 python/lazperf/pylazperfapi.cpp
-python/lazperf/pylazperfapi.so
+.eggs/
+*.pyc
+lazperf.egg-info
+lazperf/*.pyc
+lazperf/pylazperfapi.cpp
+lazperf/pylazperfapi.so
 python/test/*.pyc
-python/dist
 python/.eggs/
 *__pycache__*
 test/test_main.hpp
