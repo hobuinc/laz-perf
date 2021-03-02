@@ -577,10 +577,12 @@ struct point_decompressor_6 : public point_decompressor_base_1_4<TStream>
 
     ~point_decompressor_6()
     {
+#ifndef NDEBUG
         this->point_.dumpSums();
         if (this->eb_.count())
             this->eb_.dumpSums();
         std::cerr << "\n";
+#endif
     }
 
     virtual char *decompress(char *out)
@@ -617,11 +619,13 @@ struct point_decompressor_7 : public point_decompressor_base_1_4<TStream>
 
     ~point_decompressor_7()
     {
+#ifndef NDEBUG
         this->point_.dumpSums();
         rgb_.dumpSums();
         if (this->eb_.count())
             this->eb_.dumpSums();
         std::cerr << "\n";
+#endif
     }
 
     virtual char *decompress(char *out)
@@ -663,12 +667,14 @@ struct point_decompressor_8 : public point_decompressor_base_1_4<TStream>
 
     ~point_decompressor_8()
     {
+#ifndef NDEBUG
         this->point_.dumpSums();
         rgb_.dumpSums();
         nir_.dumpSums();
         if (this->eb_.count())
             this->eb_.dumpSums();
         std::cerr << "\n";
+#endif
     }
 
     virtual char *decompress(char *out)

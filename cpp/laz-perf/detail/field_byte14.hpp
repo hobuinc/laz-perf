@@ -40,7 +40,7 @@ struct field<las::byte14>
 {
     typedef las::byte14 type;
 
-  Summer sumByte;
+    utils::Summer sumByte;
 
     field(size_t count): count_(count), last_channel_(-1),
         chan_ctxs_{count_, count_, count_, count_}, valid_(count_), byte_cnt_(count_),
@@ -77,24 +77,17 @@ struct field<las::byte14>
     template <typename TStream>
     void writeData(TStream& stream)
     {
-auto sum = [](const uint8_t *buf, uint32_t size)
-{
-    int32_t sum = 0;
-    while (size--)
-        sum += *buf++;
-    return sum;
-};
 
-    int32_t total = 0;
-    for (size_t i = 0; i < count_; ++i)
-    {
-        if (valid_[i])
+        int32_t total = 0;
+        for (size_t i = 0; i < count_; ++i)
         {
-            stream.putBytes(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
-            total += sum(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
+            if (valid_[i])
+            {
+                stream.putBytes(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
+                total += utils::sum(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
+            }
         }
-    }
-std::cerr << "BYTE      : " << total << "\n";
+        LAZDEBUG(std::cerr << "BYTE      : " << total << "\n");
     }
 
     template <typename TStream>
@@ -111,7 +104,6 @@ std::cerr << "BYTE      : " << total << "\n";
             last_channel_ = sc;
             return buf + count_;
         }
-
         ChannelCtx& c = chan_ctxs_[sc];
         las::byte14 *pLastBytes = &chan_ctxs_[last_channel_].last_;
         if (!c.have_last_)
@@ -190,7 +182,7 @@ std::cerr << "BYTE      : " << total << "\n";
             else
                 *buf = lastByte[i];
         }
-sumByte.add(lastByte.data(), count_);
+        LAZDEBUG(sumByte.add(lastByte.data(), count_));
 
         return buf;
     }

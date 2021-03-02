@@ -69,7 +69,7 @@ struct field<las::rgb14>
 {
     typedef las::rgb14 type;
 
-  Summer sumRgb;
+    utils::Summer sumRgb;
 
     field(): last_channel_(-1)
     {}
@@ -91,16 +91,8 @@ struct field<las::rgb14>
     template <typename TStream>
     void writeData(TStream& stream)
     {
-
-auto sum = [](const uint8_t *buf, uint32_t size)
-{
-    int32_t sum = 0;
-    while (size--)
-        sum += *buf++;
-    return sum;
-};
-
-std::cerr << "RGB       : " << sum(rgb_enc_.encoded_bytes(), rgb_enc_.num_encoded()) << "\n";
+        LAZDEBUG(std::cerr << "RGB       : " <<
+            utils::sum(rgb_enc_.encoded_bytes(), rgb_enc_.num_encoded()) << "\n");
 
         if (rgb_enc_.num_encoded())
             stream.putBytes(rgb_enc_.encoded_bytes(), rgb_enc_.num_encoded());
@@ -307,7 +299,7 @@ std::cerr << "RGB       : " << sum(rgb_enc_.encoded_bytes(), rgb_enc_.num_encode
             color.b = color.r;
         }
 
-sumRgb.add(color);
+        LAZDEBUG(sumRgb.add(color));
         lastColor = color;
         packers<las::rgb>::pack(color, buf);
         return buf + sizeof(las::rgb14);

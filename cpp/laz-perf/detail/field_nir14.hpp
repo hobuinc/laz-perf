@@ -58,7 +58,7 @@ struct field<las::nir14>
 {
     typedef las::nir14 type;
 
-  Summer sumNir;
+    utils::Summer sumNir;
 
     field(): last_channel_(-1)
     {}
@@ -81,15 +81,8 @@ struct field<las::nir14>
     void writeData(TStream& stream)
     {
 
-auto sum = [](const uint8_t *buf, uint32_t size)
-{
-    int32_t sum = 0;
-    while (size--)
-        sum += *buf++;
-    return sum;
-};
-
-std::cerr << "NIR       : " << sum(nir_enc_.encoded_bytes(), nir_enc_.num_encoded()) << "\n";
+        LAZDEBUG(std::cerr << "NIR       : " <<
+            utils::sum(nir_enc_.encoded_bytes(), nir_enc_.num_encoded()) << "\n");
 
         if (nir_enc_.num_encoded())
             stream.putBytes(nir_enc_.encoded_bytes(), nir_enc_.num_encoded());
@@ -211,7 +204,7 @@ std::cerr << "NIR       : " << sum(nir_enc_.encoded_bytes(), nir_enc_.num_encode
         }
         else
             nir.val |= lastNir.val & 0xFF00;
-sumNir.add(nir);
+        LAZDEBUG(sumNir.add(nir));
 
         lastNir = nir;
         packers<las::nir14>::pack(nir, buf);
