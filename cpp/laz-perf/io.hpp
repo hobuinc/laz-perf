@@ -263,14 +263,34 @@ public:
          return laz_;
      }
 
-     void readPoint(char *out)
-     {
-         if (!compressed_)
-             stream_.getBytes(reinterpret_cast<unsigned char *>(out), header_.point_record_length);
+    std::vector<uint64_t> chunkOffsets() const
+    {
+        return chunk_table_offsets_;
+    }
 
-         // read the next point in
-         else
-         {
+    uint32_t chunkSize() const
+    {
+        return laz_.chunk_size;
+    }
+
+    int64_t numPoints() const
+    {
+        return laz_.num_points;
+    }
+
+    uint32_t pointSize()
+    {
+        return header_.point_record_length;
+    }
+
+    void readPoint(char *out)
+    {
+        if (!compressed_)
+            stream_.getBytes(reinterpret_cast<unsigned char *>(out), header_.point_record_length);
+
+        // read the next point in
+        else
+        {
             if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
             {
                 pdecomperssor_ = factory::build_las_decompressor(stream_, header_.point_format_id,
@@ -283,8 +303,8 @@ public:
 
             pdecomperssor_->decompress(out);
             chunk_state_.points_read++;
-         }
-     }
+        }
+    }
 
 private:
     void _open()
@@ -428,11 +448,13 @@ private:
             throw error("Error reading chunk table.");
 
         // Now read in the chunk table
+#pragma pack(push, 1)
         struct
         {
-            unsigned int version,
-            chunk_count;
+            uint32_t version;
+            uint32_t chunk_count;
         } chunk_table_header;
+#pragma pack(pop)
 
         f_.read((char *)&chunk_table_header, sizeof(chunk_table_header));
         if (!f_.good())
@@ -465,7 +487,7 @@ private:
             decoder.readInitBytes();
             decomp.init();
 
-            for (size_t i = 1 ; i <= chunk_table_header.chunk_count ; i ++)
+            for (size_t i = 1 ; i <= chunk_table_header.chunk_count; i++)
             {
                 uint64_t offset = i > 1 ? (int32_t)chunk_table_offsets_[i - 1] : 0;
                 chunk_table_offsets_[i] = static_cast<uint64_t>(
