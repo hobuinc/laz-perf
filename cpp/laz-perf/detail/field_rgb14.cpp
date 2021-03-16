@@ -82,7 +82,7 @@ void Rgb14Compressor::writeData()
 
 const char *Rgb14Compressor::compress(const char *buf, int& sc)
 {
-    const las::rgb14 color = packers<las::rgb>::unpack(buf);
+    const las::rgb14 color(buf);
 
     // don't have the first data yet, just push it to our
     // have last stuff and move on
@@ -189,7 +189,7 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
     {
         ChannelCtx& c = chan_ctxs_[sc];
         stream_.getBytes((unsigned char*)buf, sizeof(las::rgb));
-        c.last_ = packers<las::rgb>::unpack(buf);
+        c.last_.unpack(buf);
         c.have_last_ = true;
         last_channel_ = sc;
         return buf + sizeof(las::rgb14);
@@ -286,7 +286,7 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
 
     LAZDEBUG(sumRgb.add(color));
     lastColor = color;
-    packers<las::rgb>::pack(color, buf);
+    color.pack(buf);
     return buf + sizeof(las::rgb14);
 }
 

@@ -47,8 +47,7 @@ struct SuchStream {
 int main() {
     // import namespaces to reduce typing
     //
-    using namespace laszip;
-    using namespace laszip::formats;
+    using namespace lazperf;
 
     // Get a memory stream backed encoder up
     SuchStream s;

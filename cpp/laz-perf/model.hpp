@@ -36,8 +36,10 @@
 
 #include <stdexcept>
 
-namespace laszip {
-	namespace models {
+namespace lazperf
+{
+namespace models
+{
 		struct arithmetic {
 			arithmetic(U32 syms, bool com = false, U32 *initTable = nullptr) :
 				symbols(syms), compress(com),
@@ -244,7 +246,7 @@ namespace laszip {
 			U32 update_cycle, bits_until_update;
 			U32 bit_0_prob, bit_0_count, bit_count;
 		};
-	}
-}
+} // namespace models
+} // namespace lazperf
 
 #endif // __model_hpp__

@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-	laszip::io::reader::file f(file);
+	lazperf::io::reader::basic_file f(file);
 
 	size_t count = f.get_header().point_count;
 	char buf[256]; // a buffer large enough to hold our point
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 	auto start = common::tick();
 	for(size_t i = 0 ; i < count ; i ++) {
 		f.readPoint(buf); // read the point out
-		//laszip::formats::las::point10 p = laszip::formats::packers<laszip::formats::las::point10>::unpack(buf);
+		//lazperf::formats::las::point10 p = lazperf::formats::packers<lazperf::formats::las::point10>::unpack(buf);
 
 		//std::cout << p.x << ", " << p.y << ", " << p.z << std::endl;
 	}

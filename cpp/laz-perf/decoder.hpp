@@ -99,8 +99,10 @@
 
 #include "common/types.hpp"
 
-namespace laszip {
-namespace decoders {
+namespace lazperf
+{
+namespace decoders
+{
 
 template<typename TInputStream>
 struct arithmetic
@@ -346,6 +348,6 @@ private:
 };
 
 } // namespace decoders
-} // namespace laszip
+} // namespace lazperf
 
 #endif // __decoder_hpp__

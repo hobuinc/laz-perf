@@ -32,7 +32,7 @@
 
 #include "vlr.hpp"
 
-namespace laszip
+namespace lazperf
 {
 namespace io
 {
@@ -98,5 +98,5 @@ struct eb_vlr : public vlr
 };
 
 } // namesapce io
-} // namesapce laszip
+} // namesapce lazperf
 

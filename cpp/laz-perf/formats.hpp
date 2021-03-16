@@ -37,9 +37,7 @@
 #include "compressor.hpp"
 #include "decompressor.hpp"
 
-namespace laszip
-{
-namespace formats
+namespace lazperf
 {
         template<typename T>
         struct packers {
@@ -259,8 +257,8 @@ namespace formats
                 return buffer;
             }
 
-            laszip::compressors::integer compressor_;
-            laszip::decompressors::integer decompressor_;
+            compressors::integer compressor_;
+            decompressors::integer decompressor_;
 
             bool compressor_inited_, decompressor_inited_;
 
@@ -551,7 +549,6 @@ namespace formats
             typedef typename dynamic_field_decompressor<TStream>::ptr ptr;
             return ptr(new dynamic_field_decompressor<TStream>(stream));
         }
-} // namespace formats
-}
+} // namespace lazperf
 
 #endif // __formats_hpp__

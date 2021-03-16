@@ -33,107 +33,13 @@
 #include <memory>
 
 #include "test_main.hpp"
+#include "Charbuf.hpp"
 
 #include <laz-perf/io.hpp>
 
 #include <cstdio>
 #include "reader.hpp"
 #include <stdio.h>
-
-struct memory_stream
-{
-
-    memory_stream(const char *buf, std::streamsize len) :
-        buf_(buf), len_(len), offset_(0),
-        is_bad_(false), is_eof_(false), last_read_count_(0)
-    {}
-
-    void read(char *into, std::streamsize size)
-    {
-        if (is_eof_) {
-            is_bad_ = true;
-            return;
-        }
-
-        std::streamsize to_read = (std::min)(size, len_ - offset_);
-        std::copy(buf_ + offset_, buf_ + offset_ + to_read, into);
-        offset_ += to_read;
-        last_read_count_ = to_read;
-
-        if (offset_ >= len_)
-            is_eof_ = true;
-    }
-
-    bool eof()
-    {
-        return is_eof_;
-    }
-
-    std::streamsize gcount()
-    {
-        return last_read_count_;
-    }
-
-    bool good()
-    {
-        bool b = is_bad_;
-        is_bad_ = false;
-        return !b;
-    }
-
-    void clear()
-    {
-        is_bad_ = false;
-        is_eof_ = false;
-    }
-
-    std::streamsize tellg()
-    {
-        return offset_;
-    }
-
-    void seekg(std::ios::pos_type p)
-    {
-        if (p >= len_)
-            is_bad_ = true;
-        else
-            offset_ = p;
-    }
-
-    void seekg(std::ios::off_type p, std::ios_base::seekdir dir)
-    {
-        std::streamoff new_offset_ = 0;
-
-        switch(dir) {
-            case std::ios::beg:
-                new_offset_ = p;
-                break;
-            case std::ios::end:
-                new_offset_ = len_ + p - 1;
-                break;
-            case std::ios::cur:
-                new_offset_ = offset_ + p;
-                break;
-            default:
-                break;
-        }
-
-        if (new_offset_ >= len_ || new_offset_ < 0)
-            is_bad_ = true;
-        else
-        {
-            is_bad_ = false;
-            offset_ = new_offset_;
-        }
-    }
-
-    const char *buf_;
-    std::streamsize len_;
-    std::streamsize offset_;
-    bool is_bad_;
-    bool is_eof_;
-    std::streamsize last_read_count_;
-};
 
 std::string makeTempFileName()
 {
@@ -154,21 +60,21 @@ std::string makeTempFileName()
     return filename;
 }
 
+using namespace lazperf;
+using namespace lazperf::io;
+
 TEST(io_tests, io_structs_are_of_correct_size) {
-    using namespace laszip::io;
 
     EXPECT_EQ(sizeof(header), 227u);
 }
 
 TEST(io_tests, can_report_invalid_magic) {
-    using namespace laszip;
 
     {
         std::ifstream file(testFile("point10-1.las.raw"), std::ios::binary);
         auto func = [&file]() {
-            io::reader::file f(file);
+            io::reader::basic_file f(file);
         };
-
         EXPECT_THROW(func(), error);
 
         file.close();
@@ -176,11 +82,10 @@ TEST(io_tests, can_report_invalid_magic) {
 }
 
 TEST(io_tests, doesnt_throw_any_errors_for_valid_laz) {
-    using namespace laszip;
     {
         std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
         auto func = [&file]() {
-            io::reader::file f(file);
+            io::reader::basic_file f(file);
         };
 
         EXPECT_NO_THROW(func());
@@ -197,11 +102,10 @@ void dumpBytes(const char* b, size_t len) {
 }
 
 TEST(io_tests, parses_header_correctly) {
-    using namespace laszip;
 
     {
         std::ifstream file(testFile("point10.las.laz"), std::ios::binary);
-        io::reader::file f(file);
+        io::reader::basic_file f(file);
         auto header = f.get_header();
 
         EXPECT_EQ(header.version.major, 1);
@@ -256,11 +160,10 @@ TEST(io_tests, parses_header_correctly) {
 }
 
 TEST(io_tests, parses_laszip_vlr_correctly) {
-    using namespace laszip;
 
     {
         std::ifstream file(testFile("point10.las.laz"));
-        io::reader::file f(file);
+        io::reader::basic_file f(file);
         auto vlr = f.get_laz_vlr();
 
         EXPECT_EQ(vlr.compressor, 2);
@@ -283,8 +186,7 @@ TEST(io_tests, parses_laszip_vlr_correctly) {
     }
 }
 
-void testPoint(laszip::formats::las::point10& p1,
-    laszip::formats::las::point10& p2)
+void testPoint(lazperf::las::point10& p1, lazperf::las::point10& p2)
 {
     EXPECT_EQ(p1.x, p2.x);
     EXPECT_EQ(p1.y, p2.y);
@@ -301,13 +203,12 @@ void testPoint(laszip::formats::las::point10& p1,
     EXPECT_EQ(p1.point_source_ID, p2.point_source_ID);
 }
 
-void testPoint(laszip::formats::las::gpstime& p1,
-    laszip::formats::las::gpstime& p2)
+void testPoint(lazperf::las::gpstime& p1, lazperf::las::gpstime& p2)
 {
     EXPECT_EQ(p1.value, p2.value);
 }
 
-void testPoint(laszip::formats::las::rgb& p1, laszip::formats::las::rgb& p2)
+void testPoint(lazperf::las::rgb& p1, lazperf::las::rgb& p2)
 {
     EXPECT_EQ(p1.r, p2.r);
     EXPECT_EQ(p1.g, p2.g);
@@ -317,8 +218,6 @@ void testPoint(laszip::formats::las::rgb& p1, laszip::formats::las::rgb& p2)
 void testPoint(unsigned char format, unsigned short pointLen,
     char *p1, char *p2)
 {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     if (format > 4)
         return;
@@ -362,12 +261,11 @@ void testPoint(unsigned char format, unsigned short pointLen,
 
 void compare(const std::string& compressed, const std::string& uncompressed)
 {
-    using namespace laszip;
 
     std::ifstream cStream(compressed, std::ios::binary);
     std::ifstream ucStream(uncompressed, std::ios::binary);
 
-    io::reader::file c(cStream);
+    io::reader::basic_file c(cStream);
     if (!ucStream.good())
         FAIL() << "Unable to open uncompressed file '" << uncompressed << "'.";
 
@@ -385,11 +283,11 @@ void compare(const std::string& compressed, const std::string& uncompressed)
         c.readPoint(cBuf);
         testPoint(header.point_format_id, pointLen, ucBuf, cBuf);
     }
+std::cerr << "Compare complete!\n";
 }
 
 void encode(const std::string& lasFilename, const std::string& lazFilename)
 {
-    using namespace laszip;
 
     io::header h;
     std::ifstream lasStream(lasFilename, std::ios::binary);
@@ -446,15 +344,13 @@ void checkExists(const std::string& filename) {
 
 
 TEST(io_tests, can_open_large_files) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     checkExists(testFile("autzen_trim.laz"));
 
     {
         auto func = []() {
             std::ifstream file(testFile("autzen_trim.laz"));
-            io::reader::file f(file);
+            io::reader::basic_file f(file);
         };
 
         EXPECT_NO_THROW(func());
@@ -462,16 +358,14 @@ TEST(io_tests, can_open_large_files) {
 }
 
 TEST(io_tests, can_decode_large_files) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     checkExists(testFile("autzen_trim.laz"));
     checkExists(testFile("autzen_trim.las"));
 
     {
         std::ifstream file(testFile("autzen_trim.laz"), std::ios::binary);
-        io::reader::file f(file);
-        reader fin(testFile("autzen_trim.las"));
+        io::reader::basic_file f(file);
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = f.get_header().point_count;
 
@@ -521,8 +415,6 @@ TEST(io_tests, can_decode_large_files) {
 }
 
 TEST(io_tests, can_encode_large_files) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     checkExists(testFile("autzen_trim.laz"));
     checkExists(testFile("autzen_trim.las"));
@@ -540,7 +432,7 @@ TEST(io_tests, can_encode_large_files) {
         io::writer::file f(makeTempFileName(), 3, 0,
                 io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
-        reader fin(testFile("autzen_trim.las"));
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = fin.count_;
         point p;
@@ -556,8 +448,6 @@ TEST(io_tests, can_encode_large_files) {
 
 TEST(io_tests, 1_4) {
     /**
-    using namespace laszip;
-    using namespace laszip::formats;
 
     std::string fname = makeTempFileName();
 
@@ -571,7 +461,7 @@ TEST(io_tests, 1_4) {
         io::writer::file f(fname, 6, 0,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
-        reader fin(testFile("autzen_trim.las"));
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = fin.count_;
         point p;
@@ -597,7 +487,7 @@ TEST(io_tests, 1_4) {
 
         std::ifstream file(fname, std::ios::binary);
         io::reader::file f(file);
-        reader fin(testFile("autzen_trim.las"));
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = fin.count_;
         point p1, p2;
@@ -641,8 +531,6 @@ TEST(io_tests, 1_4) {
 
 ///
 TEST(io_tests, compression_decompression_is_symmetric) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     std::string fname = makeTempFileName();
 
@@ -658,7 +546,7 @@ TEST(io_tests, compression_decompression_is_symmetric) {
         io::writer::file f(fname, 3, 0,
             io::writer::config({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}));
 
-        reader fin(testFile("autzen_trim.las"));
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = fin.count_;
         point p;
@@ -680,8 +568,8 @@ TEST(io_tests, compression_decompression_is_symmetric) {
         };
 
         std::ifstream file(fname, std::ios::binary);
-        io::reader::file f(file);
-        reader fin(testFile("autzen_trim.las"));
+        io::reader::basic_file f(file);
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = fin.count_;
         point p1, p2;
@@ -723,8 +611,6 @@ TEST(io_tests, compression_decompression_is_symmetric) {
 }
 
 TEST(io_tests, can_decode_large_files_from_memory) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     checkExists(testFile("autzen_trim.laz"));
     checkExists(testFile("autzen_trim.las"));
@@ -743,10 +629,11 @@ TEST(io_tests, can_decode_large_files_from_memory) {
         EXPECT_EQ(file.gcount(), file_size);
         file.close();
 
-        memory_stream ms(buf, file_size);
+        pdal::Charbuf charbuf(buf, file_size);
+        std::istream in(&charbuf);
 
-        io::reader::basic_file<memory_stream> f(ms);
-        reader fin(testFile("autzen_trim.las"));
+        io::reader::basic_file f(in);
+        test::reader fin(testFile("autzen_trim.las"));
 
         size_t pointCount = f.get_header().point_count;
 
@@ -758,7 +645,8 @@ TEST(io_tests, can_decode_large_files_from_memory) {
             las::rgb c;
         };
 
-        for (size_t i = 0 ; i < pointCount ; i ++) {
+        for (size_t i = 0 ; i < pointCount ; i ++)
+        {
             pnt p1, p2;
 
             f.readPoint((char*)&p1);
@@ -797,8 +685,6 @@ TEST(io_tests, can_decode_large_files_from_memory) {
 }
 
 TEST(io_tests, writes_bbox_to_header) {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     // First write a few points
     std::string filename(makeTempFileName());
@@ -816,7 +702,7 @@ TEST(io_tests, writes_bbox_to_header) {
 
     // Now check that the file has correct bounding box
     std::ifstream ifs(filename);
-    io::reader::file reader(ifs);
+    io::reader::basic_file reader(ifs);
     EXPECT_EQ(reader.get_header().minimum.x, 1.0);
     EXPECT_EQ(reader.get_header().maximum.x, 2.0);
     EXPECT_EQ(reader.get_header().minimum.y, -3.0);
@@ -827,8 +713,6 @@ TEST(io_tests, writes_bbox_to_header) {
 
 TEST(io_tests, issue22)
 {
-    using namespace laszip;
-    using namespace laszip::formats;
 
     std::string infile(testFile("classification.txt"));
     std::string tempfile(testFile("classification.laz"));
@@ -848,7 +732,7 @@ TEST(io_tests, issue22)
     out.close();
 
     std::ifstream instream(tempfile, std::ios::binary);
-    io::reader::file in(instream);
+    io::reader::basic_file in(instream);
 
     EXPECT_EQ(in.get_header().point_count, cls.size());
     for (size_t i = 0; i < in.get_header().point_count; i++)

@@ -1,6 +1,6 @@
 include_directories(../laz-perf)
 
-set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES})
+set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES} lazperf)
 
 add_executable(simple simple.cpp)
 target_link_libraries(simple ${ALL_LIBRARIES})

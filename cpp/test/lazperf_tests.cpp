@@ -71,10 +71,10 @@ struct SuchStream {
 	size_t idx;
 };
 
+using namespace lazperf;
+using namespace lazperf::factory;
 
 TEST(lazperf_tests, packers_are_symmetric) {
-	using namespace laszip::formats;
-
 	char buf[4];
 	packers<unsigned int>::pack(0xdeadbeaf, buf);
 	unsigned int v = packers<unsigned int>::unpack(buf);
@@ -103,14 +103,13 @@ TEST(lazperf_tests, packers_are_symmetric) {
 
 
 TEST(lazperf_tests, packers_canpack_gpstime) {
-	using namespace laszip::formats;
 
 	{
 		las::gpstime v((std::numeric_limits<int64_t>::max)());
 		char buf[8];
 
-		packers<las::gpstime>::pack(v, buf);
-		las::gpstime out = packers<las::gpstime>::unpack(buf);
+		v.pack(buf);
+		las::gpstime out(buf);
 
 		EXPECT_EQ(v.value, out.value);
 		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
@@ -120,8 +119,8 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 		las::gpstime v((std::numeric_limits<int64_t>::min)());
 		char buf[8];
 
-		packers<las::gpstime>::pack(v, buf);
-		las::gpstime out = packers<las::gpstime>::unpack(buf);
+		v.pack(buf);
+		las::gpstime out(buf);
 
 		EXPECT_EQ(v.value, out.value);
 		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
@@ -129,13 +128,12 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 }
 
 TEST(lazperf_tests, packers_canpack_rgb) {
-	using namespace laszip::formats;
 
 	las::rgb c(1<<15, 1<<14, 1<<13);
 	char buf[6];
 
-	packers<las::rgb>::pack(c, buf);
-	las::rgb out = packers<las::rgb>::unpack(buf);
+	c.pack(buf);
+	las::rgb out(buf);
 
 	EXPECT_EQ(c.r, out.r);
 	EXPECT_EQ(c.g, out.g);
@@ -146,18 +144,15 @@ TEST(lazperf_tests, packers_canpack_rgb) {
 	EXPECT_EQ(std::equal(buf+4, buf+6, (char*)&c.b), true);
 }
 
-TEST(lazperf_tests, las_structs_are_of_correct_size) {
-	using namespace laszip::formats;
-
+TEST(lazperf_tests, las_structs_are_of_correct_size)
+{
 	EXPECT_EQ(sizeof(las::point10), 20u);
 	EXPECT_EQ(sizeof(las::gpstime), 8u);
 	EXPECT_EQ(sizeof(las::rgb), 6u);
 }
 
-TEST(lazperf_tests, works_with_fields) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
+TEST(lazperf_tests, works_with_fields)
+{
 	struct {
 		int a;
 		short b;
@@ -204,8 +199,6 @@ TEST(lazperf_tests, works_with_fields) {
 }
 
 TEST(lazperf_tests, works_with_one_field) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	struct {
 		int a;
@@ -236,8 +229,6 @@ TEST(lazperf_tests, works_with_one_field) {
 }
 
 TEST(lazperf_tests, works_with_all_kinds_of_fields) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	struct {
 		int a;
@@ -297,8 +288,6 @@ TEST(lazperf_tests, works_with_all_kinds_of_fields) {
 
 
 TEST(lazperf_tests, correctly_packs_unpacks_point10) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	for (int i = 0 ; i < 1000 ; i ++) {
 		las::point10 p;
@@ -318,11 +307,11 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 		p.point_source_ID = (short)i;
 
 		char buf[sizeof(las::point10)];
-		packers<las::point10>::pack(p, buf);
+		p.pack(buf);
 
 		// Now unpack it back
 		//
-		las::point10 pout = packers<las::point10>::unpack(buf);
+		las::point10 pout(buf);
 
 		// Make things are still sane
 		EXPECT_EQ(pout.x, p.x);
@@ -341,15 +330,12 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 	}
 }
 
-TEST(lazperf_tests, point10_enc_dec_is_sym) {
-    using namespace laszip;
-    using namespace laszip::formats;
-
-    SuchStream s;
-
+TEST(lazperf_tests, point10_enc_dec_is_sym)
+{
     const int N = 100000;
 
-    las::point_compressor_0<SuchStream> compressor(s, 0);
+    MemoryStream s;
+    las::point_compressor_0 compressor(s.outCb(), 0);
 
     for (int i = 0 ; i < N; i ++) {
         las::point10 p;
@@ -369,19 +355,18 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
         p.point_source_ID = i % (1 << 16);
 
         char buf[sizeof(las::point10)];
-        packers<las::point10>::pack(p, buf);
-
+        p.pack(buf);
         compressor.compress(buf);
     }
     compressor.done();
 
-    las::point_decompressor_0<SuchStream> decompressor(s, 0);
+    las::point_decompressor_0 decompressor(s.inCb(), 0);
 
     char buf[sizeof(las::point10)];
     for (int i = 0 ; i < N ; i ++) {
         decompressor.decompress((char *)buf);
 
-        las::point10 p = packers<las::point10>::unpack(buf);
+        las::point10 p(buf);
 
         EXPECT_EQ(p.x, i);
         EXPECT_EQ(p.y, i + 1000);
@@ -399,15 +384,13 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
     }
 }
 
-void printPoint(const laszip::formats::las::point10& p) {
+void printPoint(const lazperf::las::point10& p) {
 	printf("x: %i, y: %i, z: %i, i: %u, rn: %i, nor: %i, sdf: %i, efl: %i, c: %i, "
 		   "sar: %i, ud: %i, psid: %i\n",
 		   p.x, p.y, p.z,
 		   p.intensity, p.return_number, p.number_of_returns_of_given_pulse,
 		   p.scan_direction_flag, p.edge_of_flight_line,
 		   p.classification, p.scan_angle_rank, p.user_data, p.point_source_ID);
-
-
 }
 
 void printBytes(const unsigned char *bytes, size_t len) {
@@ -421,8 +404,6 @@ void printBytes(const unsigned char *bytes, size_t len) {
 }
 
 TEST(lazperf_tests, can_compress_decompress_real_data) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	std::ifstream f(testFile("point10-1.las.raw"), std::ios::binary);
 	if (!f.good())
@@ -430,8 +411,8 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 
 	las::point10 pnt;
 
-	SuchStream s;
-    las::point_compressor_0<SuchStream> compressor(s, 0);
+	MemoryStream s;
+    las::point_compressor_0 compressor(s.outCb(), 0);
 
     std::vector<las::point10> points;
 	while(!f.eof()) {
@@ -444,20 +425,19 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 
 	f.close();
 
-    las::point_decompressor_0<SuchStream> decompressor(s, 0);
+    las::point_decompressor_0 decompressor(s.inCb(), 0);
 
 	for (size_t i = 0 ; i < points.size() ; i ++) {
 		char buf[sizeof(las::point10)];
 		las::point10 pout;
 		decompressor.decompress((char *)buf);
 
-		pout = packers<las::point10>::unpack(buf);
+		pout.unpack(buf);
 
 		// Make sure all fields match
 		las::point10& p = points[i];
 
 		EXPECT_EQ(p.x, pout.x);
-
 		EXPECT_EQ(p.y, pout.y);
 		EXPECT_EQ(p.z, pout.z);
 		EXPECT_EQ(p.intensity, pout.intensity);
@@ -474,8 +454,6 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 
 
 TEST(lazperf_tests, can_decode_laszip_buffer) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
@@ -485,7 +463,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
-	SuchStream s;
+    MemoryStream s;
 
 	// Read all of the file data in one go
 	s.buf.resize(fileSize);
@@ -495,7 +473,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-    las::point_decompressor_0<SuchStream> decompressor(s, 0);
+    las::point_decompressor_0 decompressor(s.inCb(), 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -533,10 +511,8 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 	fin.close();
 }
 
-void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
+void matchSets(const std::string& lasRaw, const std::string& lazRaw)
+{
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
 		FAIL() << "Raw LAS file not available.";
@@ -546,19 +522,16 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 	size_t count = (size_t)f.tellg() / sizeof(las::point10);
 	f.seekg(0);
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
+    MemoryStream s;
 
-	record_compressor<
-		field<las::point10>
-	> comp;
+    las::point_compressor_0 comp(s.outCb(), 0);
 
 	while(count --) {
 		f.read((char *)&pnt, sizeof(pnt));
-		comp.compressWith(encoder, (const char*)&pnt);
+		comp.compress((const char*)&pnt);
 	}
 
-	encoder.done();
+	comp.done();
 	f.close();
 
 
@@ -581,16 +554,13 @@ TEST(lazperf_tests, binary_matches_laszip) {
 
 
 TEST(lazperf_tests, dynamic_compressor_works) {
-	using namespace laszip;
-	using namespace laszip::formats;
-	using namespace laszip::factory;
 
 	const std::string lasRaw = testFile("point10-1.las.raw");
 	const std::string lazRaw = testFile("point10-1.las.laz.raw");
 
-	SuchStream s;
+    MemoryStream s;
 
-	las_compressor::ptr pcompressor = build_las_compressor(s, 0);
+	las_compressor::ptr pcompressor = build_las_compressor(s.outCb(), 0);
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
@@ -626,9 +596,6 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 
 
 TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
-	using namespace laszip;
-	using namespace laszip::formats;
-	using namespace laszip::factory;
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
@@ -638,7 +605,7 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
-	SuchStream s;
+    MemoryStream s;
 
 	// Read all of the file data in one go
 	s.buf.resize(fileSize);
@@ -648,7 +615,7 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-    las_decompressor::ptr pdecomp = build_las_decompressor(s, 0);
+    las_decompressor::ptr pdecomp = build_las_decompressor(s.inCb(), 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -692,9 +659,8 @@ int64_t makegps(unsigned int upper, unsigned int lower) {
 	return (u << 32) | l;
 }
 
+/**
 TEST(lazperf_tests, can_compress_decompress_gpstime) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -728,10 +694,10 @@ TEST(lazperf_tests, can_compress_decompress_gpstime) {
 		}
 	}
 }
+**/
 
+/**
 TEST(lazperf_tests, can_compress_decompress_random_gpstime) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -770,10 +736,10 @@ TEST(lazperf_tests, can_compress_decompress_random_gpstime) {
 		EXPECT_EQ(out.value, vs[i]);
 	}
 }
+**/
 
+/**
 TEST(lazperf_tests, can_compress_decompress_rgb) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -817,10 +783,10 @@ TEST(lazperf_tests, can_compress_decompress_rgb) {
 		}
 	}
 }
+**/
 
+/**
 TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 
@@ -856,10 +822,10 @@ TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
         EXPECT_EQ(eb[4], uint16_t(i - 462));
 	}
 }
+**/
 
+/**
 TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -900,12 +866,12 @@ TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
 		EXPECT_EQ(out.b, c.b);
 	}
 }
+**/
 
-TEST(lazperf_tests, can_compress_decompress_real_gpstime) {
-	reader las(testFile("point-time.las"));
-
-	using namespace laszip;
-	using namespace laszip::formats;
+/**
+TEST(lazperf_tests, can_compress_decompress_real_gpstime)
+{
+	test::reader las(testFile("point-time.las"));
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -941,12 +907,13 @@ TEST(lazperf_tests, can_compress_decompress_real_gpstime) {
 		EXPECT_EQ(ts[i], t.value);
 	}
 }
+**/
 
-TEST(lazperf_tests, can_compress_decompress_real_color) {
-	reader las(testFile("point-color.las"));
+/**
+TEST(lazperf_tests, can_compress_decompress_real_color)
+{
+	test::reader las(testFile("point-color.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	SuchStream s;
 	encoders::arithmetic<SuchStream> encoder(s);
@@ -984,21 +951,16 @@ TEST(lazperf_tests, can_compress_decompress_real_color) {
 		EXPECT_EQ(ts[i].b, t.b);
 	}
 }
+**/
 
-TEST(lazperf_tests, can_encode_match_laszip_point10time) {
-	reader laz(testFile("point-time.las.laz")),
-           las(testFile("point-time.las"));
+TEST(lazperf_tests, can_encode_match_laszip_point10time)
+{
+	test::reader laz(testFile("point-time.las.laz"));
+    test::reader las(testFile("point-time.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
+    MemoryStream s;
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::gpstime>
-	> comp;
+	las::point_compressor_1 comp(s.outCb());
 
 	struct {
 		las::point10 p;
@@ -1007,9 +969,9 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
@@ -1017,20 +979,14 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 	}
 }
 
-TEST(lazperf_tests, can_encode_match_laszip_point10color) {
-	reader laz(testFile("point-color.las.laz")),
-		   las(testFile("point-color.las"));
+TEST(lazperf_tests, can_encode_match_laszip_point10color)
+{
+	test::reader laz(testFile("point-color.las.laz"));
+    test::reader las(testFile("point-color.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::rgb>
-	> comp;
+    MemoryStream s;
+    
+    las::point_compressor_2 comp(s.outCb());
 
 #pragma pack(push, 1)
 	struct {
@@ -1042,9 +998,9 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
 //		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 //	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
@@ -1054,21 +1010,14 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 	}
 }
 
-TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
-	reader laz(testFile("point-color-time.las.laz")),
-		   las(testFile("point-color-time.las"));
+TEST(lazperf_tests, can_encode_match_laszip_point10timecolor)
+{
+	test::reader laz(testFile("point-color-time.las.laz"));
+    test::reader las(testFile("point-color-time.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::gpstime>,
-		field<las::rgb>
-	> comp;
+	MemoryStream s;
+    las::point_compressor_3 comp(s.outCb());
 
 #pragma pack(push, 1)
 	struct {
@@ -1078,12 +1027,12 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	} p;
 #pragma pack(pop)
 
-	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
+	for (unsigned int i = 0 ; i < las.count_ ; i ++)
+    {
 		las.record((char*)&p);
-
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < (std::min)(30u, (unsigned int)s.buf.size()); i ++) {
@@ -1094,9 +1043,6 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 /**
 TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
     const int POINT_COUNT = 100000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
 
     las::xyz input;
 
@@ -1140,9 +1086,6 @@ TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
 
 TEST(lazperf_tests, dynamic_field_compressor_works) {
     const int POINT_COUNT = 1000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
 
     {
         SuchStream s;
@@ -1226,6 +1169,7 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
         }
     }
 
+    /**
     {
         SuchStream s;
         auto comp = make_dynamic_compressor(s);
@@ -1254,7 +1198,9 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             EXPECT_EQ(a.value, makegps(rvalue, rvalue));
         }
     }
+    **/
 
+    /**
     {
         SuchStream s;
         auto comp = make_dynamic_compressor(s);
@@ -1328,13 +1274,12 @@ TEST(lazperf_tests, dynamic_field_compressor_works) {
             EXPECT_EQ(data.d, rvalue);
         }
     }
+    **/
 }
 
+/**
 TEST(lazperf_tests, dynamic_can_do_blind_compression) {
     const int POINT_COUNT = 10000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
 
 #pragma pack(push, 1)
     struct {
@@ -1441,15 +1386,13 @@ TEST(lazperf_tests, dynamic_can_do_blind_compression) {
         }
     }
 }
+**/
 
-TEST(lazperf_tests, point_10_intensity) {
-	using namespace laszip;
-	using namespace laszip::formats;
+TEST(lazperf_tests, point_10_intensity)
+{
+    MemoryStream s;
 
-	SuchStream s;
-	encoders::arithmetic <SuchStream> encoder(s);
-
-	record_compressor<field<las::point10>> comp;
+    las::point_compressor_0 comp(s.outCb());
 
 	std::array<las::point10, 7> points;
 	points[0].intensity = 257;
@@ -1461,20 +1404,15 @@ TEST(lazperf_tests, point_10_intensity) {
 	points[6].intensity = 514;
 
 	for (const las::point10& point : points)
-	{
-		comp.compressWith(encoder, (const char*)&point);
-	}
-	encoder.done();
+		comp.compress((const char*)&point);
+	comp.done();
 
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	record_decompressor<field<las::point10>> decomp;
+    las::point_decompressor_0 decomp(s.inCb());
 
 	las::point10 decompressedPoint;
 	for (const las::point10 &point : points)
 	{
-		decomp.decompressWith(decoder, (char *)&decompressedPoint);
+		decomp.decompress((char *)&decompressedPoint);
 		EXPECT_EQ(point.intensity, decompressedPoint.intensity);
 	}
 }

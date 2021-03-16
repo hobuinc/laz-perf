@@ -28,185 +28,68 @@
 ===============================================================================
 */
 
-#ifndef __las_hpp__
-#error Cannot directly include this file, this is a part of las.hpp
-#endif
-
-namespace laszip {
-namespace formats {
-
-template<>
-struct field<las::byte14>
+namespace lazperf
 {
-    typedef las::byte14 type;
+namespace detail
+{
 
-    utils::Summer sumByte;
-
-    field(size_t count): count_(count), last_channel_(-1),
-        chan_ctxs_{count_, count_, count_, count_}, valid_(count_), byte_cnt_(count_),
-        byte_enc_(count_, encoders::arithmetic<MemoryStream>(true)),
-        byte_dec_(count_, decoders::arithmetic<MemoryStream>())
-    {}
-
-    size_t count() const
-    {
-        return count_;
-    }
-
-    void dumpSums()
-    {
-        std::cout << "BYTE     : " << sumByte.value() << "\n";
-    }
-
-    template <typename TStream>
-    void writeSizes(TStream& stream)
-    {
-        for (size_t i = 0; i < count_; ++i)
-        {
-            if (valid_[i])
-            {
-                byte_enc_[i].done();
-                stream << byte_enc_[i].num_encoded();
-            }
-            else
-                stream << (uint32_t)0;
-        }
-    }
-
-
-    template <typename TStream>
-    void writeData(TStream& stream)
-    {
-
-        int32_t total = 0;
-        for (size_t i = 0; i < count_; ++i)
-        {
-            if (valid_[i])
-            {
-                stream.putBytes(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
-                total += utils::sum(byte_enc_[i].encoded_bytes(), byte_enc_[i].num_encoded());
-            }
-        }
-        LAZDEBUG(std::cerr << "BYTE      : " << total << "\n");
-    }
-
-    template <typename TStream>
-    inline const char *compressWith(TStream& stream, const char *buf, int& sc)
-    {
-        // don't have the first data yet, just push it to our
-        // have last stuff and move on
-        if (last_channel_ == -1)
-        {
-            ChannelCtx& c = chan_ctxs_[sc];
-            stream.putBytes((const unsigned char *)buf, count_);
-            c.last_.assign(buf, buf + count_);
-            c.have_last_ = true;
-            last_channel_ = sc;
-            return buf + count_;
-        }
-        ChannelCtx& c = chan_ctxs_[sc];
-        las::byte14 *pLastBytes = &chan_ctxs_[last_channel_].last_;
-        if (!c.have_last_)
-        {
-            c.have_last_ = true;
-            c.last_ = *pLastBytes;
-            pLastBytes = &c.last_;
-        }
-        // This mess is because of the broken-ness of the handling for last in v3, where
-        // 'last_point' only gets updated on the first context switch in the LASzip code.
-        las::byte14& lastBytes = *pLastBytes;
-
-        for (size_t i = 0; i < count_; ++i, ++buf)
-        {
-            int32_t diff = *(const uint8_t *)buf - lastBytes[i];
-            byte_enc_[i].encodeSymbol(c.byte_model_[i], (uint8_t)diff);
-            if (diff)
-            {
-                valid_[i] = true;
-                lastBytes[i] = *buf;
-            }
-        }
-
-        last_channel_ = sc;
-        return buf + count_;
-    }
-
-    template <typename TStream>
-    void readSizes(TStream& stream)
-    {
-        for (size_t i = 0; i < count_; ++i)
-            stream >> byte_cnt_[i];
-    }
-
-    template <typename TStream>
-    void readData(TStream& stream)
-    {
-        for (size_t i = 0; i < count_; ++i)
-            byte_dec_[i].initStream(stream, byte_cnt_[i]);
-    }
-
-    template<typename TStream>
-    inline char *decompressWith(TStream& stream, char *buf, int& sc)
-    {
-        if (last_channel_ == -1)
-        {
-            ChannelCtx& c = chan_ctxs_[sc];
-            stream.getBytes((unsigned char *)buf, count_);
-            c.last_.assign(buf, buf + count_);
-            c.have_last_ = true;
-            last_channel_ = sc;
-            return buf + count_;
-        }
-
-        ChannelCtx& c = chan_ctxs_[sc];
-        las::byte14 *pLastByte = &chan_ctxs_[last_channel_].last_;
-        if (sc != last_channel_)
-        {
-            last_channel_ = sc;
-            if (!c.have_last_)
-            {
-                c.have_last_ = true;
-                c.last_ = *pLastByte;
-                pLastByte = &chan_ctxs_[last_channel_].last_;
-            }
-        }
-        las::byte14& lastByte = *pLastByte;
-
-        for (size_t i = 0; i < count_; ++i, buf++)
-        {
-            if (byte_cnt_[i])
-            {
-                *buf = lastByte[i] + byte_dec_[i].decodeSymbol(c.byte_model_[i]);
-                lastByte[i] = *buf;
-            }
-            else
-                *buf = lastByte[i];
-        }
-        LAZDEBUG(sumByte.add(lastByte.data(), count_));
-
-        return buf;
-    }
-
-
+class Byte14Base
+{
+protected:
     struct ChannelCtx
     {
         int have_last_;
         las::byte14 last_;
         std::vector<models::arithmetic> byte_model_;
 
-        ChannelCtx(size_t count) : have_last_{false}, last_(count),
+        ChannelCtx(size_t count) : have_last_(false), last_(count),
             byte_model_(count, models::arithmetic(256))
         {}
     };
 
+public:
+    size_t count() const;
+
+protected:
+    Byte14Base(size_t count);
+
     size_t count_;
     int last_channel_;
     std::array<ChannelCtx, 4> chan_ctxs_;
-    std::vector<bool> valid_;
-    std::vector<uint32_t> byte_cnt_;
-    std::vector<encoders::arithmetic<MemoryStream>> byte_enc_;
     std::vector<decoders::arithmetic<MemoryStream>> byte_dec_;
 };
 
-} // namespace formats
-} // namespace laszip
+class Byte14Compressor : public Byte14Base
+{
+public:
+    Byte14Compressor(size_t count, OutCbStream& stream);
+
+    void writeSizes();
+    void writeData();
+    const char *compress(const char *buf, int& sc);
+
+private:
+    OutCbStream& stream_;
+    std::vector<bool> valid_;
+    std::vector<encoders::arithmetic<MemoryStream>> byte_enc_;
+};
+
+class Byte14Decompressor : public Byte14Base
+{
+public:
+    Byte14Decompressor(size_t count, InCbStream& stream);
+
+    void dumpSums();
+    void readSizes();
+    void readData();
+    char *decompress(char *buf, int& sc);
+
+private:
+    InCbStream& stream_;
+    std::vector<uint32_t> byte_cnt_;
+    std::vector<decoders::arithmetic<MemoryStream>> byte_dec_;
+    utils::Summer sumByte;
+};
+
+} // namespace detail
+} // namespace lazperf

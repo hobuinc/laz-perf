@@ -46,8 +46,7 @@ struct SuchStream {
 int main() {
 	// import namespaces to reduce typing
 	//
-	using namespace laszip;
-	using namespace laszip::formats;
+	using namespace lazperf;
 
 	// Let's say our record looks something like this:
 	//

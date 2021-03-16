@@ -44,23 +44,19 @@ struct SuchStream {
 	size_t idx;
 };
 
-laszip::formats::las::point10 p; // free init to zero :)
+lazperf::las::point10 p; // free init to zero :)
 
 int main() {
 	// import namespaces to reduce typing
 	//
-	using namespace laszip;
-	using namespace laszip::formats;
+	using namespace lazperf;
 
 	int N = 1000;
 
-	// Create an object of our stream to which the encoder will write
-	//
-	SuchStream s;
-
 	// Instantiate the arithmetic encoder
 	//
-    las::point_compressor_0<SuchStream> compressor(s, 0);
+    MemoryStream s;
+    las::point_compressor_0 compressor(s.outCb(), 0);
 
 	// Encode some dummy data
 	//
@@ -98,7 +94,7 @@ int main() {
 	//
 	// Create a decoder same way as we did with the encoder
 	//
-    las::point_decompressor_0<SuchStream> decompressor(s, 0);
+    las::point_decompressor_0 decompressor(s.inCb(), 0);
 
 	// This time we'd read the values out instead and make sure they match what we pushed in
 	//

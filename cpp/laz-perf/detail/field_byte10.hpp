@@ -1,16 +1,12 @@
 /*
 ===============================================================================
 
-  FILE:  vlr.hpp
-
-  CONTENTS:
-    LAZ vlr
-
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
-
+    andrew.bell.ia@gmail.com - Hobu Inc.
+ 
   COPYRIGHT:
 
     (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
@@ -23,38 +19,49 @@
     This software is distributed WITHOUT ANY WARRANTY and without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-  CHANGE HISTORY:
-
 ===============================================================================
 */
 
-#pragma once
-
-#include <vector>
+#include <deque>
 
 namespace lazperf
 {
-
-struct vlr
+namespace detail
 {
-#pragma pack(push, 1)
-    struct vlr_header
-    {
-        uint16_t reserved;
-        char user_id[16];
-        uint16_t record_id;
-        uint16_t record_length_after_header;
-        char description[32];
 
-        size_t size() const
-        { return sizeof(vlr_header); }
-    };
-#pragma pack(pop)
+class Byte10Base
+{
+protected:
+    Byte10Base(size_t count);
 
-    virtual size_t size() const = 0;
-    virtual std::vector<uint8_t> data() const = 0;
-    virtual vlr_header header() = 0;
+    size_t count_;
+    bool have_last_;
+    std::vector<uint8_t> lasts_;
+    std::vector<uint8_t> diffs_;
+    std::deque<models::arithmetic> models_;
 };
 
-} // namesapce lazperf
+class Byte10Compressor : public Byte10Base
+{
+public:
+    Byte10Compressor(encoders::arithmetic<OutCbStream>& encoder, size_t count);
 
+    const char *compress(const char *buf);
+
+private:
+    encoders::arithmetic<OutCbStream>& enc_;
+};
+
+class Byte10Decompressor : public Byte10Base
+{
+public:
+    Byte10Decompressor(decoders::arithmetic<InCbStream>& decoder, size_t count);
+
+    char *decompress(char *buf);
+
+private:
+    decoders::arithmetic<InCbStream>& dec_;
+};
+
+} // namespace detail
+} // namespace lazperf

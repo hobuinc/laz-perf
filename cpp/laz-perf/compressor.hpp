@@ -38,8 +38,10 @@
 #include <memory>
 #include <cassert>
 
-namespace laszip {
-	namespace compressors {
+namespace lazperf
+{
+namespace compressors
+{
 		struct integer {
 			integer(U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
 				bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
@@ -87,8 +89,8 @@ namespace laszip {
             // ABELL - Maybe this is separate so that the compressor can be reused?
             // If so, why not called from the ctor?
 			void init() {
-				using laszip::models::arithmetic;
-				using laszip::models::arithmetic_bit;
+				using models::arithmetic;
+				using models::arithmetic_bit;
 
 				// maybe create the models
 				if (mBits.empty()) {
@@ -232,12 +234,12 @@ namespace laszip {
 			I32 corr_max;
 
 
-			std::vector<laszip::models::arithmetic> mBits;
+			std::vector<models::arithmetic> mBits;
 
-			laszip::models::arithmetic_bit mCorrector0;
-			std::vector<laszip::models::arithmetic> mCorrector;
+			models::arithmetic_bit mCorrector0;
+			std::vector<models::arithmetic> mCorrector;
 		};
-	}
-}
+} // namespace compressors
+} // namespace lazperf
 
 #endif // __compressor_hpp__

@@ -47,7 +47,7 @@
 #include "util.hpp"
 #include "portable_endian.hpp"
 
-namespace laszip
+namespace lazperf
 {
 namespace io
 {
@@ -238,14 +238,12 @@ struct __ofstream_wrapper
 namespace reader
 {
 
-template <typename StreamType>
 class basic_file
 {
     typedef std::function<void (header&)> validator_type;
-    typedef __ifstream_wrapper<StreamType> LazPerfStream;
 
 public:
-    basic_file(StreamType& st) : f_(st), stream_(f_), header_(header14_), compressed_(false)
+    basic_file(std::istream& st) : f_(st), stream_(f_), header_(header14_), compressed_(false)
     {
         _open();
     }
@@ -293,9 +291,9 @@ public:
         {
             if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
             {
-                pdecomperssor_ = factory::build_las_decompressor(stream_, header_.point_format_id,
-                    header_.ebCount());
-
+                pdecomperssor_ = factory::build_las_decompressor(stream_.cb(),
+                    header_.point_format_id, header_.ebCount());
+std::cerr << "Buld decompressor!\n";
                 // reset chunk state
                 chunk_state_.current++;
                 chunk_state_.points_read = 0;
@@ -314,7 +312,9 @@ private:
         f_.read(magic, sizeof(magic));
 
         if (std::string(magic, magic + 4) != "LASF")
+        {
             throw error("Invalid LAS file. Incorrect magic number.");
+        }
 
         // Read the header in
         f_.seekg(0);
@@ -478,9 +478,10 @@ private:
         if (chunk_table_header.chunk_count > 1)
         {
             // decode the index out
-            LazPerfStream w(f_);
+            InFileStream fstream(f_);
 
-            decoders::arithmetic<LazPerfStream> decoder(w);
+            InCbStream stream(fstream.cb());
+            decoders::arithmetic<InCbStream> decoder(stream);
             decompressors::integer decomp(32, 2);
 
             // start decoder
@@ -536,18 +537,18 @@ private:
     }
 
     // The file object is not copyable or copy constructible
-    basic_file(const basic_file<StreamType>&) = delete;
-    basic_file<StreamType>& operator = (const basic_file<StreamType>&) = delete;
+    basic_file(const basic_file&) = delete;
+    basic_file& operator = (const basic_file&) = delete;
 
-    StreamType& f_;
-    LazPerfStream stream_;
+    std::istream& f_;
+    InFileStream stream_;
     header& header_;
     header14 header14_;
     laz_vlr laz_;
     std::vector<uint64_t> chunk_table_offsets_;
     bool compressed_;
 
-    formats::las_decompressor::ptr pdecomperssor_;
+    las_decompressor::ptr pdecomperssor_;
 
     // Establish our current state as we iterate through the file
     struct __chunk_state
@@ -561,7 +562,6 @@ private:
     } chunk_state_;
 };
 
-typedef basic_file<std::ifstream> file;
 } // namespace reader
 
 namespace writer
@@ -614,11 +614,11 @@ struct config
 class file
 {
 public:
-    file() : wrapper_(f_), header_(header14_)
+    file() : stream_(f_), header_(header14_)
     {}
 
     file(const std::string& filename, int format, int eb_count, const config& config) :
-        wrapper_(f_), header_(header14_)
+        stream_(f_), header_(header14_)
     {
         open(filename, format, eb_count, config);
     }
@@ -665,7 +665,7 @@ public:
     {
         if (!compressed_)
         {
-            wrapper_.putBytes(reinterpret_cast<const unsigned char *>(p),
+            stream_.putBytes(reinterpret_cast<const unsigned char *>(p),
                 header_.point_record_length);
         }
         else
@@ -674,7 +674,7 @@ public:
             //  decompressor.
             if (!pcompressor_)
             {
-                pcompressor_ = factory::build_las_compressor(wrapper_, header_.point_format_id,
+                pcompressor_ = factory::build_las_compressor(stream_.cb(), header_.point_format_id,
                     header_.ebCount());
             }
             else if (chunk_state_.points_in_chunk == chunk_size_)
@@ -684,7 +684,7 @@ public:
                 std::streamsize offset = f_.tellp();
                 chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
                 chunk_state_.last_chunk_write_offset = offset;
-                pcompressor_ = factory::build_las_compressor(wrapper_, header_.point_format_id,
+                pcompressor_ = factory::build_las_compressor(stream_.cb(), header_.point_format_id,
                     header_.ebCount());
             }
 
@@ -693,7 +693,7 @@ public:
         }
         chunk_state_.total_written++;
         chunk_state_.points_in_chunk++;
-        _update_min_max(*(reinterpret_cast<const formats::las::point10*>(p)));
+        _update_min_max(*(reinterpret_cast<const las::point10*>(p)));
     }
 
     void close()
@@ -704,7 +704,7 @@ public:
     }
 
 private:
-    void _update_min_max(const formats::las::point10& p)
+    void _update_min_max(const las::point10& p)
     {
         double x = p.x * header_.scale.x + header_.offset.x;
         double y = p.y * header_.scale.y + header_.offset.y;
@@ -842,9 +842,9 @@ private:
     }
 
     std::ofstream f_;
-    __ofstream_wrapper<std::ofstream> wrapper_;
+    OutFileStream stream_;
 
-    formats::las_compressor::ptr pcompressor_;
+    las_compressor::ptr pcompressor_;
 
     header& header_;
     header14 header14_;
@@ -869,6 +869,6 @@ private:
 
 } // namespace writer
 } // namespace io
-} // namespace laszip
+} // namespace lazperf
 
 #endif // __io_hpp__

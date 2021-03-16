@@ -41,8 +41,10 @@
 #define LAZDEBUG(e) (void)(e)
 #endif
 
-namespace laszip {
-namespace utils {
+namespace lazperf
+{
+namespace utils
+{
 
 inline int32_t sum(const uint8_t *buf, uint32_t size)
 {
@@ -185,6 +187,6 @@ public:
 };
 
 } // namespace utils
-} // namespace laszip
+} // namespace lazperf
 
 #endif // __util_hpp__

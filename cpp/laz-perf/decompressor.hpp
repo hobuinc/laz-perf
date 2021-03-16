@@ -38,8 +38,10 @@
 #include <memory>
 #include <cassert>
 
-namespace laszip {
-	namespace decompressors {
+namespace lazperf
+{
+namespace decompressors
+{
 		struct integer {
 			integer(U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
 				bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
@@ -78,8 +80,8 @@ namespace laszip {
 			}
 
 			void init() {
-				using laszip::models::arithmetic;
-				using laszip::models::arithmetic_bit;
+				using models::arithmetic;
+				using models::arithmetic_bit;
 
 				U32 i;
 
@@ -212,12 +214,12 @@ namespace laszip {
 			I32 corr_max;
 
 
-			std::vector<laszip::models::arithmetic> mBits;
+			std::vector<models::arithmetic> mBits;
 
-			laszip::models::arithmetic_bit mCorrector0;
-			std::vector<laszip::models::arithmetic> mCorrector;
+			models::arithmetic_bit mCorrector0;
+			std::vector<models::arithmetic> mCorrector;
 		};
-	}
-}
+} // namespace decompressors
+} // namespace lazperf
 
 #endif // __decompressor_hpp__

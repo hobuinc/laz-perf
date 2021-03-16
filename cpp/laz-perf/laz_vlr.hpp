@@ -32,7 +32,7 @@
 
 #include "vlr.hpp"
 
-namespace laszip
+namespace lazperf
 {
 
 #pragma pack(push, 1)
@@ -360,5 +360,5 @@ struct laz_vlr : public vlr
 };
 #pragma pack(pop)
 
-} // namesapce laszip
+} // namesapce lazperf
 

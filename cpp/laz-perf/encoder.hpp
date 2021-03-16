@@ -99,7 +99,7 @@
 
 #include "common/types.hpp"
 
-namespace laszip {
+namespace lazperf {
 namespace encoders {
 
 template<typename TOutStream>
@@ -412,6 +412,6 @@ private:
 };
 
 } // namespace encoders
-} // namespace laszip;
+} // namespace lazperf
 
 #endif // __encoder_hpp__

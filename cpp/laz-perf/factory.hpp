@@ -37,79 +37,73 @@
 
 #include <sstream>
 
-namespace laszip
+namespace lazperf
 {
 namespace factory
 {
 
-template<typename TStream>
-formats::las_compressor::ptr build_las_compressor(TStream& stream, int format, int ebCount = 0)
+las_compressor::ptr build_las_compressor(OutputCb cb, int format, int ebCount = 0)
 {
-    using namespace formats;
-
     las_compressor::ptr compressor;
 
     switch (format)
     {
     case 0:
-        compressor.reset(new las::point_compressor_0<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_0(cb, ebCount));
         break;
     case 1:
-        compressor.reset(new las::point_compressor_1<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_1(cb, ebCount));
         break;
     case 2:
-        compressor.reset(new las::point_compressor_2<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_2(cb, ebCount));
         break;
     case 3:
-        compressor.reset(new las::point_compressor_3<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_3(cb, ebCount));
         break;
     case 6:
-        compressor.reset(new las::point_compressor_6<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_6(cb, ebCount));
         break;
     case 7:
-        compressor.reset(new las::point_compressor_7<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_7(cb, ebCount));
         break;
     case 8:
-        compressor.reset(new las::point_compressor_8<TStream>(stream, ebCount));
+        compressor.reset(new las::point_compressor_8(cb, ebCount));
     }
     return compressor;
 }
 
-template<typename TStream>
-formats::las_decompressor::ptr build_las_decompressor(TStream& stream, int format, int ebCount = 0)
+las_decompressor::ptr build_las_decompressor(InputCb cb, int format, int ebCount = 0)
 {
-    using namespace formats;
-
     las_decompressor::ptr decompressor;
 
     switch (format)
     {
     case 0:
-        decompressor.reset(new las::point_decompressor_0<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_0(cb, ebCount));
         break;
     case 1:
-        decompressor.reset(new las::point_decompressor_1<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_1(cb, ebCount));
         break;
     case 2:
-        decompressor.reset(new las::point_decompressor_2<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_2(cb, ebCount));
         break;
     case 3:
-        decompressor.reset(new las::point_decompressor_3<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_3(cb, ebCount));
         break;
     case 6:
-        decompressor.reset(new las::point_decompressor_6<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_6(cb, ebCount));
         break;
     case 7:
-        decompressor.reset(new las::point_decompressor_7<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_7(cb, ebCount));
         break;
     case 8:
-        decompressor.reset(new las::point_decompressor_8<TStream>(stream, ebCount));
+        decompressor.reset(new las::point_decompressor_8(cb, ebCount));
         break;
     }
     return decompressor;
 }
 
 } // namespace factory
-} // namespace laszip
+} // namespace lazperf
 
 #endif // __factory_hpp__
