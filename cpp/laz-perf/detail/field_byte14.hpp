@@ -62,7 +62,7 @@ protected:
 class Byte14Compressor : public Byte14Base
 {
 public:
-    Byte14Compressor(size_t count, OutCbStream& stream);
+    Byte14Compressor(OutCbStream& stream, size_t count);
 
     void writeSizes();
     void writeData();
@@ -77,7 +77,7 @@ private:
 class Byte14Decompressor : public Byte14Base
 {
 public:
-    Byte14Decompressor(size_t count, InCbStream& stream);
+    Byte14Decompressor(InCbStream& stream, size_t count);
 
     void dumpSums();
     void readSizes();

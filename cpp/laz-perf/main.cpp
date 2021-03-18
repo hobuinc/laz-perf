@@ -32,7 +32,6 @@
 
 #include "encoder.hpp"
 #include "decoder.hpp"
-#include "formats.hpp"
 #include "streams.hpp"
 
 #include <iostream>
@@ -40,7 +39,6 @@
 
 void runEncoderDecoder() {
 	using namespace laszip;
-	using namespace laszip::formats;
 
 	auto start = common::tick();
 	std::cout << common::since(start) << std::endl;

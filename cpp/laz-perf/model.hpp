@@ -32,7 +32,7 @@
 #define __model_hpp__
 
 #include "common/types.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 
 #include <stdexcept>
 

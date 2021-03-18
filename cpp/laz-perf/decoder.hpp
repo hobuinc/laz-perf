@@ -96,6 +96,7 @@
 #define __decoder_hpp__
 
 #include <cassert>
+#include <memory>
 
 #include "common/types.hpp"
 

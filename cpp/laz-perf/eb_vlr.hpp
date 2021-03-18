@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "portable_endian.hpp"
 #include "vlr.hpp"
 
 namespace lazperf

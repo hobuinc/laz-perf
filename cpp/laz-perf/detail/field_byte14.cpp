@@ -46,7 +46,7 @@ size_t Byte14Base::count() const
 
 // COMPRESSOR
 
-Byte14Compressor::Byte14Compressor(size_t count, OutCbStream& stream) :
+Byte14Compressor::Byte14Compressor(OutCbStream& stream, size_t count) :
     Byte14Base(count), stream_(stream), valid_(count_),
     byte_enc_(count, encoders::arithmetic<MemoryStream>(true))
 {}
@@ -121,7 +121,7 @@ const char *Byte14Compressor::compress(const char *buf, int& sc)
 
 // DECOMPRESSOR
 
-Byte14Decompressor::Byte14Decompressor(size_t count, InCbStream& stream) : Byte14Base(count),
+Byte14Decompressor::Byte14Decompressor(InCbStream& stream, size_t count) : Byte14Base(count),
     stream_(stream), byte_cnt_(count_), byte_dec_(count_, decoders::arithmetic<MemoryStream>())
 {}
 

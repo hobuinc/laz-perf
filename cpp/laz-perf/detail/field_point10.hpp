@@ -28,6 +28,9 @@
 ===============================================================================
 */
 
+#include "../compressor.hpp"
+#include "../decompressor.hpp"
+
 namespace lazperf
 {
 namespace detail

@@ -31,20 +31,22 @@
 #ifndef __io_hpp__
 #define __io_hpp__
 
+#include <iostream>
 #include <fstream>
 #include <functional>
 #include <limits>
 #include <string.h>
-#include <mutex>
 
-#include "formats.hpp"
+#include "compressor.hpp"
+#include "decompressor.hpp"
 #include "excepts.hpp"
-#include "factory.hpp"
 #include "decoder.hpp"
 #include "encoder.hpp"
+#include "las.hpp"
 #include "laz_vlr.hpp"
 #include "eb_vlr.hpp"
-#include "util.hpp"
+#include "utils.hpp"
+#include "streams.hpp"
 #include "portable_endian.hpp"
 
 namespace lazperf
@@ -291,9 +293,8 @@ public:
         {
             if (chunk_state_.points_read == laz_.chunk_size || !pdecomperssor_)
             {
-                pdecomperssor_ = factory::build_las_decompressor(stream_.cb(),
+                pdecomperssor_ = build_las_decompressor(stream_.cb(),
                     header_.point_format_id, header_.ebCount());
-std::cerr << "Buld decompressor!\n";
                 // reset chunk state
                 chunk_state_.current++;
                 chunk_state_.points_read = 0;
@@ -503,12 +504,10 @@ private:
     static const std::vector<validator_type>& _validators()
     {
         static std::vector<validator_type> v; // static collection of validators
-        static std::mutex lock;
 
         // To remain thread safe we need to make sure we have appropriate guards here
         if (v.empty())
         {
-            lock.lock();
             // Double check here if we're still empty, the first empty just makes sure
             // we have a quick way out where validators are already filled up (for all calls
             // except the first one), for two threads competing to fill out the validators
@@ -531,7 +530,6 @@ private:
                     }
                 );
             }
-            lock.unlock();
         }
         return v;
     }
@@ -674,7 +672,7 @@ public:
             //  decompressor.
             if (!pcompressor_)
             {
-                pcompressor_ = factory::build_las_compressor(stream_.cb(), header_.point_format_id,
+                pcompressor_ = build_las_compressor(stream_.cb(), header_.point_format_id,
                     header_.ebCount());
             }
             else if (chunk_state_.points_in_chunk == chunk_size_)
@@ -684,7 +682,7 @@ public:
                 std::streamsize offset = f_.tellp();
                 chunk_sizes_.push_back(offset - chunk_state_.last_chunk_write_offset);
                 chunk_state_.last_chunk_write_offset = offset;
-                pcompressor_ = factory::build_las_compressor(stream_.cb(), header_.point_format_id,
+                pcompressor_ = build_las_compressor(stream_.cb(), header_.point_format_id,
                     header_.ebCount());
             }
 

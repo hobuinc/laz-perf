@@ -46,6 +46,128 @@ namespace lazperf
 namespace utils
 {
 
+template<typename T>
+T unpack(const char *)
+{
+    static_assert(sizeof(T) != 0, "Only specialized instances of packers should be used");
+};
+
+//ABELL - All this junk should be replaced with (no-op) endian changes followed by a copy, which
+//  probably means one instruction in the end.
+template<>
+inline uint64_t unpack(const char *in)
+{
+    uint64_t b1 = in[0],
+        b2 = in[1],
+        b3 = in[2],
+        b4 = in[3],
+        b5 = in[4],
+        b6 = in[5],
+        b7 = in[6],
+        b8 = in[7];
+
+    return (b8 << 56) | (b7 << 48) | (b6 << 40) | (b5 << 32) |
+        (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+}
+
+inline void pack(uint64_t v, char *out)
+{
+    out[7] = (v >> 56);
+    out[6] = (v >> 48);
+    out[5] = (v >> 40);
+    out[4] = (v >> 32);
+    out[3] = (v >> 24);
+    out[2] = (v >> 16);
+    out[1] = (v >> 8);
+    out[0] = v;
+}
+
+template<>
+inline uint32_t unpack(const char *in)
+{
+    uint32_t b1 = in[0],
+        b2 = in[1],
+        b3 = in[2],
+        b4 = in[3];
+
+    return ((b4 << 24) |
+        ((b3 & 0xFF) << 16) |
+        ((b2 & 0xFF) << 8) |
+        (b1 & 0xFF));
+}
+
+inline void pack(const uint32_t v, char *out)
+{
+    out[3] = (v >> 24) & 0xFF;
+    out[2] = (v >> 16) & 0xFF;
+    out[1] = (v >> 8) & 0xFF;
+    out[0] = v & 0xFF;
+}
+
+template<>
+inline double unpack(const char *in)
+{
+    uint64_t lower = unpack<uint32_t>(in);
+    uint64_t upper = unpack<uint32_t>(in + 4);
+    uint64_t val = (upper << 32) | lower;
+    return *reinterpret_cast<double *>(&val);
+}
+
+inline void pack(const double& d, char *buf)
+{
+    const uint64_t val = *reinterpret_cast<const double *>(&d);
+    pack(uint32_t(val & 0xFFFFFFFF), buf);
+    pack(uint32_t(val >> 32), buf + 4);
+}
+
+template<>
+inline uint16_t unpack(const char *in)
+{
+    uint16_t b1 = in[0],
+        b2 = in[1];
+
+    return (((b2 & 0xFF) << 8) | (b1 & 0xFF));
+}
+
+inline void pack(const uint16_t v, char *out)
+{
+    out[1] = (v >> 8) & 0xFF;
+    out[0] = v & 0xFF;
+}
+
+template<>
+inline int64_t unpack(const char *in)
+{
+    return static_cast<int64_t>(unpack<uint64_t>(in));
+}
+
+inline void pack(int64_t t, char *out)
+{
+    pack(static_cast<uint64_t>(t), out);
+}
+
+template<>
+inline int32_t unpack(const char *in)
+{
+    return static_cast<uint32_t>(unpack<uint32_t>(in));
+}
+
+inline void pack(int32_t t, char *out)
+{
+    pack(static_cast<uint32_t>(t), out);
+}
+
+template<>
+inline int16_t unpack(const char *in)
+{
+    return static_cast<uint16_t>(unpack<uint16_t>(in));
+}
+
+inline void pack(int16_t t, char *out)
+{
+    pack(static_cast<uint16_t>(t), out);
+}
+
 inline int32_t sum(const uint8_t *buf, uint32_t size)
 {
     int32_t total = 0;
@@ -92,7 +214,7 @@ struct Summer
 
 #define ALIGN 64
 
-static inline void *aligned_malloc(int size)
+inline void *aligned_malloc(int size)
 {
     void *mem = malloc(size+ALIGN+sizeof(void*));
     void **ptr = (void**)(( ((uintptr_t)mem)+ALIGN+sizeof(void*) ) & ~(uintptr_t)(ALIGN-1) );
@@ -100,7 +222,7 @@ static inline void *aligned_malloc(int size)
     return ptr;
 }
 
-static inline void aligned_free(void *ptr)
+inline void aligned_free(void *ptr)
 {
     free(((void**)ptr)[-1]);
 }

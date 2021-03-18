@@ -29,16 +29,15 @@
 #ifndef __streams_hpp__
 #define __streams_hpp__
 
-#include <algorithm>
-#include <functional>
+#include <iostream>
 
+#include "interface.hpp"
 #include "excepts.hpp"
 #include "portable_endian.hpp"
 
 namespace lazperf
 {
 
-using OutputCb = std::function<void(const unsigned char *, size_t)>;
 struct OutCbStream
 {
     OutCbStream(OutputCb outCb) : outCb_(outCb)
@@ -57,7 +56,6 @@ struct OutCbStream
     OutputCb outCb_;
 };
 
-using InputCb = std::function<void(unsigned char *b, size_t len)>;
 struct InCbStream
 {
     InCbStream(InputCb inCb) : inCb_(inCb)
@@ -107,9 +105,7 @@ private:
 struct InFileStream
 {
     InFileStream(std::istream& in) : f_(in), buf_(1 << 20), offset_(buf_.size())
-    {
-        std::cerr << "Made in stream with size = " << (1 << 20) << "!\n";
-    }
+    {}
 
     void getBytes(unsigned char *buf, size_t request)
     {
