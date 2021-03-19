@@ -232,7 +232,7 @@ class streaming_median
 {
 public:
     std::array<T, 5> values;
-    BOOL high;
+    bool high;
 
     void init() {
         values.fill(T(0));

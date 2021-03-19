@@ -1,7 +1,8 @@
 #include <vector>
 
 #include "las.hpp"
-#include "interface.hpp"
+#include "lazperf.hpp"
+#include "portable_endian.hpp"
 
 namespace lazperf
 {
@@ -524,6 +525,42 @@ las_decompressor::ptr build_las_decompressor(InputCb cb, int format, size_t ebCo
         break;
     }
     return decompressor;
+}
+
+// CHUNK TABLE
+
+void compress_chunk_table(OutputCb cb, const std::vector<int32_t>& chunks)
+{
+    OutCbStream stream(cb);
+    encoders::arithmetic<OutCbStream> encoder(stream);
+    compressors::integer compressor(32, 2);
+    uint32_t predictor = 0;
+
+    compressor.init();
+    for (uint32_t chunk : chunks)
+    {
+        chunk = htole32(chunk);
+        compressor.compress(encoder, predictor, chunk, 1);
+        predictor = chunk;
+    }
+    encoder.done();
+}
+
+std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks)
+{
+    std::vector<uint32_t> chunks;
+
+    InCbStream stream(cb);
+    decoders::arithmetic<InCbStream> decoder(stream);
+    decompressors::integer decomp(32, 2);
+
+    uint32_t predictor = 0;
+    for (size_t i = 0; i < numChunks; ++i)
+    {
+        predictor = decomp.decompress(decoder, predictor, 1);
+        chunks.push_back(le32toh(predictor));
+    }
+    return chunks;
 }
 
 } // namespace lazperf

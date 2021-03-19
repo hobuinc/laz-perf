@@ -55,12 +55,6 @@ typedef long long          I64;
 typedef float              F32;
 typedef double             F64;
 
-#if defined(_MSC_VER)
-typedef int                BOOL;
-#else
-typedef bool               BOOL;
-#endif
-
 typedef union U32I32F32 { U32 u32; I32 i32; F32 f32; } U32I32F32;
 typedef union U64I64F64 { U64 u64; I64 i64; F64 f64; } U64I64F64;
 

@@ -150,93 +150,6 @@ struct header14 : public header
 };
 #pragma pack(pop)
 
-// cache line
-#define BUF_SIZE (1 << 20)
-
-template<typename StreamType>
-struct __ifstream_wrapper
-{
-    __ifstream_wrapper(StreamType& f) : f_(f), offset(0), have(0),
-        buf_((char*)utils::aligned_malloc(BUF_SIZE))
-    {}
-
-    ~__ifstream_wrapper()
-    {
-        utils::aligned_free(buf_);
-    }
-
-    __ifstream_wrapper(const __ifstream_wrapper<StreamType>&) = delete;
-    __ifstream_wrapper& operator = (const __ifstream_wrapper<StreamType>&) = delete;
-
-    inline void fillit_()
-    {
-        offset = 0;
-        f_.read(buf_, BUF_SIZE);
-        have = f_.gcount();
-
-        // this is an exception since we shouldn't be hitting eof
-        if (have == 0)
-            throw error("Unexpected end of file.");
-    }
-
-    inline void reset()
-    {
-        offset = have = 0; // when a file is seeked, reset this
-    }
-
-    inline unsigned char getByte()
-    {
-        if (offset >= have)
-            fillit_();
-        return static_cast<unsigned char>(buf_[offset++]);
-    }
-
-    inline void getBytes(unsigned char *buf, size_t request)
-    {
-        // Use what's left in the buffer, if anything.
-        size_t fetchable = (std::min)((size_t)(have - offset), request);
-        std::copy(buf_ + offset, buf_ + offset + fetchable, buf);
-        offset += fetchable;
-        request -= fetchable;
-
-        // If we couldn't fetch everything requested, fill buffer
-        // and go again.  We assume fillit_() satisfies any request.
-        if (request)
-        {
-            fillit_();
-            std::copy(buf_ + offset, buf_ + offset + request, buf + fetchable);
-            offset += request;
-        }
-    }
-
-    StreamType& f_;
-    std::streamsize offset, have;
-    char *buf_;
-};
-
-template<typename StreamType>
-struct __ofstream_wrapper
-{
-    __ofstream_wrapper(StreamType& f) : f_(f)
-    {}
-
-    void putBytes(const unsigned char *b, size_t len)
-    {
-        f_.write(reinterpret_cast<const char*>(b), len);
-    }
-
-    void putByte(unsigned char b)
-    {
-        f_.put((char)b);
-    }
-
-    __ofstream_wrapper(const __ofstream_wrapper&) = delete;
-    __ofstream_wrapper& operator = (const __ofstream_wrapper&) = delete;
-
-    StreamType& f_;
-};
-
-
 namespace reader
 {
 
@@ -286,7 +199,7 @@ public:
     void readPoint(char *out)
     {
         if (!compressed_)
-            stream_.getBytes(reinterpret_cast<unsigned char *>(out), header_.point_record_length);
+            stream_.cb()(reinterpret_cast<unsigned char *>(out), header_.point_record_length);
 
         // read the next point in
         else
@@ -820,9 +733,10 @@ private:
         f_.write(reinterpret_cast<char*>(&chunk_table_header), sizeof(chunk_table_header));
 
         // Now compress and write the chunk table
-        __ofstream_wrapper<std::ofstream> w(f_);
+        OutFileStream w(f_);
+        OutCbStream outStream(w.cb());
 
-        encoders::arithmetic<__ofstream_wrapper<std::ofstream> > encoder(w);
+        encoders::arithmetic<OutCbStream> encoder(outStream);
         compressors::integer comp(32, 2);
 
         comp.init();

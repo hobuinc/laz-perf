@@ -32,6 +32,12 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
+
+#define LAZPERF_MAJOR_VERSION 1
+#define LAZPERF_MINOR_VERSION 3
+#define LAZPERF_REVISION 0
+#define LAZPERF_VERSION 1.3.0
 
 namespace lazperf
 {
@@ -238,6 +244,12 @@ public:
 
 las_compressor::ptr build_las_compressor(OutputCb, int format, size_t ebCount = 0);
 las_decompressor::ptr build_las_decompressor(InputCb, int format, size_t ebCount = 0);
+
+// CHUNK TABLE
+
+// Note that the chunk values are sizes, rather than offsets.
+void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks);
+std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks);
 
 } // namespace lazperf
 

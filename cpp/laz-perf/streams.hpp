@@ -29,10 +29,12 @@
 #ifndef __streams_hpp__
 #define __streams_hpp__
 
+#include <vector>
 #include <iostream>
 
-#include "interface.hpp"
+#include "lazperf.hpp"
 #include "excepts.hpp"
+#include "filestream.hpp"
 #include "portable_endian.hpp"
 
 namespace lazperf
@@ -74,91 +76,6 @@ struct InCbStream
     }
 
     InputCb inCb_;
-};
-
-// Convenience class
-
-struct OutFileStream
-{
-public:
-    OutFileStream(std::ostream& out) : f_(out)
-    {}
-
-    void putBytes(const unsigned char *c, size_t len)
-    {
-        f_.write(reinterpret_cast<const char *>(c), len);
-    }
-
-    OutputCb cb()
-    {
-        using namespace std::placeholders;
-
-        return std::bind(&OutFileStream::putBytes, this, _1, _2);
-    }
-
-private:
-    std::ostream& f_;
-};
-
-// Convenience class
-
-struct InFileStream
-{
-    InFileStream(std::istream& in) : f_(in), buf_(1 << 20), offset_(buf_.size())
-    {}
-
-    void getBytes(unsigned char *buf, size_t request)
-    {
-        // Almost all requests are size 1.
-        if (request == 1)
-        {
-            if (offset_ >= buf_.size())
-                fillit();
-            *buf = buf_[offset_++];
-        }
-        else
-        {
-            // Use what's left in the buffer, if anything.
-            size_t fetchable = (std::min)(buf_.size() - offset_, request);
-            std::copy(buf_.data() + offset_, buf_.data() + offset_ + fetchable, buf);
-            offset_ += fetchable;
-            request -= fetchable;
-            if (request)
-            {
-                fillit();
-                std::copy(buf_.data() + offset_, buf_.data() + offset_ + request, buf + fetchable);
-                offset_ += request;
-            }
-        }
-    }
-
-    // This will force a fill on the next fetch.
-    void reset()
-    {
-        offset_ = buf_.size();
-    }
-
-    InputCb cb()
-    {
-        using namespace std::placeholders;
-
-        return std::bind(&InFileStream::getBytes, this, _1, _2);
-    }
-
-private:
-    void fillit()
-    {
-        offset_ = 0;
-        f_.read(reinterpret_cast<char *>(buf_.data()), buf_.size());
-        buf_.resize(f_.gcount());
-
-        if (buf_.size() == 0)
-            throw error("Unexpected end of file.");
-    }
-
-    std::istream& f_;
-    std::vector<unsigned char> buf_;
-    size_t offset_;
 };
 
 struct MemoryStream

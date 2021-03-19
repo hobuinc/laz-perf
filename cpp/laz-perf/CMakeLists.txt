@@ -1,7 +1,8 @@
 
 add_library(
     lazperf SHARED
-    interface.cpp
+    lazperf.cpp
+    filestream.cpp
     detail/field_point10.cpp
     detail/field_gpstime10.cpp
     detail/field_rgb10.cpp
