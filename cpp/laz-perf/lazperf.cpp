@@ -529,7 +529,7 @@ las_decompressor::ptr build_las_decompressor(InputCb cb, int format, size_t ebCo
 
 // CHUNK TABLE
 
-void compress_chunk_table(OutputCb cb, const std::vector<int32_t>& chunks)
+void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks)
 {
     OutCbStream stream(cb);
     encoders::arithmetic<OutCbStream> encoder(stream);
@@ -553,6 +553,9 @@ std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks)
     InCbStream stream(cb);
     decoders::arithmetic<InCbStream> decoder(stream);
     decompressors::integer decomp(32, 2);
+
+    decoder.readInitBytes();
+    decomp.init();
 
     uint32_t predictor = 0;
     for (size_t i = 0; i < numChunks; ++i)

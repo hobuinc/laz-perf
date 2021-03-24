@@ -55,11 +55,9 @@ void outputHelp()
 
 void createFile(const std::string filename, int pdrf, int extra_bytes, double percent)
 {
-    using namespace laszip;
-    using namespace laszip::formats;
-    using namespace laszip::io;
+    using namespace lazperf;
 
-    writer::config c;
+    io::writer::config c;
     c.compressed = false;
     c.minor_version = 4;
 
@@ -72,7 +70,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         seed.push_back(rd());
     std::seed_seq seedSeq(seed.begin(), seed.end());
     std::mt19937 gen(seedSeq);
-    writer::file f(filename, pdrf, extra_bytes, c);
+    io::writer::file f(filename, pdrf, extra_bytes, c);
     if (pdrf < 6)
     {
         las::point10 *p = reinterpret_cast<las::point10 *>(pos);

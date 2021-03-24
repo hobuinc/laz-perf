@@ -185,13 +185,13 @@ struct Summer
     void add(const T& t)
     {
         const uint8_t *b = reinterpret_cast<const uint8_t *>(&t);
-        sum = utils::sum(b, sizeof(T));
+        sum += utils::sum(b, sizeof(T));
         cnt++;
     }
 
     void add(uint8_t *b, size_t size)
     {
-        sum = utils::sum(b, size);
+        sum += utils::sum(b, size);
     }
 
     uint32_t value()

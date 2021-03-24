@@ -5,6 +5,7 @@ macro(LAZPERF_ADD_TEST _name)
   target_include_directories(${_name} PRIVATE gtest/gtest-1.10.0/include)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  lazperf_target_compile_settings(${_name})
   add_test(NAME ${_name} COMMAND ${PROJECT_BINARY_DIR}/cpp/test/${_name}
     WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../..")
 endmacro(LAZPERF_ADD_TEST)

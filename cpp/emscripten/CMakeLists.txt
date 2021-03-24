@@ -4,8 +4,6 @@ if (NOT EMSCRIPTEN)
 	message(FATAL_ERROR "You should not be including this directory for non emscripten builds")
 endif()
 
-set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES})
-
 # we need the bind flag to generate bindings
 set(CMAKE_CXX_FLAGS "--bind -s TOTAL_MEMORY=167772160 -s DISABLE_EXCEPTION_CATCHING=2 ${CMAKE_CXX_FLAGS}")
 

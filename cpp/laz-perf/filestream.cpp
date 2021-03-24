@@ -26,11 +26,16 @@ OutputCb OutFileStream::cb()
 struct InFileStream::Private
 {
     // Setting the offset_ to the buffer size will force a fill on the first read.
-    Private(std::istream& in) : f_(in), buf_(1 << 20), offset_(buf_.size())
-    {}
+    Private(std::istream& in) : f_(in)
+    { reset(); }
 
     void getBytes(unsigned char *buf, size_t request);
-    void fillit();
+    size_t fillit();
+    void reset()
+    {
+        buf_.resize(1 << 20);
+        offset_ = buf_.size();
+    }
 
     std::istream& f_;
     std::vector<unsigned char> buf_;
@@ -46,7 +51,7 @@ InFileStream::~InFileStream()
 // This will force a fill on the next fetch.
 void InFileStream::reset()
 {
-    p_->offset_ = p_->buf_.size();
+    p_->reset();
 }
 
 InputCb InFileStream::cb()
@@ -64,31 +69,45 @@ void InFileStream::Private::getBytes(unsigned char *buf, size_t request)
         if (offset_ >= buf_.size())
             fillit();
         *buf = buf_[offset_++];
+        return;
+    }
+
+    size_t available = buf_.size() - offset_;
+    if (request <= available)
+    {
+        unsigned char *begin = buf_.data() + offset_;
+        unsigned char *end = begin + request;
+        std::copy(begin, end, buf);
+        offset_ += request;
     }
     else
     {
-        // Use what's left in the buffer, if anything.
-        size_t fetchable = (std::min)(buf_.size() - offset_, request);
-        std::copy(buf_.data() + offset_, buf_.data() + offset_ + fetchable, buf);
-        offset_ += fetchable;
-        request -= fetchable;
-        if (request)
+        do
         {
-            fillit();
-            std::copy(buf_.data() + offset_, buf_.data() + offset_ + request, buf + fetchable);
-            offset_ += request;
-        }
+            size_t bytes = (std::min)(request, available);
+            unsigned char *begin = buf_.data() + offset_;
+            unsigned char *end = begin + bytes;
+            std::copy(begin, end, buf);
+            offset_ += bytes;
+            request -= bytes;
+            if (request == 0)
+                break;
+            buf += bytes;
+            available = fillit();
+        } while (true);
     }
 }
 
-void InFileStream::Private::fillit()
+size_t InFileStream::Private::fillit()
 {
     offset_ = 0;
     f_.read(reinterpret_cast<char *>(buf_.data()), buf_.size());
-    buf_.resize(f_.gcount());
+    size_t filled = f_.gcount();
 
-    if (buf_.size() == 0)
+    if (filled == 0)
         throw error("Unexpected end of file.");
+    buf_.resize(filled);
+    return filled;
 }
 
 } // namespace lazperf

@@ -26,4 +26,7 @@ if(WITH_TESTS)
     endif()
 endif()
 
+include(cmake/compiler_options.cmake)
+
 add_subdirectory(cpp)
+add_subdirectory(tools)

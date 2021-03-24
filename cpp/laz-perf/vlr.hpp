@@ -37,6 +37,8 @@ namespace lazperf
 
 struct vlr
 {
+public:
+
 #pragma pack(push, 1)
     struct vlr_header
     {
@@ -46,14 +48,75 @@ struct vlr
         uint16_t record_length_after_header;
         char description[32];
 
-        size_t size() const
-        { return sizeof(vlr_header); }
+        size_t size() const;
     };
 #pragma pack(pop)
 
     virtual size_t size() const = 0;
-    virtual std::vector<uint8_t> data() const = 0;
-    virtual vlr_header header() = 0;
+    virtual std::vector<char> data() const = 0;
+    virtual vlr_header header() const = 0;
+};
+
+struct laz_vlr : public vlr
+{
+public:
+    struct laz_item
+    {
+        uint16_t type;
+        uint16_t size;
+        uint16_t version;
+    };
+
+    uint16_t compressor;
+    uint16_t coder;
+    uint8_t ver_major;
+    uint8_t ver_minor;
+    uint16_t revision;
+    uint32_t options;
+    uint32_t chunk_size;
+    uint64_t num_points;
+    uint64_t num_bytes;
+    std::vector<laz_item> items;
+
+    laz_vlr();
+    laz_vlr(int format, int ebCount, uint32_t chunksize);
+    laz_vlr(const char *c);
+    ~laz_vlr();
+
+    virtual size_t size() const;
+    virtual std::vector<char> data() const;
+    virtual vlr_header header() const;
+    void fill(const char *c);
+};
+
+struct eb_vlr : public vlr
+{
+public:
+    struct ebfield
+    {
+        uint8_t reserved[2];
+        uint8_t data_type;
+        uint8_t options;
+        char name[32];
+        uint8_t unused[4];
+        double no_data[3];
+        double minval[3];
+        double maxval[3];
+        double scale[3];
+        double offset[3];
+        char description[32];
+
+        ebfield();
+    };
+
+    std::vector<ebfield> items;
+
+    eb_vlr(size_t bytes);
+
+    virtual size_t size() const;
+    virtual std::vector<char> data() const;
+    virtual vlr_header header() const;
+    void addField();
 };
 
 } // namesapce lazperf

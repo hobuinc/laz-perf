@@ -1,4 +1,7 @@
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 #------------------------------------------------------------------------------
 # test harness settings
 #------------------------------------------------------------------------------
@@ -10,105 +13,84 @@ set(LAZPERF_UNIT_TEST lazperf_tests)
 # Platform and compiler specific settings
 #------------------------------------------------------------------------------
 
-if(WIN32)
-  if (MSVC)
-
-      add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-      add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-      add_definitions(-D_CRT_NONSTDC_NO_WARNING)
-      add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-
-    if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-      string(REGEX REPLACE "/W[0-4]" "/W4"
-        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    else()
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-    endif()
-  endif()
-
-  set(LAZPERF_PLATFORM_WIN32 1)
-
-else()
-  # not WIN32
-
-  # Recommended C++ compilation flags
-  # -Weffc++
-  set(LAZPERF_COMMON_CXX_FLAGS
-      "-std=c++11 -Wextra -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls -Wno-long-long -fPIC -pedantic")
-
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}")
-        set(LAZPERF_COMPILER_GCC 1)
-    endif()
-    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER}" MATCHES "clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LAZPERF_COMMON_CXX_FLAGS}")
-        set(LAZPERF_COMPILER_CLANG 1)
-    endif()
-
-#
-# C++11 checking
-#
-
-endif(WIN32)
-
-if (APPLE)
-    set(SO_EXT dylib)
-    set(CMAKE_FIND_FRAMEWORK "LAST")
-elseif(WIN32)
-    set(SO_EXT dll)
-else()
-    set(SO_EXT so)
-endif(APPLE)
-
-set(LAZPERF_DEPENDENT_LIBRARIES "")
-
 # if we have an emscripten build, make sure the emscripten tag is set
 
 # Emscripten comes with its own POSIX headers so to trigger their
 # own includes, treat it like a posix system
 #
-if (EMSCRIPTEN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
-endif()
+#if (EMSCRIPTEN)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
+#endif()
+
+set(LAZPERF_LIB lazperf)
 
 add_subdirectory(laz-perf)
 add_subdirectory(examples)
 add_subdirectory(benchmarks)
 if (EMSCRIPTEN)
     add_subdirectory(emscripten)
-elseif (WITH_TESTS)
+endif()
+
+if (WITH_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
 
-if (WIN32 AND NOT CYGWIN)
-    set (DEF_INSTALL_CMAKE_DIR cmake)
-else ()
-    set (DEF_INSTALL_CMAKE_DIR lib/cmake/lazperf)
-endif ()
+#
+# Install
+#
+include(CMakePackageConfigHelpers)
 
-set (INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
-set (INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
-
-configure_file (lazperf-config.cmake.in "lazperf-config.cmake" @ONLY)
-configure_file (lazperf-configVersion.cmake.in "lazperf-configVersion.cmake" @ONLY)
-
-# Install cmake files.
-install(
-    FILES
-        ${CMAKE_BINARY_DIR}/cpp/lazperf-config.cmake
-        ${CMAKE_BINARY_DIR}/cpp/lazperf-configVersion.cmake
-    DESTINATION
-        "${INSTALL_CMAKE_DIR}"
-    COMPONENT
-        dev
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/lazperf-config-version.cmake
+    VERSION ${LAZPERF_VERSION}
+    COMPATIBILITY SameMajorVersion
 )
 
-# Install source headers.
+configure_file(../cmake/lazperf-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/lazperf-config.cmake
+    COPYONLY
+)
+
 install(
-    DIRECTORY
-        laz-perf
+    FILES
+        laz-perf/lazperf.hpp
+        laz-perf/filestream.hpp
+        laz-perf/vlr.hpp
     DESTINATION
-        ${CMAKE_INSTALL_PREFIX}/include
+        include/lazperf
+)
+
+install(
+    TARGETS
+        ${LAZPERF_LIB}
+    EXPORT
+        lazperf-targets
+    LIBRARY DESTINATION lib
+)
+
+install(
+    EXPORT
+        lazperf-targets
+    FILE
+        lazperf-targets.cmake
+    NAMESPACE
+        LAZPERF::
+    DESTINATION
+        lib/cmake/LAZPERF
+)
+
+target_include_directories(${LAZPERF_LIB}
+    INTERFACE
+        $<INSTALL_INTERFACE:include>)
+
+#
+# cmake file handling
+#
+
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/lazperf-config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/lazperf-config-version.cmake
+    DESTINATION
+        lib/cmake/LAZPERF
 )
 

@@ -1,8 +1,5 @@
 include_directories(../laz-perf)
 
-
-set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES})
-
 #add_executable(brute_point10 brute_point10.cpp)
 #target_link_libraries(brute_point10 ${ALL_LIBRARIES})
 

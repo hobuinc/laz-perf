@@ -43,8 +43,7 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 #include "las.hpp"
-#include "laz_vlr.hpp"
-#include "eb_vlr.hpp"
+#include "vlr.hpp"
 #include "utils.hpp"
 #include "streams.hpp"
 #include "portable_endian.hpp"
@@ -697,16 +696,16 @@ private:
             vlr::vlr_header h = lazVlr.header();
             f_.write(reinterpret_cast<char *>(&h), sizeof(h));
 
-            std::vector<uint8_t> vlrbuf = lazVlr.data();
-            f_.write((const char *)vlrbuf.data(), vlrbuf.size());
+            std::vector<char> vlrbuf = lazVlr.data();
+            f_.write(vlrbuf.data(), vlrbuf.size());
         }
         if (header_.ebCount())
         {
             vlr::vlr_header h = ebVlr.header();
             f_.write(reinterpret_cast<char *>(&h), sizeof(h));
 
-            std::vector<uint8_t> vlrbuf = ebVlr.data();
-            f_.write((const char *)vlrbuf.data(), vlrbuf.size());
+            std::vector<char> vlrbuf = ebVlr.data();
+            f_.write(vlrbuf.data(), vlrbuf.size());
         }
 
         if (compressed_)

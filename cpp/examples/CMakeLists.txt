@@ -1,12 +1,24 @@
-include_directories(../laz-perf)
-
-set(ALL_LIBRARIES ${LAZPERF_DEPENDENT_LIBRARIES} lazperf)
-
 add_executable(point10 point10.cpp)
-target_link_libraries(point10 ${ALL_LIBRARIES})
+target_include_directories(point10
+    PRIVATE
+        ../laz-perf
+)
+target_link_libraries(point10
+    PRIVATE
+        lazperf
+)
+lazperf_target_compile_settings(point10)
 
 add_executable(readlaz readlaz.cpp)
-target_link_libraries(readlaz ${ALL_LIBRARIES})
+target_include_directories(readlaz
+    PRIVATE
+        ../laz-perf
+)
+target_link_libraries(readlaz
+    PRIVATE
+        lazperf
+)
+lazperf_target_compile_settings(readlaz)
 
 if (EMSCRIPTEN)
 	set(CMAKE_CXX_FLAGS "-s DISABLE_EXCEPTION_CATCHING=2 ${CMAKE_CXX_FLAGS}")
