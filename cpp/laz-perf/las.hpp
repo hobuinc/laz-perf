@@ -28,8 +28,7 @@
 ===============================================================================
 */
 
-#ifndef __las_hpp__
-#define __las_hpp__
+#pragma once
 
 #include <stdint.h>
 
@@ -379,4 +378,3 @@ struct point14
 #include "detail/field_nir14.hpp"
 #include "detail/field_byte14.hpp"
 
-#endif // __las_hpp__

@@ -32,12 +32,12 @@
 * OF SUCH DAMAGE.
 ****************************************************************************/
 
-#include "Charbuf.hpp"
+#include "charbuf.hpp"
 
-namespace pdal
+namespace lazperf
 {
 
-void Charbuf::initialize(char *buf, size_t count, std::ios::pos_type bufOffset)
+void charbuf::initialize(char *buf, size_t count, std::ios::pos_type bufOffset)
 {
     m_bufOffset = bufOffset;
     m_buf = buf;
@@ -46,7 +46,7 @@ void Charbuf::initialize(char *buf, size_t count, std::ios::pos_type bufOffset)
 }
 
 
-std::ios::pos_type Charbuf::seekpos(std::ios::pos_type pos,
+std::ios::pos_type charbuf::seekpos(std::ios::pos_type pos,
     std::ios_base::openmode which)
 {
     pos -= m_bufOffset;
@@ -68,7 +68,7 @@ std::ios::pos_type Charbuf::seekpos(std::ios::pos_type pos,
 }
 
 std::ios::pos_type
-Charbuf::seekoff(std::ios::off_type off, std::ios_base::seekdir dir,
+charbuf::seekoff(std::ios::off_type off, std::ios_base::seekdir dir,
     std::ios_base::openmode which)
 {
     std::ios::pos_type pos;
@@ -118,4 +118,4 @@ Charbuf::seekoff(std::ios::off_type off, std::ios_base::seekdir dir,
     return pos;
 }
 
-} //namespace
+} //namespace lazperf

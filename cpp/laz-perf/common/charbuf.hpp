@@ -38,42 +38,42 @@
 #include <iostream>
 #include <vector>
 
-namespace pdal
+namespace lazperf
 {
 
 /**
   Allow a data buffer to be used at a std::streambuf.
 */
-class Charbuf : public std::streambuf
+class charbuf : public std::streambuf
 {
 public:
     /**
-      Construct an empty Charbuf.
+      Construct an empty charbuf.
     */
-    Charbuf() : m_bufOffset(0)
+    charbuf() : m_bufOffset(0)
         {}
 
     /**
-      Construct a Charbuf that wraps a byte vector.
+      Construct a charbuf that wraps a byte vector.
 
       \param v  Byte vector to back streambuf.
       \param bufOffset  Offset in vector (ignore bytes before offset).
     */
-    Charbuf (std::vector<char>& v, pos_type bufOffset = 0)
+    charbuf (std::vector<char>& v, pos_type bufOffset = 0)
         { initialize(v.data(), v.size(), bufOffset); }
 
     /**
-      Construct a Charbuf that wraps a byte buffer.
+      Construct a charbuf that wraps a byte buffer.
 
       \param buf  Buffer to back streambuf.
       \param count  Size of buffer.
       \param bufOffset  Offset in vector (ignore bytes before offset).
     */
-    Charbuf (char *buf, size_t count, pos_type bufOffset = 0)
+    charbuf(char *buf, size_t count, pos_type bufOffset = 0)
         { initialize(buf, count, bufOffset); }
 
     /**
-      Set a buffer to back a Charbuf.
+      Set a buffer to back a charbuf.
 
       \param buf  Buffer to back streambuf.
       \param count  Size of buffer.
@@ -118,4 +118,4 @@ private:
     char *m_buf;
 };
 
-} //namespace pdal
+} //namespace lazperf

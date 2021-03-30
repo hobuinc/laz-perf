@@ -57,9 +57,11 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
 {
     using namespace lazperf;
 
-    io::writer::config c;
-    c.compressed = false;
+    writer::named_file::config c;
     c.minor_version = 4;
+    c.pdrf = pdrf;
+    c.extra_bytes = extra_bytes;
+    c.chunk_size = 0; // Non compressed.
 
     char buf[100];
     char *pos = buf;
@@ -70,7 +72,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         seed.push_back(rd());
     std::seed_seq seedSeq(seed.begin(), seed.end());
     std::mt19937 gen(seedSeq);
-    io::writer::file f(filename, pdrf, extra_bytes, c);
+    writer::named_file f(filename, c);
     if (pdrf < 6)
     {
         las::point10 *p = reinterpret_cast<las::point10 *>(pos);

@@ -2,7 +2,7 @@
 
 pdal=/Users/acbell/pdal/build/bin/pdal
 percent=1
-format=8
+format=7
 eb=3
 count=0
 

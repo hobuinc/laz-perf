@@ -1,6 +1,6 @@
 
 macro(LAZPERF_ADD_TEST _name)
-  add_executable(${_name} ${_name}.cpp Charbuf.cpp)
+  add_executable(${_name} ${_name}.cpp)
   target_link_libraries(${_name} gtest lazperf)
   target_include_directories(${_name} PRIVATE gtest/gtest-1.10.0/include)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

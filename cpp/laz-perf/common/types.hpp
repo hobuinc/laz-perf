@@ -29,10 +29,13 @@
   
 ===============================================================================
 */
-#ifndef MYDEFS_HPP
-#define MYDEFS_HPP
+
+#pragma once
 
 static const int DefaultChunkSize = 50000;
+
+#define FRIEND_TEST(test_case_name, test_name) \
+    friend class test_case_name##_##test_name##_Test
 
 typedef char               CHAR;
 
@@ -236,4 +239,3 @@ const U32 BM__MaxCount    = 1 << BM__LengthShift;  // for adaptive models
 const U32 DM__LengthShift = 15;     // length bits discarded before mult.
 const U32 DM__MaxCount    = 1 << DM__LengthShift;  // for adaptive models
 
-#endif
