@@ -31,7 +31,7 @@
 #ifndef __model_hpp__
 #define __model_hpp__
 
-#include "common/types.hpp"
+#include "types.hpp"
 #include "utils.hpp"
 
 #include <stdexcept>

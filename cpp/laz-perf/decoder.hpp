@@ -98,7 +98,7 @@
 #include <cassert>
 #include <memory>
 
-#include "common/types.hpp"
+#include "types.hpp"
 
 namespace lazperf
 {

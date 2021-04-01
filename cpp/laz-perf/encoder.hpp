@@ -97,7 +97,7 @@
 
 #include <memory>
 
-#include "common/types.hpp"
+#include "types.hpp"
 
 namespace lazperf {
 namespace encoders {

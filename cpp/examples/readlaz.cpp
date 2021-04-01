@@ -4,7 +4,7 @@
 
 
 #include "io.hpp"
-#include "common/common.hpp"
+#include "common.hpp"
 
 #include <stdio.h>
 #ifdef EMSCRIPTEN_BUILD

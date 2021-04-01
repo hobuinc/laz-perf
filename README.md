@@ -1,85 +1,100 @@
-[![Build Status](https://travis-ci.org/hobu/laz-perf.svg?branch=master)](https://travis-ci.org/hobu/laz-perf)
-[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/o3qv0njdw5hvk47f)](https://ci.appveyor.com/project/hobu/laz-perf/)
 
 # What is this?
-Alternative [LAZ](http://laszip.org) implementation. It supports compilation and usage
-in JavaScript, usage in database contexts such as pgpointcloud and Oracle Point Cloud, and
-it executes faster than the LASzip codebase.
 
-# Why?
-The Emscripten/WebAssembly output for LASzip to JavaScript was unusably slow.  The generated
-JavaScript code is not going to be a feasible solution to bring LASzip to all
-browsers.  This project provides an alternative implementation that plays
-nice with Emscripten and provides a more rigorous software engineering approach
-to a LASzip implementation.
+Alternative [LAZ](http://laszip.org) implementation. It supports compilation to WASM via
+[Emscripten](https://emscripten.org/) so that LAZ data can be decoded in a browser.  This
+project provides an alternative implementation to the [LAStools](http://lastools.org/) library
+that provides a more rigorous software engineering approach.
 
-# How do I build this?
+# Building LAZperf for Windows/UNIX?
 
-There are two ways you can build this: using Docker (which may not use the most recent Emscripten SDK) or manually, where you install the Emscripten SDK to your computer and use that for building laz-perf. 
+Previous version of LAZperf were header-only C++ libraries, so you could simply include the
+project header files in your project. Primarily due to licensing issues, this is no longer the
+case and LAZperf needs to be built as a library that you link with your code. LAZperf uses
+CMake as a build system, though it's probably simple to port to another build system as there
+are few source files. Assuming you have Git, CMake, make and C++11 compiler installed, here is the
+process on the Unix command line. The process is similar on Windows.
 
-## Using Docker
-
-If you're a docker commando, you can run the provided docker build script to build both WASM and JS builds like so:
-
-    docker run -it -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash emscripten-docker-build.sh
-
-You should then end up with a `build-wasm` and `build-js` directories with respective builds.
-
-
-## Manual method
-
-You need to download the most recent version of Emscripten toolchain from [Emscripten's Web Page](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html) and follow their setup process.
-
-Once done, navigate to the root directory of laz-perf project and make a directory to stage build files in:
-
-    git clone https://github.com/hobu/laz-perf.git 
+    git clone https://github.com/hobu/laz-perf.git
     cd laz-perf
-    mkdir build ; cd build
+    mkdir build
+    cd build
+    cmake ..
+    make
 
-Then run `cmake` like so:
+This should build the library `liblazperf.so` (or similar). You can install this library along
+with the supporting header files as follows:
 
-    cmake .. \
-        -DEMSCRIPTEN=1 \
-        -DCMAKE_TOOLCHAIN_FILE=<path-to-emsdk>/emscripten/<emsdk-version>/cmake/Modules/Platform/Emscripten.cmake
+    make install
 
-To perform a WebAssembly build, pass the `-DWASM=1` parameter to the command above.
+# Using LAZperf on Windows/UNIX
 
-You should now be able to build JS/WASM output like so:
+Although the LAZperf library is focused on decoding the LAZ data itself, there is support
+for reading a complete LAS or LAZ file. If you have LAZ-comrpessed data, you can decompress
+by creating a decompressor for the right point type and providing a callback that will
+provide data from the LAZ source as requested by the decompressor. For example, to read
+point format 0 data, you might do the following:
 
-    VERBOSE=1 make
+    using namespace lazperf;
+
+    void cb(unsigned char *buf, int len)
+    {
+        static unsigned char my_laz_data[] = {...};
+        static int idx = 0;
+
+        std::copy(buf, buf + len, my_laz_data + idx);
+        idx += len;
+    }
+
+    point_decompressor_0 decompressor(cb);
+
+    char pointbuf[100];
+    for (int i = 0; i < num_points; ++i)
+        decompressor(pointbuf);
+
+Compression follows a similar pattern -- see the accompanying examples and tests.
+
+You can also use LAZperf to read LAZ data from an entire LAZ or LAS file:
+
+    using namespace lazperf;
+
+    reader::named_file f(filename);
+
+    char pointbuf[100];
+    for (size_t i = 0; i < f.header().point_count; ++i)
+        c.readPoint(pointbuf);
+
+A memory file interface exists If your LAS/LAZ data is internal rather than in a file:
+
+    using namespace lazperf;
+
+    reader::mem_file f(buf, bufsize);
+
+    char pointbuf[100];
+    for (size_t i = 0; i < f.header().point_count; ++i)
+        c.readPoint(pointbuf);
 
 
-# Benchmark results so far
+# Buiding LAZperf for use in a browser.
 
-All tests were run on a 2013 Macbook Pro `2.6 Ghz Intel Core i7 16GB 1600 MHz DD3`.  Arithmetic encoder was run on a 4 field struct with two signed and two unsigned fields.  Please see the `benchmarks/brute.cpp` for how these tests were run.  The emscriten version used was `Emscripten v1.14.0, fastcomp LLVM, JS host: Node v0.10.18`
+In order to build LAZperf for the browser, you must have the
+[Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) installed.
+You will also need Git and CMake.
+Activate the installation to set the necessary EMSDK environment variable then follow
+these steps:
 
-### Native:
+    git clone https://github.com/hobu/laz-perf.git
+    cd laz-perf
+    mkdir build
+    cd build
+    . ../emscripten-build.sh
 
-          Count       Comp Init       Comp Time      Comp Flush     Decomp Init     Decomp Time
-           1000        0.000001        0.000279        0.000000        0.000000        0.000297
-          10000        0.000000        0.001173        0.000000        0.000000        0.001512
-         100000        0.000000        0.009104        0.000000        0.000000        0.011168
-        1000000        0.000000        0.082419        0.000000        0.000000        0.108797
+This should create two files in the subdirectory build/cpp/emscripten: laz-perf.js and
+laz-perf.wasm. Both are necessary for running LAZperf from the browser.
 
-### Node.js, test runtime JS v0.10.25
+# Using LAZperf in a browser
 
-          Count       Comp Init       Comp Time      Comp Flush     Decomp Init     Decomp Time
-           1000        0.000586        0.014682        0.000273        0.000383        0.008012
-          10000        0.000022        0.017960        0.000009        0.000004        0.020219
-         100000        0.000030        0.128615        0.000008        0.000004        0.141459
-        1000000        0.000010        1.245053        0.000009        0.000005        1.396419
+See the file cpp/emscripten/index.html for an example of how to decode LAZ data in
+the browser. Note that laz-perf.js will fetch laz-perf.wasm when run. You don't need
+to fetch it manually.
 
-### Firefox, v28.0
-          Count       Comp Init       Comp Time      Comp Flush     Decomp Init     Decomp Time
-           1000        0.000005        0.001311        0.000006        0.000003        0.000820
-          10000        0.000003        0.007966        0.000004        0.000001        0.007299
-         100000        0.000001        0.062016        0.000003        0.000001        0.064037
-        1000000        0.000002        0.662454        0.000009        0.000003        0.673866
-
-### Google Chrome, v34.0.1847.116
-
-          Count       Comp Init       Comp Time      Comp Flush     Decomp Init     Decomp Time
-           1000        0.000751        0.012357        0.000424        0.000516        0.008413
-          10000        0.000016        0.006971        0.000016        0.000004        0.009481
-         100000        0.000008        0.059768        0.000009        0.000004        0.070253
-        1000000        0.000009        0.576017        0.000019        0.000005        0.658435

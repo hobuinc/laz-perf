@@ -1,64 +1,54 @@
 <!doctype html>
 <html>
-  <script src="laz-perf.js"></script>
+  <script type="application/javascript" src="laz-perf.js"></script>
   <script>
-	var loadFileAsArrayBuffer = function(url, cb) {
-		var oReq = new XMLHttpRequest();
-		oReq.open("GET", url, true);
-		oReq.responseType = "arraybuffer";
+    var laszip;
+      Module.onRuntimeInitialized = () => {
+        laszip = new Module.LASZip();
+        const buf = loadLaz('/point10.las.laz');
+    };
 
-		oReq.onload = function (oEvent) {
-			var arrayBuffer = oReq.response; // Note: not oReq.responseText
-			cb(arrayBuffer);
-		};
+    async function loadLaz(filename)
+    {
+        try
+        {
+            const res = await fetch(filename);
+            const ab = await res.arrayBuffer();
+            const buf = new Uint8Array(ab);
+            handleLazBuf(buf);
+        }
+        catch (err)
+        {
+            console.log(err.message);
+        }
+    }
 
-		oReq.send(null);
-	}
+    function parsePoint(pointbuf, bufsize)
+    {
+        const p = new DataView(Module.HEAPU8.buffer, pointbuf, bufsize);
+        console.log('X = ', p.getInt32(0, true));
+        console.log('Y = ', p.getInt32(4, true));
+        console.log('Z = ', p.getInt32(12, true));
+    }
 
-	function parse(dv) {
-		return {
-			"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
-				"intensity": dv.getUint16(12, true),
-				"classification": dv.getUint8(16, true)
-		};
-	}
+    function handleLazBuf(tempbuf)
+    {
+        const len = tempbuf.byteLength;
+        const buf = Module._malloc(len);
+        Module.HEAPU8.set(tempbuf, buf);
 
-	document.addEventListener('DOMContentLoaded', function() {
-			loadFileAsArrayBuffer('/haloe.laz', function(ab) {
-				console.log('got array buffer', ab.byteLength);
-				var x = new Module.LASZip();
+        laszip.open(buf, len);
+        const pointCount = laszip.getCount();
+        console.log('POINT COUNT = ', pointCount);
 
-				var abInt = new Uint8Array(ab);
-				var buf = Module._malloc(ab.byteLength);
+        const pointSize = laszip.getPointLength();
+        var pointbuf = Module._malloc(pointSize);
+        for (var i = 0; i < pointCount; ++i)
+        {
+            laszip.getPoint(pointbuf);
+            parsePoint(pointbuf, pointSize);
+        }
+    }
 
-				Module.HEAPU8.set(abInt, buf);
-				x.open(buf, ab.byteLength);
-
-				var pointc = x.getCount();
-				console.log("total points:", pointc);
-
-				var pointbuf = Module._malloc(40);
-				var tstart = (new Date()).getTime();
-				for (var i = 0 ; i < pointc ; i ++) {
-					x.getPoint(pointbuf);
-					var p = parse(new DataView(Module.HEAPU8.buffer, pointbuf, 40));
-					//console.log(p);
-				}
-				var tend = (new Date()).getTime();
-
-				console.log("Read 1000 points!", (tend - tstart), "ms");
-
-				//x.getPoint();
-
-				Module._free(buf);
-
-				try {
-					x.delete();
-				} catch(e) {
-					console.log("deletion failed!", e);
-				}
-			});
-
-	});
   </script>
 </html>

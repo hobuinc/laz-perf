@@ -36,7 +36,7 @@
 #include "las.hpp"
 #include "streams.hpp"
 #include "vlr.hpp"
-#include "common/charbuf.hpp"
+#include "charbuf.hpp"
 
 #pragma once
 
