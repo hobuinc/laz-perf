@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(LAZPERF VERSION 1.6)
+project(LAZPERF VERSION 2.0)
 
 # Allow advanced users to generate Makefiles printing detailed commands
 mark_as_advanced(CMAKE_VERBOSE_MAKEFILE)
