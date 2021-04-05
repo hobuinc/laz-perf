@@ -121,12 +121,12 @@ const char *Rgb14Compressor::compress(const char *buf, int& sc)
     if (sym & (1 << 0))
     {
         diff_l = (color.r & 0xFF) - (lastColor.r & 0xFF);
-        rgb_enc_.encodeSymbol(c.diff_model_[0], U8_FOLD(diff_l));
+        rgb_enc_.encodeSymbol(c.diff_model_[0], uint8_t(diff_l));
     }
     if (sym & (1 << 1))
     {
         diff_h = static_cast<int>(color.r >> 8) - (lastColor.r >> 8);
-        rgb_enc_.encodeSymbol(c.diff_model_[1], U8_FOLD(diff_h));
+        rgb_enc_.encodeSymbol(c.diff_model_[1], uint8_t(diff_h));
     }
 
     // Only encode green and blue if they are different from red.
@@ -135,29 +135,31 @@ const char *Rgb14Compressor::compress(const char *buf, int& sc)
         if (sym & (1 << 2))
         {
             int corr = static_cast<int>(color.g & 0xFF) -
-                U8_CLAMP(diff_l + (lastColor.g & 0xFF));
-            rgb_enc_.encodeSymbol(c.diff_model_[2], U8_FOLD(corr));
+                utils::clamp<uint8_t>(diff_l + (lastColor.g & 0xFF));
+            rgb_enc_.encodeSymbol(c.diff_model_[2], uint8_t(corr));
         }
 
         if (sym & (1 << 4))
         {
             diff_l = (diff_l + (color.g & 0xFF) - (lastColor.g & 0xFF)) / 2;
             int corr = static_cast<int>(color.b & 0xFF) -
-                U8_CLAMP(diff_l + (lastColor.b & 0xFF));
-            rgb_enc_.encodeSymbol(c.diff_model_[4], U8_FOLD(corr));
+                utils::clamp<uint8_t>(diff_l + (lastColor.b & 0xFF));
+            rgb_enc_.encodeSymbol(c.diff_model_[4], uint8_t(corr));
         }
 
         if (sym & (1 << 3))
         {
-            int corr = static_cast<int>(color.g >> 8) - U8_CLAMP(diff_h + (lastColor.g >> 8));
-            rgb_enc_.encodeSymbol(c.diff_model_[3], U8_FOLD(corr));
+            int corr = static_cast<int>(color.g >> 8) -
+                utils::clamp<uint8_t>(diff_h + (lastColor.g >> 8));
+            rgb_enc_.encodeSymbol(c.diff_model_[3], uint8_t(corr));
         }
 
         if (sym & (1 << 5))
         {
             diff_h = (diff_h + ((color.g >> 8)) - (lastColor.g >> 8)) / 2;
-            int corr = static_cast<int>(color.b >> 8) - U8_CLAMP(diff_h + (lastColor.b >> 8));
-            rgb_enc_.encodeSymbol(c.diff_model_[5], U8_FOLD(corr));
+            int corr = static_cast<int>(color.b >> 8) -
+                utils::clamp<uint8_t>(diff_h + (lastColor.b >> 8));
+            rgb_enc_.encodeSymbol(c.diff_model_[5], uint8_t(corr));
         }
     }
 
@@ -222,7 +224,7 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
     if (sym & (1 << 0))
     {
         uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[0]);
-        color.r = static_cast<unsigned short>(U8_FOLD(corr + (lastColor.r & 0xFF)));
+        color.r = static_cast<unsigned short>(uint8_t(corr + (lastColor.r & 0xFF)));
     }
     else
         color.r = lastColor.r & 0xFF;
@@ -230,7 +232,7 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
     if (sym & (1 << 1))
     {
         uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[1]);
-        color.r |= (static_cast<unsigned short>(U8_FOLD(corr + (lastColor.r >> 8))) << 8);
+        color.r |= (static_cast<unsigned short>(uint8_t(corr + (lastColor.r >> 8))) << 8);
     }
     else
         color.r |= lastColor.r & 0xFF00;
@@ -242,8 +244,8 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
         if (sym & (1 << 2))
         {
             uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[2]);
-            color.g = static_cast<unsigned short>(U8_FOLD(corr +
-                        U8_CLAMP(diff + (lastColor.g & 0xFF))));
+            color.g = static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (lastColor.g & 0xFF))));
         }
         else
             color.g = lastColor.g & 0xFF;
@@ -252,8 +254,8 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
         {
             uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[4]);
             diff = (diff + ((color.g & 0xFF) - (lastColor.g & 0xFF))) / 2;
-            color.b = static_cast<unsigned short>(U8_FOLD(corr +
-                        U8_CLAMP(diff + (lastColor.b & 0xFF))));
+            color.b = static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (lastColor.b & 0xFF))));
         }
         else
             color.b = lastColor.b & 0xFF;
@@ -262,8 +264,8 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
         if (sym & (1 << 3))
         {
             uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[3]);
-            color.g |= (static_cast<unsigned short>(U8_FOLD(corr +
-                            U8_CLAMP(diff + (lastColor.g >> 8))))) << 8;
+            color.g |= (static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (lastColor.g >> 8))))) << 8;
         }
         else
             color.g |= lastColor.g & 0xFF00;
@@ -272,8 +274,8 @@ char *Rgb14Decompressor::decompress(char *buf, int& sc)
         {
             uint8_t corr = (uint8_t)rgb_dec_.decodeSymbol(c.diff_model_[5]);
             diff = (diff + (color.g >> 8) - (lastColor.g >> 8)) / 2;
-            color.b |= (static_cast<unsigned short>(U8_FOLD(corr +
-                            U8_CLAMP(diff + (lastColor.b >> 8))))) << 8;
+            color.b |= (static_cast<unsigned short>(uint8_t(corr +
+                            utils::clamp<uint8_t>(diff + (lastColor.b >> 8))))) << 8;
         }
         else
             color.b |= (lastColor.b & 0xFF00);

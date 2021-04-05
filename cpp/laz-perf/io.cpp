@@ -334,7 +334,7 @@ named_file::named_file(const std::string& filename) : f_(filename, std::ios::bin
 namespace writer
 {
 
-basic_file::basic_file() : header_(header14_), chunk_size_(DefaultChunkSize), f_(nullptr)
+basic_file::basic_file() : header_(header14_), chunk_size_(io::DefaultChunkSize), f_(nullptr)
 {}
 
 basic_file::~basic_file()
@@ -535,7 +535,7 @@ void basic_file::writeChunkTable()
 }
 
 named_file::config::config() : scale(1.0, 1.0, 1.0), offset(0.0, 0.0, 0.0),
-    chunk_size(DefaultChunkSize), pdrf(0), minor_version(3), extra_bytes(0)
+    chunk_size(io::DefaultChunkSize), pdrf(0), minor_version(3), extra_bytes(0)
 {}
 
 named_file::config::config(const io::vector3& s, const io::vector3& o, unsigned int cs) :
@@ -543,7 +543,7 @@ named_file::config::config(const io::vector3& s, const io::vector3& o, unsigned 
 {}
 
 named_file::config::config(const io::header& h) : scale(h.scale.x, h.scale.y, h.scale.z),
-    offset(h.offset.x, h.offset.y, h.offset.z), chunk_size(DefaultChunkSize),
+    offset(h.offset.x, h.offset.y, h.offset.z), chunk_size(io::DefaultChunkSize),
     pdrf(h.point_format_id), extra_bytes(h.ebCount())
 {}
 

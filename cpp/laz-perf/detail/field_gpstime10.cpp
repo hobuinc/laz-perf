@@ -28,6 +28,8 @@
 ===============================================================================
 */
 
+#include <cmath>
+
 #include "../las.hpp"
 
 #define LASZIP_GPSTIME_MULTI 500
@@ -99,7 +101,7 @@ const char *Gpstime10Compressor::compress(const char *buf)
                 multi_extreme_counter[last] = 0;
             }
             else { // the difference is huge
-                U32 i;
+                uint32_t i;
 
                 // maybe the double belongs to another time sequence
                 //
@@ -147,7 +149,7 @@ const char *Gpstime10Compressor::compress(const char *buf)
             if (curr_gpstime_diff_64 == static_cast<int64_t>(curr_gpstime_diff)) {
                 // compute multiplier between current and last integer difference
                 float multi_f = (float)curr_gpstime_diff / (float)(last_gpstime_diff[last]);
-                int multi = I32_QUANTIZE(multi_f);
+                int multi = std::round(multi_f);
 
                 // compress the residual curr_gpstime_diff in dependance on the multiplier
                 if (multi == 1) {

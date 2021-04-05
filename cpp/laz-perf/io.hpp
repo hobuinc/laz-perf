@@ -44,6 +44,8 @@ namespace lazperf
 {
 namespace io
 {
+const uint32_t DefaultChunkSize = 50000;
+
 #pragma pack(push, 1)
 struct vector3
 {
@@ -106,6 +108,9 @@ struct header14 : public header
 };
 #pragma pack(pop)
 } // namespace io
+
+#define FRIEND_TEST(test_case_name, test_name) \
+    friend class test_case_name##_##test_name##_Test
 
 namespace reader
 {
@@ -243,7 +248,7 @@ public:
 
         explicit config();
         config(const io::vector3& scale, const io::vector3& offset,
-            unsigned int chunksize = DefaultChunkSize);
+            unsigned int chunksize = io::DefaultChunkSize);
         config(const io::header& header);
 
         io::header to_header() const;

@@ -91,13 +91,12 @@
 //                                                                           -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-
 #ifndef __encoder_hpp__
 #define __encoder_hpp__
 
 #include <memory>
 
-#include "types.hpp"
+#include "coderbase.hpp"
 
 namespace lazperf {
 namespace encoders {
@@ -132,8 +131,8 @@ public:
 
     void done()
     {
-        U32 init_base = base;                 // done encoding: set final data bytes
-        bool another_byte = TRUE;
+        uint32_t init_base = base;                 // done encoding: set final data bytes
+        bool another_byte = true;
 
         if (length > 2 * AC__MinLength)
         {
@@ -144,7 +143,7 @@ public:
         {
             base  += AC__MinLength >> 1;                                // base offset
             length = AC__MinLength >> 9;            // set new length for 2 more bytes
-            another_byte = FALSE;
+            another_byte = false;
         }
 
         if (init_base > base)                         // overflow = carry
@@ -157,9 +156,11 @@ public:
             outstream.putBytes(outbuffer + AC_BUFFER_SIZE, AC_BUFFER_SIZE);
         }
 
-        I64 buffer_size = outbyte - outbuffer;
+        //ABELL - We control the buffer size. This calculation should never be
+        //  negative and we shouldn't need 64 bits.
+        int64_t buffer_size = outbyte - outbuffer;
         if (buffer_size)
-            outstream.putBytes(outbuffer, (U32)buffer_size);
+            outstream.putBytes(outbuffer, (uint32_t)buffer_size);
 
         // write two or three zero bytes to be in sync with the decoder's byte reads
         outstream.putByte(0);
@@ -170,18 +171,18 @@ public:
 
     /* Encode a bit with modelling                               */
     template<typename EntropyModel>
-    void encodeBit(EntropyModel& m, U32 sym)
+    void encodeBit(EntropyModel& m, uint32_t sym)
     {
         assert(sym <= 1);
 
-        U32 x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
+        uint32_t x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
         // update interval
         if (sym == 0) {
             length = x;
             ++m.bit_0_count;
         }
         else {
-            U32 init_base = base;
+            uint32_t init_base = base;
             base += x;
             length -= x;
             if (init_base > base)                                 // overflow = carry
@@ -196,11 +197,11 @@ public:
 
     /* Encode a symbol with modelling                            */
     template <typename EntropyModel>
-    void encodeSymbol(EntropyModel& m, U32 sym)
+    void encodeSymbol(EntropyModel& m, uint32_t sym)
     {
         assert(sym <= m.last_symbol);
 
-        U32 x, init_base = base;
+        uint32_t x, init_base = base;
         // compute products
         if (sym == m.last_symbol)
         {
@@ -226,11 +227,11 @@ public:
     }
 
     /* Encode a bit without modelling                            */
-    void writeBit(U32 sym)
+    void writeBit(uint32_t sym)
     {
         assert(sym < 2);
 
-        U32 init_base = base;
+        uint32_t init_base = base;
         base += sym * (length >>= 1);                // new interval base and length
 
         if (init_base > base)
@@ -239,18 +240,18 @@ public:
             renorm_enc_interval();        // renormalization
     }
 
-    void writeBits(U32 bits, U32 sym)
+    void writeBits(uint32_t bits, uint32_t sym)
     {
         assert(bits && (bits <= 32) && (sym < (1u<<bits)));
 
         if (bits > 19)
         {
-            writeShort(sym&U16_MAX);
+            writeShort(sym);
             sym = sym >> 16;
             bits = bits - 16;
         }
 
-        U32 init_base = base;
+        uint32_t init_base = base;
         base += sym * (length >>= bits);             // new interval base and length
 
         if (init_base > base)
@@ -259,10 +260,10 @@ public:
             renorm_enc_interval();        // renormalization
     }
 
-    void writeByte(U8 sym)
+    void writeByte(uint8_t sym)
     {
-        U32 init_base = base;
-        base += (U32)(sym) * (length >>= 8);           // new interval base and length
+        uint32_t init_base = base;
+        base += (uint32_t)(sym) * (length >>= 8);           // new interval base and length
 
         if (init_base > base)
             propagate_carry();                 // overflow = carry
@@ -270,10 +271,10 @@ public:
             renorm_enc_interval();        // renormalization
     }
 
-    void writeShort(U16 sym)
+    void writeShort(uint16_t sym)
     {
-        U32 init_base = base;
-        base += (U32)(sym) * (length >>= 16);          // new interval base and length
+        uint32_t init_base = base;
+        base += (uint32_t)(sym) * (length >>= 16);          // new interval base and length
 
         if (init_base > base)
             propagate_carry();                 // overflow = carry
@@ -281,13 +282,13 @@ public:
             renorm_enc_interval();        // renormalization
     }
 
-    void writeInt(U32 sym)
+    void writeInt(uint32_t sym)
     {
-        writeShort((U16)(sym & 0xFFFF)); // lower 16 bits
-        writeShort((U16)(sym >> 16));    // UPPER 16 bits
+        writeShort((uint16_t)(sym & 0xFFFF)); // lower 16 bits
+        writeShort((uint16_t)(sym >> 16));    // UPPER 16 bits
     }
 
-    void writeFloat(F32 sym) /* danger in float reinterpretation */
+    void writeFloat(float sym) /* danger in float reinterpretation */
     {
         U32I32F32 u32i32f32;
         u32i32f32.f32 = sym;
@@ -295,13 +296,13 @@ public:
         writeInt(u32i32f32.u32);
     }
 
-    void writeInt64(U64 sym)
+    void writeInt64(uint64_t sym)
     {
-        writeInt((U32)(sym & 0xFFFFFFFF)); // lower 32 bits
-        writeInt((U32)(sym >> 32));        // UPPER 32 bits
+        writeInt((uint32_t)(sym & 0xFFFFFFFF)); // lower 32 bits
+        writeInt((uint32_t)(sym >> 32));        // UPPER 32 bits
     }
 
-    void writeDouble(F64 sym) /* danger in float reinterpretation */
+    void writeDouble(double sym) /* danger in float reinterpretation */
     {
         U64I64F64 u64i64f64;
         u64i64f64.f64 = sym;
@@ -329,7 +330,7 @@ private:
     void init(bool v)
     {
         valid = v;
-        outbuffer = new U8[2*AC_BUFFER_SIZE];
+        outbuffer = new uint8_t[2*AC_BUFFER_SIZE];
         endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
 
         base   = 0;
@@ -341,7 +342,7 @@ private:
     void init(const arithmetic<TOutStream>& src)
     {
         valid = src.valid;
-        outbuffer = new U8[2*AC_BUFFER_SIZE];
+        outbuffer = new uint8_t[2*AC_BUFFER_SIZE];
         endbuffer = outbuffer + 2 * AC_BUFFER_SIZE;
 
         base   = src.base;
@@ -352,7 +353,7 @@ private:
 
     void propagate_carry()
     {
-        U8 *b;
+        uint8_t *b;
 
         if (outbyte == outbuffer)
             b = endbuffer - 1;
@@ -380,7 +381,7 @@ void renorm_enc_interval()
         assert(outbyte < endbuffer);
         assert(outbyte < endbyte);
 
-        *outbyte++ = (U8)(base >> 24);
+        *outbyte++ = (uint8_t)(base >> 24);
         if (outbyte == endbyte)
             manage_outbuffer();
         base <<= 8;

@@ -4,7 +4,6 @@
 
 
 #include "io.hpp"
-#include "common.hpp"
 
 #include <stdio.h>
 #ifdef EMSCRIPTEN_BUILD
@@ -48,12 +47,8 @@ int main(int argc, char *argv[]) {
 	size_t count = f.pointCount();
 	char buf[256]; // a buffer large enough to hold our point
 
-	auto start = common::tick();
 	for(size_t i = 0 ; i < count ; i ++)
 		f.readPoint(buf); // read the point out
 
-	float t = common::since(start);
-
-	std::cout << "Read through the points in " << t << " seconds." << std::endl;
 	return 0;
 }

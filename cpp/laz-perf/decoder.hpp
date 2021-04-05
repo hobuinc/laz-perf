@@ -98,7 +98,7 @@
 #include <cassert>
 #include <memory>
 
-#include "types.hpp"
+#include "coderbase.hpp"
 
 namespace lazperf
 {
@@ -149,10 +149,10 @@ public:
     }
 
     template<typename TEntropyModel>
-    U32 decodeBit(TEntropyModel& m)
+    uint32_t decodeBit(TEntropyModel& m)
     {
-        U32 x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
-        U32 sym = (value >= x);                                   // decision
+        uint32_t x = m.bit_0_prob * (length >> BM__LengthShift);       // product l x p0
+        uint32_t sym = (value >= x);                                   // decision
 
         // update & shift interval
         if (sym == 0)
@@ -174,9 +174,9 @@ public:
     }
 
     template<typename TEntropyModel>
-    U32 decodeSymbol(TEntropyModel& m)
+    uint32_t decodeSymbol(TEntropyModel& m)
     {
-        U32 n, sym, x, y = length;
+        uint32_t n, sym, x, y = length;
 
         if (m.decoder_table)               // use table look-up for faster decoding
         {
@@ -188,7 +188,7 @@ public:
 
             while (n > sym + 1)                        // finish with bisection search
             {
-                U32 k = (sym + n) >> 1;
+                uint32_t k = (sym + n) >> 1;
                 if (m.distribution[k] > dv)
                     n = k;
                 else
@@ -204,10 +204,10 @@ public:
         {
             x = sym = 0;
             length >>= DM__LengthShift;
-            U32 k = (n = m.symbols) >> 1;
+            uint32_t k = (n = m.symbols) >> 1;
             // decode via bisection search
             do {
-                U32 z = length * m.distribution[k];
+                uint32_t z = length * m.distribution[k];
                 if (z > value)
                 {
                     n = k;
@@ -235,9 +235,9 @@ public:
         return sym;
     }
 
-    U32 readBit()
+    uint32_t readBit()
     {
-        U32 sym = value / (length >>= 1);            // decode symbol, change length
+        uint32_t sym = value / (length >>= 1);            // decode symbol, change length
         value -= length * sym;                                    // update interval
 
         if (length < AC__MinLength)
@@ -246,19 +246,19 @@ public:
         return sym;
     }
 
-    U32 readBits(U32 bits)
+    uint32_t readBits(uint32_t bits)
     {
         assert(bits && (bits <= 32));
 
         if (bits > 19)
         {
-            U32 tmp = readShort();
+            uint32_t tmp = readShort();
             bits = bits - 16;
-            U32 tmp1 = readBits(bits) << 16;
+            uint32_t tmp1 = readBits(bits) << 16;
             return (tmp1 | tmp);
         }
 
-        U32 sym = value / (length >>= bits);// decode symbol, change length
+        uint32_t sym = value / (length >>= bits);// decode symbol, change length
         value -= length * sym;                                    // update interval
 
         if (length < AC__MinLength)
@@ -266,54 +266,54 @@ public:
         return sym;
     }
 
-    U8 readByte()
+    uint8_t readByte()
     {
-        U32 sym = value / (length >>= 8);            // decode symbol, change length
+        uint32_t sym = value / (length >>= 8);            // decode symbol, change length
         value -= length * sym;                                    // update interval
 
         if (length < AC__MinLength)
             renorm_dec_interval();        // renormalization
 
-        assert(sym < (1<<8));
-        return (U8)sym;
+        assert(sym < (1 << 8));
+        return (uint8_t)sym;
     }
 
-    U16 readShort()
+    uint16_t readShort()
     {
-        U32 sym = value / (length >>= 16);           // decode symbol, change length
+        uint32_t sym = value / (length >>= 16);           // decode symbol, change length
         value -= length * sym;                                    // update interval
 
         if (length < AC__MinLength)
             renorm_dec_interval();        // renormalization
 
         assert(sym < (1<<16));
-        return (U16)sym;
+        return (uint16_t)sym;
     }
 
-    U32 readInt()
+    uint32_t readInt()
     {
-        U32 lowerInt = readShort();
-        U32 upperInt = readShort();
+        uint32_t lowerInt = readShort();
+        uint32_t upperInt = readShort();
         return (upperInt<<16)|lowerInt;
     }
 
     /* danger in float reinterpretation */
-    F32 readFloat()
+    float readFloat()
     {
         U32I32F32 u32i32f32;
         u32i32f32.u32 = readInt();
         return u32i32f32.f32;
     }
 
-    U64 readInt64()
+    uint64_t readInt64()
     {
-        U64 lowerInt = readInt();
-        U64 upperInt = readInt();
+        uint64_t lowerInt = readInt();
+        uint64_t upperInt = readInt();
         return (upperInt<<32)|lowerInt;
     }
 
     /* danger in float reinterpretation */
-    F64 readDouble()
+    double readDouble()
     {
         U64I64F64 u64i64f64;
         u64i64f64.u64 = readInt64();
@@ -341,8 +341,8 @@ private:
         } while ((length <<= 8) < AC__MinLength);        // length multiplied by 256
     }
 
-    U32 value;
-    U32 length;
+    uint32_t value;
+    uint32_t length;
 
     std::unique_ptr<TInputStream> pIn;
     TInputStream& instream;

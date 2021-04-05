@@ -46,6 +46,25 @@ namespace lazperf
 namespace utils
 {
 
+template<int BIT, typename T>
+T clearBit(T t)
+{
+    return t & ~(1 << BIT);
+}
+
+// Clamp the input value to the range of the output type.
+template<typename T, typename U>
+T clamp(U u)
+{
+    constexpr T mn = (std::numeric_limits<T>::min)();
+    constexpr T mx = (std::numeric_limits<T>::max)();
+    if (u <= mn)
+        return mn;
+    else if (u >= mx)
+        return mx;
+    return u;
+}
+
 template<typename T>
 T unpack(const char *)
 {
