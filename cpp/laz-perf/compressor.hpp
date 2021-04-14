@@ -38,9 +38,6 @@
 #include <limits>
 #include <vector>
 #include <cassert>
-#ifdef _WIN32
-#include <intrin.h>
-#endif
 
 namespace lazperf
 {
@@ -134,26 +131,15 @@ namespace compressors
 
 				// find the tighest interval [ - (2^k - 1)  ...  + (2^k) ] that contains c
 
-				k = 0;
 
 				// do this by checking the absolute value of c (adjusted for the case that c is 2^k)
 
-                uint32_t c1 = 0;
-                if (c < 0)
-                    c1 = -c;
-                else if (c > 1)
-                    c1 = c - 1;
-                if (c1)
-                {
-#ifdef _MSC_VER
-                    _BitScanReverse(&k, c1);
-#else
-                    k = __builtin_clz(c1);
-                    // CLZ counts the number of leading zeros, rather than bit position
-                    // of the first non-zero, so we need to subtract from 32.
-                    k = (sizeof(c1) * 8) - k;
-#endif
-                }
+                uint32_t c1 = (c <= 0 ? -c : c-1);
+
+				// this loop could be replaced with more efficient code
+
+                for (k = 0; c1; k++)
+                    c1 = c1 >> 1;
 
 				// the number k is between 0 and corr_bits and describes the interval
                 // the corrector falls into we can compress the exact location of c
