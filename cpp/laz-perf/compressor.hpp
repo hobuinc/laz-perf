@@ -34,14 +34,20 @@
 
 #include "model.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <vector>
-#include <memory>
 #include <cassert>
+#ifdef _WIN32
+#include <intrin.h>
+#endif
 
-namespace laszip {
-	namespace compressors {
+namespace lazperf
+{
+namespace compressors
+{
 		struct integer {
-			integer(U32 bits = 16, U32 contexts = 1, U32 bits_high = 8, U32 range = 0):
+			integer(uint32_t bits = 16, uint32_t contexts = 1, uint32_t bits_high = 8, uint32_t range = 0):
 				bits(bits), contexts(contexts), bits_high(bits_high), range(range) {
 					
 				if (range) { // the corrector's significant bits and range
@@ -57,7 +63,7 @@ namespace laszip {
 					}
 
 					// the corrector must fall into this interval
-					corr_min = -((I32)(corr_range/2));
+					corr_min = -((int32_t)(corr_range/2));
 					corr_max = corr_min + corr_range - 1;
 				}
 				else if (bits && bits < 32) {
@@ -65,15 +71,15 @@ namespace laszip {
 					corr_range = 1u << bits;
 
 					// the corrector must fall into this interval
-					corr_min = -((I32)(corr_range/2));
+					corr_min = -((int32_t)(corr_range/2));
 					corr_max = corr_min + corr_range - 1;
 				}
 				else {
 					corr_bits = 32;
 					corr_range = 0;
 					// the corrector must fall into this interval
-					corr_min = I32_MIN;
-					corr_max = I32_MAX;
+					corr_min = (std::numeric_limits<int32_t>::min)();
+					corr_max = (std::numeric_limits<int32_t>::max)();
 				}
 
 				k = 0;
@@ -84,21 +90,21 @@ namespace laszip {
 				mCorrector.clear();
 			}
 
+            // ABELL - Maybe this is separate so that the compressor can be reused?
+            // If so, why not called from the ctor?
 			void init() {
-				using laszip::models::arithmetic;
-				using laszip::models::arithmetic_bit;
-
-				U32 i;
+				using models::arithmetic;
+				using models::arithmetic_bit;
 
 				// maybe create the models
 				if (mBits.empty()) {
-					for (i = 0; i < contexts; i++)
+					for (uint32_t i = 0; i < contexts; i++)
 						mBits.push_back(arithmetic(corr_bits+1));
 
 #ifndef COMPRESS_ONLY_K
 					// mcorrector0 is already in init state
-					for (i = 1; i <= corr_bits; i++) {
-						U32 v = i <= bits_high ? 1 << i : 1 << bits_high;
+					for (uint32_t i = 1; i <= corr_bits; i++) {
+						uint32_t v = i <= bits_high ? 1 << i : 1 << bits_high;
 						mCorrector.push_back(arithmetic(v));
 					}
 #endif
@@ -110,9 +116,9 @@ namespace laszip {
 			template<
 				typename TEncoder
 			>
-			void compress(TEncoder& enc, I32 pred, I32 real, U32 context) {
+			void compress(TEncoder& enc, int32_t pred, int32_t real, uint32_t context) {
 				// the corrector will be within the interval [ - (corr_range - 1)  ...  + (corr_range - 1) ]
-				I32 corr = real - pred;
+				int32_t corr = real - pred;
 				// we fold the corrector into the interval [ corr_min  ...  corr_max ]
 				if (corr < corr_min) corr += corr_range;
 				else if (corr > corr_max) corr -= corr_range;
@@ -125,7 +131,6 @@ namespace laszip {
 				typename TEntropyModel
 			>
 			void writeCorrector(TEncoder& enc, int c, TEntropyModel& mBits) {
-				U32 c1;
 
 				// find the tighest interval [ - (2^k - 1)  ...  + (2^k) ] that contains c
 
@@ -133,18 +138,26 @@ namespace laszip {
 
 				// do this by checking the absolute value of c (adjusted for the case that c is 2^k)
 
-				c1 = (c <= 0 ? -c : c-1);
+                uint32_t c1 = 0;
+                if (c < 0)
+                    c1 = -c;
+                else if (c > 1)
+                    c1 = c - 1;
+                if (c1)
+                {
+#ifdef _MSC_VER
+                    _BitScanReverse(&k, c1);
+#else
+                    k = __builtin_clz(c1);
+                    // CLZ counts the number of leading zeros, rather than bit position
+                    // of the first non-zero, so we need to subtract from 32.
+                    k = (sizeof(c1) * 8) - k;
+#endif
+                }
 
-				// this loop could be replaced with more efficient code
-
-				while (c1)
-				{
-					c1 = c1 >> 1;
-					k = k + 1;
-				}
-
-				// the number k is between 0 and corr_bits and describes the interval the corrector falls into
-				// we can compress the exact location of c within this interval using k bits
+				// the number k is between 0 and corr_bits and describes the interval
+                // the corrector falls into we can compress the exact location of c
+                // within this interval using k bits
 
 				enc.encodeSymbol(mBits, k);
 
@@ -217,26 +230,26 @@ namespace laszip {
 #endif // COMPRESS_ONLY_K
 			}
 
-			U32 k;
+			uint32_t k;
 
-			U32 bits;
+			uint32_t bits;
 
-			U32 contexts;
-			U32 bits_high;
-			U32 range;
+			uint32_t contexts;
+			uint32_t bits_high;
+			uint32_t range;
 
-			U32 corr_bits;
-			U32 corr_range;
-			I32 corr_min;
-			I32 corr_max;
+			uint32_t corr_bits;
+			uint32_t corr_range;
+			int32_t corr_min;
+			int32_t corr_max;
 
 
-			std::vector<laszip::models::arithmetic> mBits;
+			std::vector<models::arithmetic> mBits;
 
-			laszip::models::arithmetic_bit mCorrector0;
-			std::vector<laszip::models::arithmetic> mCorrector;
+			models::arithmetic_bit mCorrector0;
+			std::vector<models::arithmetic> mCorrector;
 		};
-	}
-}
+} // namespace compressors
+} // namespace lazperf
 
 #endif // __compressor_hpp__

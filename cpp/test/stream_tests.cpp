@@ -30,6 +30,7 @@
 
 #include <laz-perf/streams.hpp>
 
+/**
 TEST(stream_tests, streams_are_sane) {
 	using namespace laszip::streams;
 
@@ -143,3 +144,4 @@ TEST(stream_tests, streams_are_sane) {
 	EXPECT_EQ(s.good(), false);
 	EXPECT_EQ(s.tellg(), 0);
 }
+**/

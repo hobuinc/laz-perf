@@ -30,6 +30,11 @@
 #ifndef __reader_hpp__
 #define __reader_hpp__
 
+namespace lazperf
+{
+namespace test
+{
+
 // A simple classes that offsets to the data for us
 struct reader {
 	reader(const std::string& f) :
@@ -73,5 +78,8 @@ struct reader {
 	unsigned short size_;
 	unsigned int count_;
 };
+
+} // namespace test
+} // namespace lazperf
 
 #endif // __reader_hpp__

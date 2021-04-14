@@ -1,4 +1,4 @@
 #!/bin/sh
 #
 
-exec python -m SimpleHTTPServer
+exec python -m http.server

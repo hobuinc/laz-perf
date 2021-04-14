@@ -38,79 +38,40 @@
 
 #include <laz-perf/encoder.hpp>
 #include <laz-perf/decoder.hpp>
-#include <laz-perf/formats.hpp>
 #include <laz-perf/las.hpp>
-#include <laz-perf/factory.hpp>
 
 #include "reader.hpp"
 
-struct SuchStream {
-	SuchStream() : buf(), idx(0) {}
-
-	void putBytes(const unsigned char* b, size_t len) {
-		while(len --) {
-			buf.push_back(*b++);
-		}
-	}
-
-	void putByte(const unsigned char b) {
-		buf.push_back(b);
-	}
-
-	unsigned char getByte() {
-		return buf[idx++];
-	}
-
-	void getBytes(unsigned char *b, int len) {
-		for (int i = 0 ; i < len ; i ++) {
-			b[i] = getByte();
-		}
-	}
-
-	std::vector<unsigned char> buf;
-	size_t idx;
-};
-
+using namespace lazperf;
 
 TEST(lazperf_tests, packers_are_symmetric) {
-	using namespace laszip::formats;
-
 	char buf[4];
-	packers<unsigned int>::pack(0xdeadbeaf, buf);
-	unsigned int v = packers<unsigned int>::unpack(buf);
+	utils::pack(0xdeadbeaf, buf);
+	unsigned int v = utils::unpack<unsigned int>(buf);
 	EXPECT_EQ(v, 0xdeadbeaf);
 
-	packers<int>::pack(0xeadbeef, buf);
-	v = packers<int>::unpack(buf);
+	utils::pack(0xeadbeef, buf);
+	v = utils::unpack<int>(buf);
 	EXPECT_EQ(0xeadbeefu, v);
 
-	packers<unsigned short>::pack(0xbeef, buf);
-	v = packers<unsigned short>::unpack(buf);
+	utils::pack(0xbeef, buf);
+	v = utils::unpack<unsigned short>(buf);
 	EXPECT_EQ(0xbeefu, v);
 
-	packers<short>::pack(0xeef, buf);
-	v = packers<short>::unpack(buf);
+	utils::pack(0xeef, buf);
+	v = utils::unpack<short>(buf);
 	EXPECT_EQ(0xeefu, v);
-
-	packers<unsigned char>::pack(0xf, buf);
-	v = packers<unsigned char>::unpack(buf);
-	EXPECT_EQ(0xfu, v);
-
-	packers<char>::pack(0x7, buf);
-	v = packers<char>::unpack(buf);
-	EXPECT_EQ(0x7u, v);
 }
 
 
 TEST(lazperf_tests, packers_canpack_gpstime) {
-	using namespace laszip::formats;
 
 	{
 		las::gpstime v((std::numeric_limits<int64_t>::max)());
 		char buf[8];
 
-		packers<las::gpstime>::pack(v, buf);
-		las::gpstime out = packers<las::gpstime>::unpack(buf);
+		v.pack(buf);
+		las::gpstime out(buf);
 
 		EXPECT_EQ(v.value, out.value);
 		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
@@ -120,8 +81,8 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 		las::gpstime v((std::numeric_limits<int64_t>::min)());
 		char buf[8];
 
-		packers<las::gpstime>::pack(v, buf);
-		las::gpstime out = packers<las::gpstime>::unpack(buf);
+		v.pack(buf);
+		las::gpstime out(buf);
 
 		EXPECT_EQ(v.value, out.value);
 		EXPECT_EQ(std::equal(buf, buf + 8, (char *)&v.value), true);
@@ -129,13 +90,12 @@ TEST(lazperf_tests, packers_canpack_gpstime) {
 }
 
 TEST(lazperf_tests, packers_canpack_rgb) {
-	using namespace laszip::formats;
 
 	las::rgb c(1<<15, 1<<14, 1<<13);
 	char buf[6];
 
-	packers<las::rgb>::pack(c, buf);
-	las::rgb out = packers<las::rgb>::unpack(buf);
+	c.pack(buf);
+	las::rgb out(buf);
 
 	EXPECT_EQ(c.r, out.r);
 	EXPECT_EQ(c.g, out.g);
@@ -146,159 +106,16 @@ TEST(lazperf_tests, packers_canpack_rgb) {
 	EXPECT_EQ(std::equal(buf+4, buf+6, (char*)&c.b), true);
 }
 
-TEST(lazperf_tests, las_structs_are_of_correct_size) {
-	using namespace laszip::formats;
-
+TEST(lazperf_tests, las_structs_are_of_correct_size)
+{
 	EXPECT_EQ(sizeof(las::point10), 20u);
 	EXPECT_EQ(sizeof(las::gpstime), 8u);
 	EXPECT_EQ(sizeof(las::rgb), 6u);
 }
 
-TEST(lazperf_tests, works_with_fields) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	struct {
-		int a;
-		short b;
-		unsigned short c;
-		unsigned int d;
-	} data;
-
-	record_compressor<
-		field<int>,
-		field<short>,
-		field<unsigned short>,
-		field<unsigned int> > compressor;
-
-	SuchStream s;
-
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	for (int i = 0 ; i < 1000; i ++) {
-		data.a = i;
-		data.b = (short)i + 10;
-		data.c = (short)i + 40000;
-		data.d = (unsigned int)i + (1 << 31);
-
-		compressor.compressWith(encoder, (const char*)&data);
-	}
-	encoder.done();
-
-	record_decompressor<
-		field<int>,
-		field<short>,
-		field<unsigned short>,
-		field<unsigned int> > decompressor;
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	for (int i = 0 ; i < 10 ; i ++) {
-		decompressor.decompressWith(decoder, (char *)&data);
-
-		EXPECT_EQ(data.a, i);
-		EXPECT_EQ(data.b, i+10);
-		EXPECT_EQ(data.c, i+40000);
-		EXPECT_EQ(data.d, (unsigned int)i+ (1<<31));
-	}
-}
-
-TEST(lazperf_tests, works_with_one_field) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	struct {
-		int a;
-	} data;
-
-	record_compressor<
-		field<int> > compressor;
-
-	SuchStream s;
-
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	for (int i = 0 ; i < 1000; i ++) {
-		data.a = i;
-		compressor.compressWith(encoder, (const char*)&data);
-	}
-	encoder.done();
-
-	record_decompressor<
-		field<int> > decompressor;
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	for (int i = 0 ; i < 1000 ; i ++) {
-		decompressor.decompressWith(decoder, (char *)&data);
-		EXPECT_EQ(data.a, i);
-	}
-}
-
-TEST(lazperf_tests, works_with_all_kinds_of_fields) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	struct {
-		int a;
-		unsigned int ua;
-		short b;
-		unsigned short ub;
-		char c;
-		unsigned char uc;
-	} data;
-
-	record_compressor<
-		field<int>,
-		field<unsigned int>,
-		field<short>,
-		field<unsigned short>,
-		field<char>,
-		field<unsigned char>
-	> compressor;
-
-	SuchStream s;
-
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	for (int i = 0 ; i < 1000; i ++) {
-		data.a = i;
-		data.ua = (unsigned int)i + (1<<31);
-		data.b = (short)i;
-		data.ub = (unsigned short)i + (1<<15);
-		data.c = i % 128;
-		data.uc = (unsigned char)(i % 128) + (1<<7);
-
-		compressor.compressWith(encoder, (const char*)&data);
-	}
-	encoder.done();
-
-	record_decompressor<
-		field<int>,
-		field<unsigned int>,
-		field<short>,
-		field<unsigned short>,
-		field<char>,
-		field<unsigned char>
-	> decompressor;
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	for (int i = 0 ; i < 1000 ; i ++) {
-		decompressor.decompressWith(decoder, (char *)&data);
-		EXPECT_EQ(data.a, i);
-		EXPECT_EQ(data.ua, (unsigned int)i + (1<<31));
-		EXPECT_EQ(data.b, i);
-		EXPECT_EQ(data.ub, (unsigned short)i + (1<<15));
-		EXPECT_EQ(data.c, i % 128);
-		EXPECT_EQ(data.uc, (unsigned char)(i % 128) + (1<<7));
-	}
-}
 
 
 TEST(lazperf_tests, correctly_packs_unpacks_point10) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	for (int i = 0 ; i < 1000 ; i ++) {
 		las::point10 p;
@@ -318,11 +135,11 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 		p.point_source_ID = (short)i;
 
 		char buf[sizeof(las::point10)];
-		packers<las::point10>::pack(p, buf);
+		p.pack(buf);
 
 		// Now unpack it back
 		//
-		las::point10 pout = packers<las::point10>::unpack(buf);
+		las::point10 pout(buf);
 
 		// Make things are still sane
 		EXPECT_EQ(pout.x, p.x);
@@ -341,19 +158,12 @@ TEST(lazperf_tests, correctly_packs_unpacks_point10) {
 	}
 }
 
-TEST(lazperf_tests, point10_enc_dec_is_sym) {
-    using namespace laszip;
-    using namespace laszip::formats;
-
-    record_compressor<
-        field<las::point10>
-    > compressor;
-
-    SuchStream s;
-
+TEST(lazperf_tests, point10_enc_dec_is_sym)
+{
     const int N = 100000;
 
-    encoders::arithmetic<SuchStream> encoder(s);
+    MemoryStream s;
+    point_compressor_0 compressor(s.outCb(), 0);
 
     for (int i = 0 ; i < N; i ++) {
         las::point10 p;
@@ -373,23 +183,18 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
         p.point_source_ID = i % (1 << 16);
 
         char buf[sizeof(las::point10)];
-        packers<las::point10>::pack(p, buf);
-
-        compressor.compressWith(encoder, buf);
+        p.pack(buf);
+        compressor.compress(buf);
     }
-    encoder.done();
+    compressor.done();
 
-    record_decompressor<
-        field<las::point10>
-    > decompressor;
-
-    decoders::arithmetic<SuchStream> decoder(s);
+    point_decompressor_0 decompressor(s.inCb(), 0);
 
     char buf[sizeof(las::point10)];
     for (int i = 0 ; i < N ; i ++) {
-        decompressor.decompressWith(decoder, (char *)buf);
+        decompressor.decompress((char *)buf);
 
-        las::point10 p = packers<las::point10>::unpack(buf);
+        las::point10 p(buf);
 
         EXPECT_EQ(p.x, i);
         EXPECT_EQ(p.y, i + 1000);
@@ -407,15 +212,13 @@ TEST(lazperf_tests, point10_enc_dec_is_sym) {
     }
 }
 
-void printPoint(const laszip::formats::las::point10& p) {
+void printPoint(const lazperf::las::point10& p) {
 	printf("x: %i, y: %i, z: %i, i: %u, rn: %i, nor: %i, sdf: %i, efl: %i, c: %i, "
 		   "sar: %i, ud: %i, psid: %i\n",
 		   p.x, p.y, p.z,
 		   p.intensity, p.return_number, p.number_of_returns_of_given_pulse,
 		   p.scan_direction_flag, p.edge_of_flight_line,
 		   p.classification, p.scan_angle_rank, p.user_data, p.point_source_ID);
-
-
 }
 
 void printBytes(const unsigned char *bytes, size_t len) {
@@ -429,8 +232,6 @@ void printBytes(const unsigned char *bytes, size_t len) {
 }
 
 TEST(lazperf_tests, can_compress_decompress_real_data) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	std::ifstream f(testFile("point10-1.las.raw"), std::ios::binary);
 	if (!f.good())
@@ -438,44 +239,33 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 
 	las::point10 pnt;
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
+	MemoryStream s;
+    point_compressor_0 compressor(s.outCb(), 0);
 
-	record_compressor<
-		field<las::point10>
-	> comp;
-
-	std::vector<las::point10> points;	// hopefully not too many points in our test case :)
-
+    std::vector<las::point10> points;
 	while(!f.eof()) {
 		f.read((char *)&pnt, sizeof(pnt));
-		comp.compressWith(encoder, (const char*)&pnt);
+		compressor.compress((const char*)&pnt);
 
 		points.push_back(pnt);
 	}
-
-	encoder.done();
+	compressor.done();
 
 	f.close();
 
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	record_decompressor<
-		field<las::point10>
-	> decomp;
+    point_decompressor_0 decompressor(s.inCb(), 0);
 
 	for (size_t i = 0 ; i < points.size() ; i ++) {
 		char buf[sizeof(las::point10)];
 		las::point10 pout;
-		decomp.decompressWith(decoder, (char *)buf);
+		decompressor.decompress((char *)buf);
 
-		pout = packers<las::point10>::unpack(buf);
+		pout.unpack(buf);
 
 		// Make sure all fields match
 		las::point10& p = points[i];
 
 		EXPECT_EQ(p.x, pout.x);
-
 		EXPECT_EQ(p.y, pout.y);
 		EXPECT_EQ(p.z, pout.z);
 		EXPECT_EQ(p.intensity, pout.intensity);
@@ -492,8 +282,6 @@ TEST(lazperf_tests, can_compress_decompress_real_data) {
 
 
 TEST(lazperf_tests, can_decode_laszip_buffer) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
@@ -503,7 +291,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
-	SuchStream s;
+    MemoryStream s;
 
 	// Read all of the file data in one go
 	s.buf.resize(fileSize);
@@ -513,10 +301,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-	decoders::arithmetic<SuchStream> dec(s);
-	record_decompressor<
-		field<las::point10>
-	> decomp;
+    point_decompressor_0 decompressor(s.inCb(), 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -534,7 +319,7 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 
 		// decompress record
 		//
-		decomp.decompressWith(dec, (char*)&pout);
+		decompressor.decompress((char*)&pout);
 
 		// make sure they match
 		EXPECT_EQ(p.x, pout.x);
@@ -554,10 +339,8 @@ TEST(lazperf_tests, can_decode_laszip_buffer) {
 	fin.close();
 }
 
-void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
+void matchSets(const std::string& lasRaw, const std::string& lazRaw)
+{
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
 		FAIL() << "Raw LAS file not available.";
@@ -567,19 +350,16 @@ void matchSets(const std::string& lasRaw, const std::string& lazRaw) {
 	size_t count = (size_t)f.tellg() / sizeof(las::point10);
 	f.seekg(0);
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
+    MemoryStream s;
 
-	record_compressor<
-		field<las::point10>
-	> comp;
+    point_compressor_0 comp(s.outCb(), 0);
 
 	while(count --) {
 		f.read((char *)&pnt, sizeof(pnt));
-		comp.compressWith(encoder, (const char*)&pnt);
+		comp.compress((const char*)&pnt);
 	}
 
-	encoder.done();
+	comp.done();
 	f.close();
 
 
@@ -602,21 +382,13 @@ TEST(lazperf_tests, binary_matches_laszip) {
 
 
 TEST(lazperf_tests, dynamic_compressor_works) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	const std::string lasRaw = testFile("point10-1.las.raw");
 	const std::string lazRaw = testFile("point10-1.las.laz.raw");
 
-	typedef encoders::arithmetic<SuchStream> Encoder;
+    MemoryStream s;
 
-	SuchStream s;
-	Encoder encoder(s);
-
-	auto compressor = new record_compressor<field<las::point10> >();
-
-	dynamic_compressor::ptr pcompressor =
-		make_dynamic_compressor(encoder, compressor);
+	las_compressor::ptr pcompressor = build_las_compressor(s.outCb(), 0);
 
 	std::ifstream f(lasRaw, std::ios::binary);
 	if (!f.good())
@@ -633,7 +405,7 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 	}
 
 	// flush encoder
-	encoder.done();
+    pcompressor->done();
 	f.close();
 
 
@@ -652,8 +424,6 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 
 
 TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
-	using namespace laszip;
-	using namespace laszip::formats;
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
 	if (!f.good())
@@ -663,7 +433,7 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 	size_t fileSize = (size_t)f.tellg();
 	f.seekg(0);
 
-	SuchStream s;
+    MemoryStream s;
 
 	// Read all of the file data in one go
 	s.buf.resize(fileSize);
@@ -673,11 +443,7 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 
 	// start decoding our data, while we do that open the raw las file for comparison
 
-	typedef decoders::arithmetic<SuchStream> Decoder;
-	auto decomp = new record_decompressor<field<las::point10> >();
-
-	Decoder dec(s);
-	dynamic_decompressor::ptr pdecomp = make_dynamic_decompressor(dec, decomp);
+    las_decompressor::ptr pdecomp = build_las_decompressor(s.inCb(), 0);
 
 	// open raw las point stream
 	std::ifstream fin(testFile("point10-1.las.raw"), std::ios::binary);
@@ -715,321 +481,14 @@ TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 	fin.close();
 }
 
-int64_t makegps(unsigned int upper, unsigned int lower) {
-	int64_t u = upper,
-			l = lower;
-	return (u << 32) | l;
-}
+TEST(lazperf_tests, can_encode_match_laszip_point10time)
+{
+	test::reader laz(testFile("point-time.las.laz"));
+    test::reader las(testFile("point-time.las"));
 
-TEST(lazperf_tests, can_compress_decompress_gpstime) {
-	using namespace laszip;
-	using namespace laszip::formats;
+    MemoryStream s;
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::gpstime>
-	> comp;
-
-	const int il = 31, jl = (1 << 16) - 1;
-
-	for (size_t i = 0 ; i < il ; i ++) {
-		for (size_t j = 0 ; j < jl ; j ++) {
-			las::gpstime t(makegps((unsigned int)(i > 0 ? 1ll << i : 0), (unsigned int)((j << 16) + j)));
-			comp.compressWith(encoder, (const char*)&t);
-		}
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::gpstime>
-	> decomp;
-
-	for (size_t i = 0 ; i < il ; i ++) {
-		for (size_t j = 0 ; j < jl ; j ++) {
-			las::gpstime t(makegps((unsigned int)((i > 0 ? 1ll << i : 0)), (unsigned int)( (j << 16) + j)));
-			las::gpstime out;
-			decomp.decompressWith(decoder, (char *)&out);
-
-			EXPECT_EQ(out.value, t.value);
-		}
-	}
-}
-
-TEST(lazperf_tests, can_compress_decompress_random_gpstime) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::gpstime>
-	> comp;
-
-	const size_t S = 1000;
-
-	srand((unsigned int)std::time(NULL));
-	int rvalue = rand();
-	std::vector<int64_t> vs(S);
-	for (size_t i = 0 ; i < S ; i ++) {
-		int64_t a = rvalue & 0xFFFF,
-				b = rvalue & 0xFFFF,
-				c = rvalue & 0xFFFF,
-				d = rvalue & 0xFFFF;
-
-		las::gpstime t((a << 48) | (b << 32) | (c << 16) | d);
-		vs[i] = t.value;
-
-		comp.compressWith(encoder, (const char*)&t);
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::gpstime>
-	> decomp;
-
-	for (size_t i = 0 ; i < S ; i ++) {
-		las::gpstime out;
-		decomp.decompressWith(decoder, (char *)&out);
-
-		EXPECT_EQ(out.value, vs[i]);
-	}
-}
-
-TEST(lazperf_tests, can_compress_decompress_rgb) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::rgb>
-	> comp;
-
-	const size_t rs = 1, gs = 1, bs = 1;
-	const size_t rl = 1 << 16, gl = 1 << 16, bl = 1 << 16;
-
-	for (size_t r = rs ; r < rl ; r <<= 1) {
-		for (size_t g = gs ; g < gl ; g <<= 1) {
-			for (size_t b = bs ; b < bl ; b <<= 1) {
-				las::rgb c((unsigned short)r, (unsigned short)g, (unsigned short)b);
-				comp.compressWith(encoder, (char*)&c);
-			}
-		}
-	}
-
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::rgb>
-	> decomp;
-
-	for (size_t r = rs ; r < rl ; r <<= 1) {
-		for (size_t g = gs ; g < gl ; g <<= 1) {
-			for (size_t b = bs ; b < bl ; b <<= 1) {
-				las::rgb c((unsigned short)r, (unsigned short)g, (unsigned short)b);
-
-				las::rgb out;
-
-				decomp.decompressWith(decoder, (char *)&out);
-
-				EXPECT_EQ(out.r, c.r);
-				EXPECT_EQ(out.g, c.g);
-				EXPECT_EQ(out.b, c.b);
-			}
-		}
-	}
-}
-
-TEST(lazperf_tests, extrabytes_enc_dec_is_sym) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-
-	encoders::arithmetic<SuchStream> encoder(s);
-    auto compressor = make_dynamic_compressor(encoder);
-
-    compressor->add_field(field<las::extrabytes>(10));
-
-    uint16_t eb[5];
-
-	const int N = 100000;
-	for (int i = 0 ; i < N; i ++) {
-        eb[0] = uint16_t(i);
-        eb[1] = uint16_t(i + 1);
-        eb[2] = uint16_t(i + 243);
-        eb[3] = uint16_t(i * 25);
-        eb[4] = uint16_t(i - 462);
-
-		compressor->compress((const char *)eb);
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-    auto decompressor = make_dynamic_decompressor(decoder);
-
-    decompressor->add_field(field<las::extrabytes>(10));
-
-	for (int i = 0 ; i < N ; i ++) {
-		decompressor->decompress((char *)eb);
-
-        EXPECT_EQ(eb[0], uint16_t(i));
-        EXPECT_EQ(eb[1], uint16_t(i + 1));
-        EXPECT_EQ(eb[2], uint16_t(i + 243));
-        EXPECT_EQ(eb[3], uint16_t(i * 25));
-        EXPECT_EQ(eb[4], uint16_t(i - 462));
-	}
-}
-
-TEST(lazperf_tests, can_compress_decompress_rgb_single_channel) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::rgb>
-	> comp;
-
-	const int S = 10000;
-	std::vector<unsigned short> cols(S);
-
-	srand((unsigned int)time(NULL));
-	int rvalue = rand();
-	for (size_t i = 0 ; i < S ; i++) {
-		unsigned short col = rvalue % (1 << 16);
-		cols[i] = col;
-
-		las::rgb c(col, col, col);
-		comp.compressWith(encoder, (char*)&c);
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::rgb>
-	> decomp;
-
-	for (size_t i = 0 ; i < S ; i++) {
-		unsigned short col = cols[i];
-
-		las::rgb c(col, col, col);
-		las::rgb out;
-
-		decomp.decompressWith(decoder, (char *)&out);
-
-		EXPECT_EQ(out.r, c.r);
-		EXPECT_EQ(out.g, c.g);
-		EXPECT_EQ(out.b, c.b);
-	}
-}
-
-TEST(lazperf_tests, can_compress_decompress_real_gpstime) {
-	reader las(testFile("point-time.las"));
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::gpstime>
-	> comp;
-
-//	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
-
-	struct {
-		las::point10 p;
-		las::gpstime t;
-	} p;
-
-	unsigned int l = las.count_;
-	std::vector<int64_t> ts;
-	for (unsigned int i = 0 ; i < l ; i ++) {
-		las.record((char*)&p);
-		ts.push_back(p.t.value);
-		comp.compressWith(encoder, (char*)&p.t.value);
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::gpstime>
-	> decomp;
-
-	for (size_t i = 0 ; i < l ; i ++) {
-		las::gpstime t;
-		decomp.decompressWith(decoder, (char*)&t);
-		EXPECT_EQ(ts[i], t.value);
-	}
-}
-
-TEST(lazperf_tests, can_compress_decompress_real_color) {
-	reader las(testFile("point-color.las"));
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::rgb>
-	> comp;
-
-//	std::cout << "file: " << las.size_ << ", " << las.count_ << std::endl;
-
-	struct {
-		las::point10 p;
-		las::rgb c;
-	} p;
-
-	unsigned int l = (std::min)(10u, las.count_);
-	std::vector<las::rgb> ts;
-	for (unsigned int i = 0 ; i < l ; i ++) {
-		las.record((char*)&p);
-		ts.push_back(p.c);
-		comp.compressWith(encoder, (char*)&p.c);
-	}
-	encoder.done();
-
-	decoders::arithmetic<SuchStream> decoder(s);
-	record_decompressor<
-		field<las::rgb>
-	> decomp;
-
-	for (size_t i = 0 ; i < l ; i ++) {
-		las::rgb t;
-		decomp.decompressWith(decoder, (char*)&t);
-		EXPECT_EQ(ts[i].r, t.r);
-		EXPECT_EQ(ts[i].g, t.g);
-		EXPECT_EQ(ts[i].b, t.b);
-	}
-}
-
-TEST(lazperf_tests, can_encode_match_laszip_point10time) {
-	reader laz(testFile("point-time.las.laz")),
-           las(testFile("point-time.las"));
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::gpstime>
-	> comp;
+	point_compressor_1 comp(s.outCb());
 
 	struct {
 		las::point10 p;
@@ -1038,9 +497,9 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < s.buf.size(); i ++) {
@@ -1048,20 +507,14 @@ TEST(lazperf_tests, can_encode_match_laszip_point10time) {
 	}
 }
 
-TEST(lazperf_tests, can_encode_match_laszip_point10color) {
-	reader laz(testFile("point-color.las.laz")),
-		   las(testFile("point-color.las"));
+TEST(lazperf_tests, can_encode_match_laszip_point10color)
+{
+	test::reader laz(testFile("point-color.las.laz"));
+    test::reader las(testFile("point-color.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::rgb>
-	> comp;
+    MemoryStream s;
+    
+    point_compressor_2 comp(s.outCb());
 
 #pragma pack(push, 1)
 	struct {
@@ -1073,9 +526,9 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
 		las.record((char*)&p);
 //		std::cout << "i = " << i << ", c: " << p.c.r << ", " << p.c.g << ", " << p.c.b << std::endl;
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 //	std::cout << "buffer size: " << s.buf.size() << std::endl;
 
@@ -1085,21 +538,14 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color) {
 	}
 }
 
-TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
-	reader laz(testFile("point-color-time.las.laz")),
-		   las(testFile("point-color-time.las"));
+TEST(lazperf_tests, can_encode_match_laszip_point10timecolor)
+{
+	test::reader laz(testFile("point-color-time.las.laz"));
+    test::reader las(testFile("point-color-time.las"));
 
-	using namespace laszip;
-	using namespace laszip::formats;
 
-	SuchStream s;
-	encoders::arithmetic<SuchStream> encoder(s);
-
-	record_compressor<
-		field<las::point10>,
-		field<las::gpstime>,
-		field<las::rgb>
-	> comp;
+	MemoryStream s;
+    point_compressor_3 comp(s.outCb());
 
 #pragma pack(push, 1)
 	struct {
@@ -1109,12 +555,12 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	} p;
 #pragma pack(pop)
 
-	for (unsigned int i = 0 ; i < las.count_ ; i ++) {
+	for (unsigned int i = 0 ; i < las.count_ ; i ++)
+    {
 		las.record((char*)&p);
-
-		comp.compressWith(encoder, (char*)&p);
+		comp.compress((char*)&p);
 	}
-	encoder.done();
+	comp.done();
 
 	laz.skip(8); // jump past the chunk table offset
 	for (size_t i = 0 ; i < (std::min)(30u, (unsigned int)s.buf.size()); i ++) {
@@ -1122,466 +568,11 @@ TEST(lazperf_tests, can_encode_match_laszip_point10timecolor) {
 	}
 }
 
-TEST(lazperf_tests, schema_to_point_format_works) {
-	using namespace laszip;
-	using namespace laszip::factory;
-
-	{
-		record_schema s;
-		s(record_item::point());
-
-		EXPECT_EQ(s.format(), 0);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), 0);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), -1);
-	}
-
-	{
-		record_schema s;
-		s(record_item::point())
-			(record_item::gpstime());
-
-		EXPECT_EQ(s.format(), 1);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), 1);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), -1);
-	}
-
-	{
-		record_schema s;
-		s(record_item::point())
-			(record_item::rgb());
-
-		EXPECT_EQ(s.format(), 2);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), 2);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), -1);
-	}
-
-	{
-		record_schema s;
-		s(record_item::point())
-			(record_item::gpstime())
-			(record_item::rgb());
-
-		EXPECT_EQ(s.format(), 3);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), 3);
-
-        s(record_item::eb(12));
-        EXPECT_EQ(s.format(), -1);
-	}
-
-	// Make sure we bail if something is not supported
-	{
-		auto f1 = []() {
-			record_schema s;
-			s(record_item::gpstime());
-
-			return s.format();
-		};
-
-		auto f2 = []() {
-			record_schema s;
-			s(record_item::gpstime())
-				(record_item::point())
-				(record_item::rgb());
-
-			return s.format();
-		};
-
-		auto f3 = []() {
-			record_schema s;
-			return s.format();
-		};
-
-		EXPECT_EQ(f1(), -1);
-		EXPECT_EQ(f2(), -1);
-		EXPECT_EQ(f3(), -1);
-	}
-}
-
-TEST(lazperf_tests, just_xyz_encodes_and_decodes) {
-    const int POINT_COUNT = 100000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-    las::xyz input;
-
-	record_compressor<
-		field<las::xyz>
-    > compressor;
-
-	SuchStream s;
-
-	encoders::arithmetic<SuchStream> encoder(s);
-
-    unsigned int seed = static_cast<unsigned int>(time(NULL));
-    srand(seed);
-	int rvalue = rand();
-	for (int i = 0 ; i < POINT_COUNT; i ++) {
-        input.x = rvalue;
-        input.y = rvalue;
-        input.z = rvalue;
-
-		compressor.compressWith(encoder, (const char*)&input);
-	}
-	encoder.done();
-
-	record_decompressor<
-		field<las::xyz>
-    > decompressor;
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-
-    srand(seed);
-	for (int i = 0 ; i < POINT_COUNT ; i ++) {
-		decompressor.decompressWith(decoder, (char *)&input);
-
-		EXPECT_EQ(input.x, rvalue);
-		EXPECT_EQ(input.y, rvalue);
-		EXPECT_EQ(input.z, rvalue);
-	}
-}
-
-TEST(lazperf_tests, dynamic_field_compressor_works) {
-    const int POINT_COUNT = 1000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<int>();
-
-
-		unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-		int rvalue = rand();
-
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            int a = rvalue;
-            comp->compress((const char*)&a);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<int>();
-
-        srand(seed);
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            int a = 0;
-            decomp->decompress((char *)&a);
-
-            EXPECT_EQ(a, rvalue);
-        }
-    }
-
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-
-        int arr[10];
-
-
-		unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-		int rvalue = rand();
-
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            for (int j = 0 ; j < 10 ; j ++) {
-                arr[j] = rvalue;
-            }
-
-            comp->compress((const char*)arr);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            decomp->decompress((char *)arr);
-
-            for (int j = 0 ; j < 10 ; j ++) {
-                EXPECT_EQ(arr[j], rvalue);
-            }
-        }
-    }
-
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<las::gpstime>();
-
-
-		unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-		int rvalue = rand();
-
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            las::gpstime g(makegps(rvalue, rvalue));
-            comp->compress((const char*)&g);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<las::gpstime>();
-
-        srand(seed);
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            las::gpstime a;
-            decomp->decompress((char *)&a);
-
-            EXPECT_EQ(a.value, makegps(rvalue, rvalue));
-        }
-    }
-
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<las::gpstime>();
-        comp->add_field<las::rgb>();
-        comp->add_field<short>();
-        comp->add_field<unsigned short>();
-        comp->add_field<int>();
-
-        // make sure if you're writing structs directly, they need to be packed in tight
-#pragma pack(push, 1)
-        struct {
-            las::gpstime t;
-            las::rgb c;
-            int16_t a;
-            uint16_t b;
-            int32_t d;
-        } data;
-#pragma pack(pop)
-
-		int rvalue = rand();
-        auto randshort = [rvalue]() -> short {
-            return rvalue % (std::numeric_limits<short>::max)();
-        };
-
-        auto randushort = [rvalue]() -> unsigned short {
-            return rvalue % (std::numeric_limits<unsigned short>::max)();
-        };
-
-		unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-
-
-        uint16_t r, g, b;
-        int t1, t2;
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            t1 = rvalue;
-            t2 = rvalue;
-            data.t = las::gpstime(makegps(t1, t2));
-            r = randushort();
-            g = randushort();
-            b = randushort();
-            data.c = las::rgb(r, g, b);
-            data.a = randshort();
-            data.b = randushort();
-            data.d =  rvalue;
-
-            comp->compress((const char*)&data);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<las::rgb>();
-        decomp->add_field<short>();
-        decomp->add_field<unsigned short>();
-        decomp->add_field<int>();
-
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            decomp->decompress((char *)&data);
-            int t3 = rvalue;
-            int t4 = rvalue;
-            EXPECT_EQ(data.t.value, makegps(t3, t4));
-            EXPECT_EQ(data.c.r, randushort());
-            EXPECT_EQ(data.c.g, randushort());
-            EXPECT_EQ(data.c.b, randushort());
-            EXPECT_EQ(data.a, randshort());
-            EXPECT_EQ(data.b, randushort());
-            EXPECT_EQ(data.d, rvalue);
-        }
-    }
-}
-
-TEST(lazperf_tests, dynamic_can_do_blind_compression) {
-    const int POINT_COUNT = 10000;
-
-	using namespace laszip;
-	using namespace laszip::formats;
-
-#pragma pack(push, 1)
-    struct {
-        double x, y, z;
-        float  r, g, b;
-    } p1, p2;
-#pragma pack(pop)
-
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<las::gpstime>();
-        comp->add_field<las::gpstime>();
-        comp->add_field<las::gpstime>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-
-        unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-		int rvalue = rand();
-
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rvalue);
-            p1.y = static_cast<double>(rvalue);
-            p1.z = static_cast<double>(rvalue);
-
-            p1.r = static_cast<float>(rvalue);
-            p1.g = static_cast<float>(rvalue);
-            p1.b = static_cast<float>(rvalue);
-
-            comp->compress((const char*)&p1);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            decomp->decompress((char *)&p2);
-
-            EXPECT_EQ(p2.x, static_cast<double>(rvalue));
-            EXPECT_EQ(p2.y, static_cast<double>(rvalue));
-            EXPECT_EQ(p2.z, static_cast<double>(rvalue));
-            EXPECT_EQ(p2.r, static_cast<float>(rvalue));
-            EXPECT_EQ(p2.g, static_cast<float>(rvalue));
-            EXPECT_EQ(p2.b, static_cast<float>(rvalue));
-        }
-    }
-    {
-        SuchStream s;
-        encoders::arithmetic<SuchStream> encoder(s);
-        auto comp = make_dynamic_compressor(encoder);
-
-        comp->add_field<las::gpstime>();
-        comp->add_field<las::gpstime>();
-        comp->add_field<las::gpstime>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-        comp->add_field<int>();
-
-		unsigned int seed = static_cast<unsigned int>(time(NULL));
-        srand(seed);
-		int rvalue = rand();
-
-        for (int i = 0 ; i < POINT_COUNT; i ++) {
-            p1.x = static_cast<double>(rvalue) / static_cast<double>(rvalue);
-            p1.y = static_cast<double>(rvalue) / static_cast<double>(rvalue);
-            p1.z = static_cast<double>(rvalue) / static_cast<double>(rvalue);
-
-            p1.r = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            p1.g = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            p1.b = static_cast<float>(static_cast<double>(rvalue) / static_cast<double>(rvalue));
-
-            comp->compress((const char*)&p1);
-        }
-        encoder.done();
-
-        decoders::arithmetic<SuchStream> decoder(s);
-        auto decomp = make_dynamic_decompressor(decoder);
-
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<las::gpstime>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-        decomp->add_field<int>();
-
-        srand(seed);
-        for (int i = 0 ; i < POINT_COUNT ; i ++) {
-            decomp->decompress((char *)&p2);
-
-            EXPECT_DOUBLE_EQ(p2.x, static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_DOUBLE_EQ(p2.y, static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_DOUBLE_EQ(p2.z, static_cast<double>(rvalue) / static_cast<double>(rvalue));
-            EXPECT_FLOAT_EQ(p2.r, static_cast<float>(rvalue) / static_cast<float>(rvalue));
-            EXPECT_FLOAT_EQ(p2.g, static_cast<float>(rvalue) / static_cast<float>(rvalue));
-            EXPECT_FLOAT_EQ(p2.b, static_cast<float>(rvalue) / static_cast<float>(rvalue));
-        }
-    }
-}
-
-TEST(lazperf_tests, point_10_intensity) {
-	using namespace laszip;
-	using namespace laszip::formats;
-
-	SuchStream s;
-	encoders::arithmetic <SuchStream> encoder(s);
-
-	record_compressor<field<las::point10>> comp;
+TEST(lazperf_tests, point_10_intensity)
+{
+    MemoryStream s;
+
+    point_compressor_0 comp(s.outCb());
 
 	std::array<las::point10, 7> points;
 	points[0].intensity = 257;
@@ -1593,20 +584,15 @@ TEST(lazperf_tests, point_10_intensity) {
 	points[6].intensity = 514;
 
 	for (const las::point10& point : points)
-	{
-		comp.compressWith(encoder, (const char*)&point);
-	}
-	encoder.done();
+		comp.compress((const char*)&point);
+	comp.done();
 
-
-	decoders::arithmetic<SuchStream> decoder(s);
-
-	record_decompressor<field<las::point10>> decomp;
+    point_decompressor_0 decomp(s.inCb());
 
 	las::point10 decompressedPoint;
 	for (const las::point10 &point : points)
 	{
-		decomp.decompressWith(decoder, (char *)&decompressedPoint);
+		decomp.decompress((char *)&decompressedPoint);
 		EXPECT_EQ(point.intensity, decompressedPoint.intensity);
 	}
 }

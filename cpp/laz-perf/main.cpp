@@ -32,41 +32,13 @@
 
 #include "encoder.hpp"
 #include "decoder.hpp"
-#include "formats.hpp"
+#include "streams.hpp"
 
 #include <iostream>
 #include <memory>
 
-struct SuchStream {
-	SuchStream() : buf(), idx(0) {}
-
-	void putBytes(const unsigned char* b, size_t len) {
-		while(len --) {
-			buf.push_back(*b++);
-		}
-	}
-
-	void putByte(const unsigned char b) {
-		buf.push_back(b);
-	}
-
-	unsigned char getByte() {
-		return buf[idx++];
-	}
-
-	void getBytes(unsigned char *b, int len) {
-		for (int i = 0 ; i < len ; i ++) {
-			b[i] = getByte();
-		}
-	}
-
-	std::vector<unsigned char> buf;	// cuz I'm ze faste
-	size_t idx;
-};
-
 void runEncoderDecoder() {
 	using namespace laszip;
-	using namespace laszip::formats;
 
 	auto start = common::tick();
 	std::cout << common::since(start) << std::endl;
@@ -78,9 +50,8 @@ void runEncoderDecoder() {
 		field<unsigned int> > compressor;
 
 	// Throw stuff down at the coder and capture the output
-	SuchStream s;
 
-	encoders::arithmetic<SuchStream> encoder(s);
+	encoders::arithmetic<MemoryStream> encoder(s);
 	struct {
 		int a;
 		short b;
@@ -107,7 +78,7 @@ void runEncoderDecoder() {
 		field<unsigned short>,
 		field<unsigned int> > decompressor;
 
-	decoders::arithmetic<SuchStream> decoder(s);
+	decoders::arithmetic<MemoryStream> decoder(s);
 
 	for (int i = 0 ; i < 10 ; i ++) {
 		decompressor.decompressWith(decoder, (char *)&data);

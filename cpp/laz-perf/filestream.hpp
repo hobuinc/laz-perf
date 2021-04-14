@@ -1,19 +1,17 @@
 /*
 ===============================================================================
 
-  FILE:  common.hpp
+  FILE:  filestream.hpp
 
   CONTENTS:
-
+    Stream abstractions
 
   PROGRAMMERS:
 
-    martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
     uday.karan@gmail.com - Hobu, Inc.
 
   COPYRIGHT:
 
-    (c) 2007-2014, martin isenburg, rapidlasso - tools to catch reality
     (c) 2014, Uday Verma, Hobu, Inc.
 
     This is free software; you can redistribute and/or modify it under the
@@ -30,18 +28,44 @@
 
 #pragma once
 
-#include <chrono>
+#include <iostream>
 
-namespace common {
-	inline std::chrono::time_point<std::chrono::high_resolution_clock> tick() {
-		return std::chrono::high_resolution_clock::now();
-	}
+#include "lazperf.hpp"
 
-	inline float since(const std::chrono::time_point<std::chrono::high_resolution_clock>& p) {
-		using namespace std::chrono;
+namespace lazperf
+{
 
-		auto now = high_resolution_clock::now();
-		return duration_cast<duration<float> >(now - p).count();
-	}
-}
+// Convenience class
+
+struct OutFileStream
+{
+public:
+    OutFileStream(std::ostream& out);
+
+    void putBytes(const unsigned char *c, size_t len);
+    OutputCb cb();
+
+private:
+    std::ostream& f_;
+};
+
+// Convenience class
+
+struct InFileStream
+{
+    struct Private;
+
+public:
+    InFileStream(std::istream& in);
+    ~InFileStream();
+
+    // This will force a fill on the next fetch.
+    void reset();
+    InputCb cb();
+
+private:
+    std::unique_ptr<Private> p_;
+};
+
+} // namespace lazperf
 
