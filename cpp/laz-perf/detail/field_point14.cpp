@@ -391,12 +391,10 @@ void Point14Compressor::encodeGpsTime(const las::point14& point, ChannelCtx& c)
 {
     auto findSeq = [&c](double gpstime, int start, int32_t& diff)
     {
-        auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
-
         for (int i = start; i < 4; ++i)
         {
             int testseq = (c.last_gps_seq_ + i) & 0x3;
-            int64_t diff64 = i64(gpstime) - i64(c.last_gpstime_[testseq]);
+            int64_t diff64 = utils::d2i(gpstime) - utils::d2i(c.last_gpstime_[testseq]);
             diff = (int32_t)diff64;
             if (diff64 == diff)
                 return i;
@@ -799,7 +797,6 @@ void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
         int32_t multi = gpstime_dec_.decodeSymbol(c.gpstime_0diff_model_);
         if (multi == 0)
         {
-
             int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_, 0, 0);
 
             c.last_gpstime_diff_[c.last_gps_seq_] = sym;

@@ -328,22 +328,6 @@ struct point14
 
     double gpsTime() const
     { return gpstime_; }
-    /**
-    uint64_t uGpsTime() const
-    {
-        uint64_t u;
-
-        memcpy(&u, &gpstime_, sizeof(u));
-        return u;
-    }
-    int64_t iGpsTime() const
-    {
-        int64_t i;
-
-        memcpy(&i, &gpstime_, sizeof(i));
-        return i;
-    }
-    **/
     void setGpsTime(double gpstime)
     { gpstime_ = gpstime; }
 

@@ -200,7 +200,7 @@ void eb_vlr::addField()
     ebfield field;
 
     std::string name = "FIELD_" + std::to_string(items.size());
-    strncpy(field.name, name.data(), 32);
+    memcpy(field.name, name.data(), 32);
 
     items.push_back(field);
 }

@@ -1,5 +1,6 @@
 // Make a LAS file with random data in it.
 
+#include <climits>
 #include <string>
 #include <vector>
 #include <iostream>
