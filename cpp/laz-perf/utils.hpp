@@ -34,6 +34,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 
 #ifdef NDEBUG
 #define LAZDEBUG(e) ((void)0)
