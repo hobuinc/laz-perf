@@ -90,7 +90,6 @@ jobs:
         continue-on-error: true
       - name: Configure
         shell: bash -l {0}
-        working-directory: ./cpp
         run: |
             if [ "$RUNNER_OS" == "Windows" ]; then
               export CC=cl.exe
@@ -99,12 +98,10 @@ jobs:
             cmake . -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON
       - name: Build
         shell: bash -l {0}
-        working-directory: ./cpp
         run: |
             ninja
       - name: Test
         shell: bash -l {0}
-        working-directory: ./cpp
         run: |
             ctest
 
