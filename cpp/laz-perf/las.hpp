@@ -31,6 +31,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
 
 #include "decoder.hpp"
 #include "encoder.hpp"

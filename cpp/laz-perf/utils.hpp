@@ -31,6 +31,8 @@
 #ifndef __util_hpp__
 #define __util_hpp__
 
+#include <string.h>
+
 #include <array>
 #include <cstdint>
 #include <cstdlib>
@@ -130,12 +132,15 @@ inline double unpack(const char *in)
     uint64_t lower = unpack<uint32_t>(in);
     uint64_t upper = unpack<uint32_t>(in + 4);
     uint64_t val = (upper << 32) | lower;
-    return *reinterpret_cast<double *>(&val);
+    double d;
+    memcpy(&d, &val, sizeof(d));
+    return d;
 }
 
 inline void pack(const double& d, char *buf)
 {
-    const uint64_t val = *reinterpret_cast<const double *>(&d);
+    uint64_t val;
+    memcpy(&val, &d, sizeof(val));
     pack(uint32_t(val & 0xFFFFFFFF), buf);
     pack(uint32_t(val >> 32), buf + 4);
 }
