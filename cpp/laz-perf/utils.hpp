@@ -68,6 +68,34 @@ T clamp(U u)
     return u;
 }
 
+inline double u2d(uint64_t u)
+{
+    double d;
+    memcpy(&d, &u, sizeof(d));
+    return d;
+}
+
+inline double i2d(int64_t i)
+{
+    double d;
+    memcpy(&d, &i, sizeof(d));
+    return d;
+}
+
+inline uint64_t d2u(double d)
+{
+    uint64_t u;
+    memcpy(&u, &d, sizeof(u));
+    return u;
+}
+
+inline int64_t d2i(double d)
+{
+    int64_t i;
+    memcpy(&i, &d, sizeof(i));
+    return i;
+}
+
 template<typename T>
 T unpack(const char *)
 {
@@ -131,16 +159,12 @@ inline double unpack(const char *in)
 {
     uint64_t lower = unpack<uint32_t>(in);
     uint64_t upper = unpack<uint32_t>(in + 4);
-    uint64_t val = (upper << 32) | lower;
-    double d;
-    memcpy(&d, &val, sizeof(d));
-    return d;
+    return u2d((upper << 32) | lower);
 }
 
 inline void pack(const double& d, char *buf)
 {
-    uint64_t val;
-    memcpy(&val, &d, sizeof(val));
+    uint64_t val = d2u(d);
     pack(uint32_t(val & 0xFFFFFFFF), buf);
     pack(uint32_t(val >> 32), buf + 4);
 }

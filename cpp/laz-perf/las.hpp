@@ -31,7 +31,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <string.h>
 
 #include "decoder.hpp"
 #include "encoder.hpp"
@@ -329,6 +328,7 @@ struct point14
 
     double gpsTime() const
     { return gpstime_; }
+    /**
     uint64_t uGpsTime() const
     {
         uint64_t u;
@@ -343,6 +343,7 @@ struct point14
         memcpy(&i, &gpstime_, sizeof(i));
         return i;
     }
+    **/
     void setGpsTime(double gpstime)
     { gpstime_ = gpstime; }
 

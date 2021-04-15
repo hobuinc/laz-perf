@@ -405,7 +405,6 @@ void Point14Compressor::encodeGpsTime(const las::point14& point, ChannelCtx& c)
     };
 
     gpstime_enc_.makeValid();
-    auto u64 = [](double d){ return *reinterpret_cast<uint64_t *>(&d); };
 
     loop: 
     if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
@@ -431,9 +430,9 @@ void Point14Compressor::encodeGpsTime(const las::point14& point, ChannelCtx& c)
         {
             gpstime_enc_.encodeSymbol(c.gpstime_0diff_model_, 1);
             c.gpstime_compr_.compress(gpstime_enc_,
-                    u64(c.last_gpstime_[c.last_gps_seq_]) >> 32,
-                    (int32_t)(point.uGpsTime() >> 32), 8);
-            gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
+                    utils::d2u(c.last_gpstime_[c.last_gps_seq_]) >> 32,
+                    (int32_t)(utils::d2u(point.gpsTime()) >> 32), 8);
+            gpstime_enc_.writeInt((uint32_t)(utils::d2u(point.gpsTime())));
             c.last_gps_seq_ = c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
             c.last_gpstime_diff_[c.last_gps_seq_] = 0;
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
@@ -442,9 +441,7 @@ void Point14Compressor::encodeGpsTime(const las::point14& point, ChannelCtx& c)
     }
     else  // Last diff nonzero.
     {
-        auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
-
-        int64_t diff64 = point.iGpsTime() - i64(c.last_gpstime_[c.last_gps_seq_]);
+        int64_t diff64 = utils::d2i(point.gpsTime()) - utils::d2i(c.last_gpstime_[c.last_gps_seq_]);
         int32_t diff = (int32_t)diff64;
 
         // 32 bit difference.
@@ -525,9 +522,9 @@ void Point14Compressor::encodeGpsTime(const las::point14& point, ChannelCtx& c)
             }
             gpstime_enc_.encodeSymbol(c.gpstime_multi_model_, GpstimeMultiCodeFull);
             c.gpstime_compr_.compress(gpstime_enc_,
-                    int32_t(u64(c.last_gpstime_[c.last_gps_seq_]) >> 32),
-                    int32_t(point.uGpsTime() >> 32), 8);
-            gpstime_enc_.writeInt((uint32_t)(point.uGpsTime()));
+                    int32_t(utils::d2u(c.last_gpstime_[c.last_gps_seq_]) >> 32),
+                    int32_t(utils::d2u(point.gpsTime()) >> 32), 8);
+            gpstime_enc_.writeInt((uint32_t)(utils::d2u(point.gpsTime())));
             c.next_gps_seq_ = c.last_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
             c.last_gpstime_diff_[c.last_gps_seq_] = 0;
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
@@ -796,11 +793,6 @@ char *Point14Decompressor::decompress(char *buf, int& scArg)
 
 void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
 {
-    auto u2d = [](uint64_t u) { return *reinterpret_cast<double *>(&u); };
-    auto i2d = [](int64_t i) { return *reinterpret_cast<double *>(&i); };
-    auto u64 = [](double d) { return *reinterpret_cast<uint64_t *>(&d); };
-    auto i64 = [](double d) { return *reinterpret_cast<int64_t *>(&d); };
-
     loop:
     if (c.last_gpstime_diff_[c.last_gps_seq_] == 0)
     {
@@ -811,8 +803,8 @@ void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
             int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_, 0, 0);
 
             c.last_gpstime_diff_[c.last_gps_seq_] = sym;
-            int64_t lasttime = i64(c.last_gpstime_[c.last_gps_seq_]) + sym;
-            c.last_gpstime_[c.last_gps_seq_] = i2d(lasttime);
+            int64_t lasttime = utils::d2i(c.last_gpstime_[c.last_gps_seq_]) + sym;
+            c.last_gpstime_[c.last_gps_seq_] = utils::i2d(lasttime);
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
         }
         else if (multi == 1)
@@ -820,9 +812,9 @@ void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
             c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
             double lasttime = c.last_gpstime_[c.last_gps_seq_];
             int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
-                    (int32_t)(u64(lasttime) >> 32), 8);
+                    (int32_t)(utils::d2u(lasttime) >> 32), 8);
             c.last_gpstime_[c.next_gps_seq_] =
-                u2d(((uint64_t)sym << 32) | gpstime_dec_.readInt());
+                utils::u2d(((uint64_t)sym << 32) | gpstime_dec_.readInt());
             c.last_gps_seq_ = c.next_gps_seq_;
             c.last_gpstime_diff_[c.last_gps_seq_] = 0;
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
@@ -842,7 +834,7 @@ void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
             int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
                     c.last_gpstime_diff_[c.last_gps_seq_], 1);
             c.last_gpstime_[c.last_gps_seq_] =
-                i2d((int64_t)sym + u64(c.last_gpstime_[c.last_gps_seq_]));
+                utils::i2d((int64_t)sym + utils::d2u(c.last_gpstime_[c.last_gps_seq_]));
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
         }
         else if (multi < GpstimeMultiCodeFull)
@@ -898,18 +890,18 @@ void Point14Decompressor::decodeGpsTime(ChannelCtx& c)
                     }
                 }
             }
-            int64_t lasttime = i64(c.last_gpstime_[c.last_gps_seq_]);
-            c.last_gpstime_[c.last_gps_seq_] = i2d(lasttime + gpstime_diff);
+            int64_t lasttime = utils::d2i(c.last_gpstime_[c.last_gps_seq_]);
+            c.last_gpstime_[c.last_gps_seq_] = utils::i2d(lasttime + gpstime_diff);
         }
         else if (multi == GpstimeMultiCodeFull)
         {
             c.next_gps_seq_ = (c.next_gps_seq_ + 1) & 3;
 
-            uint64_t lasttime = u64(c.last_gpstime_[c.last_gps_seq_]);
+            uint64_t lasttime = utils::d2u(c.last_gpstime_[c.last_gps_seq_]);
             int32_t sym = c.gpstime_decomp_.decompress(gpstime_dec_,
                     (int32_t)(lasttime >> 32), 8);
             c.last_gpstime_[c.next_gps_seq_] =
-                u2d(((uint64_t)(sym) << 32) | gpstime_dec_.readInt());
+                utils::u2d(((uint64_t)(sym) << 32) | gpstime_dec_.readInt());
             c.last_gps_seq_ = c.next_gps_seq_;
             c.last_gpstime_diff_[c.last_gps_seq_] = 0;
             c.multi_extreme_counter_[c.last_gps_seq_] = 0;
