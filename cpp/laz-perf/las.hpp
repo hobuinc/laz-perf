@@ -140,6 +140,8 @@ public:
         utils::pack(uint32_t(value >> 32), buffer + 4);
     }
 
+    // Note that in a LAS file, gps time is a double, not int64_t, but since we always
+    // treat it as int here, we just unpack to that form.
     int64_t value;
 };
 
