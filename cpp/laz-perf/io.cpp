@@ -288,7 +288,7 @@ void basic_file::parseChunkTable()
 
         for (size_t i = 1 ; i <= chunk_table_header.chunk_count; i++)
         {
-            uint64_t offset = i > 1 ? (int32_t)chunk_table_offsets_[i - 1] : 0;
+            uint32_t offset = i > 1 ? (int32_t)chunk_table_offsets_[i - 1] : 0;
             chunk_table_offsets_[i] = static_cast<uint64_t>(
                     decomp.decompress(decoder, offset, 1));
         }
