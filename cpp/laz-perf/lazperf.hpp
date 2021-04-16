@@ -92,6 +92,7 @@ class point_compressor_0 : public point_compressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_compressor_0(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_0();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
 };
@@ -100,6 +101,7 @@ class point_compressor_1 : public point_compressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_compressor_1(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_1();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
 };
@@ -108,6 +110,7 @@ class point_compressor_2 : public point_compressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_compressor_2(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_2();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
 };
@@ -116,6 +119,7 @@ class point_compressor_3 : public point_compressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_compressor_3(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_3();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
 };
@@ -138,6 +142,7 @@ class point_compressor_6 : public point_compressor_base_1_4
 {
 public:
     LAZPERF_EXPORT point_compressor_6(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_6();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
     LAZPERF_EXPORT virtual void done();
@@ -147,6 +152,7 @@ class point_compressor_7 : public point_compressor_base_1_4
 {
 public:
     LAZPERF_EXPORT point_compressor_7(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_7();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
     LAZPERF_EXPORT virtual void done();
@@ -156,6 +162,7 @@ class point_compressor_8 : public point_compressor_base_1_4
 {
 public:
     LAZPERF_EXPORT point_compressor_8(OutputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_compressor_8();
 
     LAZPERF_EXPORT virtual const char *compress(const char *in);
     LAZPERF_EXPORT virtual void done();
@@ -183,6 +190,8 @@ class point_decompressor_0 : public point_decompressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_decompressor_0(InputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_decompressor_0();
+
     LAZPERF_EXPORT virtual char *decompress(char *in);
 };
 
@@ -190,6 +199,8 @@ class point_decompressor_1 : public point_decompressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_decompressor_1(InputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_decompressor_1();
+
     LAZPERF_EXPORT virtual char *decompress(char *out);
 };
 
@@ -197,6 +208,8 @@ class point_decompressor_2 : public point_decompressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_decompressor_2(InputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_decompressor_2();
+
     LAZPERF_EXPORT virtual char *decompress(char *out);
 };
 
@@ -204,6 +217,8 @@ class point_decompressor_3 : public point_decompressor_base_1_2
 {
 public:
     LAZPERF_EXPORT point_decompressor_3(InputCb cb, size_t ebCount = 0);
+    LAZPERF_EXPORT ~point_decompressor_3();
+
     LAZPERF_EXPORT virtual char *decompress(char *out);
 };
 
@@ -241,8 +256,8 @@ public:
 struct point_decompressor_8 : public point_decompressor_base_1_4
 {
 public:
-    LAZPERF_EXPORT point_decompressor_8(InputCb cb, size_t ebCount = 0);
     LAZPERF_EXPORT ~point_decompressor_8();
+    LAZPERF_EXPORT point_decompressor_8(InputCb cb, size_t ebCount = 0);
 
     LAZPERF_EXPORT virtual char *decompress(char *out);
 };
