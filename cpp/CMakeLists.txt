@@ -22,7 +22,8 @@ set(LAZPERF_UNIT_TEST lazperf_tests)
 #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEMSCRIPTEN_BUILD -DEMSCRIPTEN_LINUX")
 #endif()
 
-set(LAZPERF_LIB lazperf)
+set(LAZPERF_SHARED_LIB lazperf)
+set(LAZPERF_STATIC_LIB lazperf_s)
 
 add_subdirectory(laz-perf)
 add_subdirectory(examples)
@@ -61,7 +62,7 @@ install(
 
 install(
     TARGETS
-        ${LAZPERF_LIB}
+        ${LAZPERF_SHARED_LIB}
     EXPORT
         lazperf-targets
     LIBRARY DESTINATION lib
@@ -78,7 +79,7 @@ install(
         lib/cmake/LAZPERF
 )
 
-target_include_directories(${LAZPERF_LIB}
+target_include_directories(${LAZPERF_SHARED_LIB}
     INTERFACE
         $<INSTALL_INTERFACE:include>)
 
