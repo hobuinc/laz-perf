@@ -122,14 +122,14 @@ inline uint64_t unpack(const char *in)
 
 inline void pack(uint64_t v, char *out)
 {
-    out[7] = (v >> 56);
-    out[6] = (v >> 48);
-    out[5] = (v >> 40);
-    out[4] = (v >> 32);
-    out[3] = (v >> 24);
-    out[2] = (v >> 16);
-    out[1] = (v >> 8);
-    out[0] = v;
+    out[7] = (char)(v >> 56);
+    out[6] = (char)(v >> 48);
+    out[5] = (char)(v >> 40);
+    out[4] = (char)(v >> 32);
+    out[3] = (char)(v >> 24);
+    out[2] = (char)(v >> 16);
+    out[1] = (char)(v >> 8);
+    out[0] = (char)v;
 }
 
 template<>
