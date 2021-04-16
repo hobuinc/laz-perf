@@ -40,7 +40,7 @@
 #define LAZPERF_VERSION 1.3.0
 
 #ifdef _WIN32
-#define LAZPERF_EXPORT __declspec((dllexport))
+#define LAZPERF_EXPORT __declspec(dllexport)
 #else
 // This may not be necessary. The GCC doc says it take __declspec((dllexport))
 #define LAZPERF_EXPORT __attribute__((visibility ("default")))
