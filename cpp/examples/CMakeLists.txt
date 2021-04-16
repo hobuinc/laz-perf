@@ -5,7 +5,7 @@ target_include_directories(point10
 )
 target_link_libraries(point10
     PRIVATE
-        lazperf
+        ${LAZPERF_LIB}
 )
 lazperf_target_compile_settings(point10)
 
@@ -16,7 +16,7 @@ target_include_directories(readlaz
 )
 target_link_libraries(readlaz
     PRIVATE
-        lazperf
+        ${LAZPERF_LIB}
 )
 lazperf_target_compile_settings(readlaz)
 
