@@ -113,10 +113,11 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         p->y_ = std::uniform_int_distribution<int32_t>()(gen);
         p->z_ = std::uniform_int_distribution<int32_t>()(gen);
         p->intensity_ = std::uniform_int_distribution<int16_t>()(gen);
-        p->returns_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->flags_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->classification_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->user_data_ = std::uniform_int_distribution<uint8_t>()(gen);
+        // There is no support for uniform_int_distribution<char type> :(
+        p->returns_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->flags_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->classification_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->user_data_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
         p->scan_angle_ = std::uniform_int_distribution<int16_t>()(gen);
         p->point_source_ID_ = std::uniform_int_distribution<uint16_t>()(gen);
         p->gpstime_ = std::uniform_real_distribution<>()(gen);
@@ -139,7 +140,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         }
     }
     for (int i = 0; i < extra_bytes; ++i)
-        *pos++ = std::uniform_int_distribution<char>()(gen);
+        *pos++ = (char)std::uniform_int_distribution<>(0, 255)(gen);
 
     size_t len = pos - buf;
     size_t bits = len * CHAR_BIT;
