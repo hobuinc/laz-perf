@@ -28,8 +28,10 @@ jobs:
     name: t1
     runs-on: 'ubuntu-latest'
     steps:
-      - uses: actions/checkout@v2
-        path: lazperf
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: lazperf
       - name: Emsdk
         run: |
           git clone https://github.com/emscripten-core/emsdk.git
