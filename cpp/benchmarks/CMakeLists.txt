@@ -1,4 +1,4 @@
-include_directories(../laz-perf)
+include_directories(../lazperf)
 
 if (LASZIP_FOUND)
 	include_directories(${LASZIP_INCLUDE_DIR})

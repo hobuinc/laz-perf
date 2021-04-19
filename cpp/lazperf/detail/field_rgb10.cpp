@@ -24,6 +24,7 @@
 */
 
 #include "../las.hpp"
+//#include "../types.hpp"
 
 namespace lazperf
 {
@@ -94,40 +95,44 @@ const char *Rgb10Compressor::compress(const char *buf)
     if (sym & (1 << 0))
     {
         diff_l = (this_val.r & 0xFF) - (last.r & 0xFF);
-        enc_.encodeSymbol(m_rgb_diff_0, U8_FOLD(diff_l));
+        enc_.encodeSymbol(m_rgb_diff_0, uint8_t(diff_l));
     }
     if (sym & (1 << 1))
     {
         diff_h = static_cast<int>(this_val.r >> 8) - (last.r >> 8);
-        enc_.encodeSymbol(m_rgb_diff_1, U8_FOLD(diff_h));
+        enc_.encodeSymbol(m_rgb_diff_1, uint8_t(diff_h));
     }
 
     if (sym & (1 << 6))
     {
         if (sym & (1 << 2))
         {
-            corr = static_cast<int>(this_val.g & 0xFF) - U8_CLAMP(diff_l + (last.g & 0xFF));
-            enc_.encodeSymbol(m_rgb_diff_2, U8_FOLD(corr));
+            corr = static_cast<int>(this_val.g & 0xFF) -
+                utils::clamp<uint8_t>(diff_l + (last.g & 0xFF));
+            enc_.encodeSymbol(m_rgb_diff_2, uint8_t(corr));
         }
 
         if (sym & (1 << 4))
         {
             diff_l = (diff_l + (this_val.g & 0xFF) - (last.g & 0xFF)) / 2;
-            corr = static_cast<int>(this_val.b & 0xFF) - U8_CLAMP(diff_l + (last.b & 0xFF));
-            enc_.encodeSymbol(m_rgb_diff_4, U8_FOLD(corr));
+            corr = static_cast<int>(this_val.b & 0xFF) -
+                utils::clamp<uint8_t>(diff_l + (last.b & 0xFF));
+            enc_.encodeSymbol(m_rgb_diff_4, uint8_t(corr));
         }
 
         if (sym & (1 << 3))
         {
-            corr = static_cast<int>(this_val.g >> 8) - U8_CLAMP(diff_h + (last.g >> 8));
-            enc_.encodeSymbol(m_rgb_diff_3, U8_FOLD(corr));
+            corr = static_cast<int>(this_val.g >> 8) -
+                utils::clamp<uint8_t>(diff_h + (last.g >> 8));
+            enc_.encodeSymbol(m_rgb_diff_3, uint8_t(corr));
         }
 
         if (sym & (1 << 5))
         {
             diff_h = (diff_h + ((this_val.g >> 8)) - (last.g >> 8)) / 2;
-            corr = static_cast<int>(this_val.b >> 8) - U8_CLAMP(diff_h + (last.b >> 8));
-            enc_.encodeSymbol(m_rgb_diff_5, U8_FOLD(corr));
+            corr = static_cast<int>(this_val.b >> 8) -
+                utils::clamp<uint8_t>(diff_h + (last.b >> 8));
+            enc_.encodeSymbol(m_rgb_diff_5, uint8_t(corr));
         }
     }
 
@@ -161,7 +166,7 @@ char *Rgb10Decompressor::decompress(char *buf)
     if (sym & (1 << 0))
     {
         corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_0));
-        this_val.r = static_cast<unsigned short>(U8_FOLD(corr + (last.r & 0xFF)));
+        this_val.r = static_cast<unsigned short>(uint8_t(corr + (last.r & 0xFF)));
     }
     else
     {
@@ -171,7 +176,7 @@ char *Rgb10Decompressor::decompress(char *buf)
     if (sym & (1 << 1))
     {
         corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_1));
-        this_val.r |= (static_cast<unsigned short>(U8_FOLD(corr + (last.r >> 8))) << 8);
+        this_val.r |= (static_cast<unsigned short>(uint8_t(corr + (last.r >> 8))) << 8);
     }
     else
     {
@@ -185,8 +190,8 @@ char *Rgb10Decompressor::decompress(char *buf)
         if (sym & (1 << 2))
         {
             corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_2));
-            this_val.g = static_cast<unsigned short>(U8_FOLD(corr +
-                U8_CLAMP(diff + (last.g & 0xFF))));
+            this_val.g = static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (last.g & 0xFF))));
         }
         else
         {
@@ -197,8 +202,8 @@ char *Rgb10Decompressor::decompress(char *buf)
         {
             corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_4));
             diff = (diff + (this_val.g & 0xFF) - (last.g & 0xFF)) / 2;
-            this_val.b = static_cast<unsigned short>(U8_FOLD(corr +
-                U8_CLAMP(diff + (last.b & 0xFF))));
+            this_val.b = static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (last.b & 0xFF))));
         }
         else
         {
@@ -209,8 +214,8 @@ char *Rgb10Decompressor::decompress(char *buf)
         if (sym & (1 << 3))
         {
             corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_3));
-            this_val.g |= static_cast<unsigned short>(U8_FOLD(corr +
-                U8_CLAMP(diff + (last.g >> 8)))) << 8;
+            this_val.g |= static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (last.g >> 8)))) << 8;
         }
         else {
             this_val.g |= last.g & 0xFF00;
@@ -221,8 +226,8 @@ char *Rgb10Decompressor::decompress(char *buf)
             corr = static_cast<unsigned char>(dec_.decodeSymbol(m_rgb_diff_5));
             diff = (diff + (this_val.g >> 8) - (last.g >> 8)) / 2;
 
-            this_val.b |= static_cast<unsigned short>(U8_FOLD(corr +
-                U8_CLAMP(diff + (last.b >> 8)))) << 8;
+            this_val.b |= static_cast<unsigned short>(uint8_t(corr +
+                utils::clamp<uint8_t>(diff + (last.b >> 8)))) << 8;
         }
         else {
             this_val.b |= (last.b & 0xFF00);

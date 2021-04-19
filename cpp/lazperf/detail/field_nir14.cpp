@@ -159,7 +159,7 @@ char *Nir14Decompressor::decompress(char *buf, int& sc)
     if (sym & (1 << 0))
     {
         uint8_t corr = (uint8_t)nir_dec_.decodeSymbol(c.diff_model_[0]);
-        nir.val = static_cast<uint16_t>(U8_FOLD(corr + (lastNir.val & 0xFF)));
+        nir.val = uint8_t(corr + (lastNir.val & 0xFF));
     }
     else
         nir.val = lastNir.val & 0xFF;
@@ -167,7 +167,7 @@ char *Nir14Decompressor::decompress(char *buf, int& sc)
     if (sym & (1 << 1))
     {
         uint8_t corr = (uint8_t)nir_dec_.decodeSymbol(c.diff_model_[1]);
-        nir.val |= (static_cast<uint16_t>(U8_FOLD(corr + (lastNir.val >> 8))) << 8);
+        nir.val |= (static_cast<uint16_t>(uint8_t(corr + (lastNir.val >> 8))) << 8);
     }
     else
         nir.val |= lastNir.val & 0xFF00;

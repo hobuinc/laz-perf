@@ -34,7 +34,9 @@
 
 #include "test_main.hpp"
 
-#include <laz-perf/io.hpp>
+#include <lazperf/io.hpp>
+#include <lazperf/io_private.hpp>
+#include <lazperf/vlr.hpp>
 
 #include <cstdio>
 #include "reader.hpp"
@@ -158,7 +160,7 @@ TEST(io_tests, parses_laszip_vlr_correctly)
 {
     {
         reader::named_file f(testFile("point10.las.laz"));
-        auto& vlr = f.laz_;
+        auto& vlr = ((reader::basic_file&)f).p_->laz;
 
         EXPECT_EQ(vlr.compressor, 2);
         EXPECT_EQ(vlr.coder, 0);
@@ -645,5 +647,19 @@ TEST(io_tests, issue22)
     }
     std::remove(tempfile.c_str());
 }
+
+/**
+TEST(io_tests, fast)
+{
+    std::string dir = "/Users/acbell/nyc2/";
+    std::string las = dir + "1.las";
+    std::string laz = dir + "1.laz";
+    compare(laz, las);
+    std::string outLaz(makeTempFileName());
+    for (int i = 0; i < 300; ++i)
+        encode(las, outLaz);
+    compare(outLaz, las);
+}
+**/
 
 } // namespace lazperf

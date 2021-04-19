@@ -3,8 +3,6 @@ lazperf/lazperf
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-lazperf-config.cmake
-lazperf-configVersion.cmake
 Makefile
 install_manifest.txt
 test/lazperf_tests
@@ -29,7 +27,8 @@ cpp/examples/*.wasm
 cpp/benchmarks/*.wasm
 
 # test files we don't need to version control
-/cpp/test/raw-sets/autzen.la?
+cpp/test/test_main.hpp
+cpp/test/raw-sets/autzen.la?
 *.vcxproj
 *.filters
 *.opensdf

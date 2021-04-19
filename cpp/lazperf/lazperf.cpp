@@ -42,6 +42,9 @@ void point_compressor_base_1_2::done()
 
 // COMPRESSOR 0
 
+point_compressor_0::~point_compressor_0()
+{}
+
 point_compressor_0::point_compressor_0(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_2(cb, ebCount)
 {}
@@ -54,6 +57,9 @@ const char *point_compressor_0::compress(const char *in)
 }
 
 // COMPRESSOR 1
+
+point_compressor_1::~point_compressor_1()
+{}
 
 point_compressor_1::point_compressor_1(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_2(cb, ebCount)
@@ -69,6 +75,9 @@ const char *point_compressor_1::compress(const char *in)
 
 // COMPRESSOR 2
 
+point_compressor_2::~point_compressor_2()
+{}
+
 point_compressor_2::point_compressor_2(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_2(cb, ebCount)
 {}
@@ -82,6 +91,9 @@ const char *point_compressor_2::compress(const char *in)
 }
 
 // COMPRESSOR 3
+
+point_compressor_3::~point_compressor_3()
+{}
 
 point_compressor_3::point_compressor_3(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_2(cb, ebCount)
@@ -118,6 +130,9 @@ point_compressor_base_1_4::point_compressor_base_1_4(OutputCb cb, size_t ebCount
 
 // COMPRESOR 6
 
+point_compressor_6::~point_compressor_6()
+{}
+
 point_compressor_6::point_compressor_6(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_4(cb, ebCount)
 {}
@@ -146,6 +161,9 @@ void point_compressor_6::done()
 }
 
 // COMPRESOR 7
+
+point_compressor_7::~point_compressor_7()
+{}
 
 point_compressor_7::point_compressor_7(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_4(cb, ebCount)
@@ -178,6 +196,9 @@ void point_compressor_7::done()
 }
 
 // COMPRESOR 8
+
+point_compressor_8::~point_compressor_8()
+{}
 
 point_compressor_8::point_compressor_8(OutputCb cb, size_t ebCount) :
     point_compressor_base_1_4(cb, ebCount)
@@ -252,6 +273,9 @@ void point_decompressor_base_1_2::handleFirst()
 
 // DECOMPRESSOR 0
 
+point_decompressor_0::~point_decompressor_0()
+{}
+
 point_decompressor_0::point_decompressor_0(InputCb cb, size_t ebCount) :
     point_decompressor_base_1_2(cb, ebCount)
 {}
@@ -265,6 +289,9 @@ char *point_decompressor_0::decompress(char *in)
 }
 
 // DECOMPRESSOR 1
+
+point_decompressor_1::~point_decompressor_1()
+{}
 
 point_decompressor_1::point_decompressor_1(InputCb cb, size_t ebCount) :
     point_decompressor_base_1_2(cb, ebCount)
@@ -281,6 +308,9 @@ char *point_decompressor_1::decompress(char *in)
 
 // DECOMPRESSOR 2
 
+point_decompressor_2::~point_decompressor_2()
+{}
+
 point_decompressor_2::point_decompressor_2(InputCb cb, size_t ebCount) :
     point_decompressor_base_1_2(cb, ebCount)
 {}
@@ -295,6 +325,9 @@ char *point_decompressor_2::decompress(char *in)
 }
 
 // DECOMPRESSOR 3
+
+point_decompressor_3::~point_decompressor_3()
+{}
 
 point_decompressor_3::point_decompressor_3(InputCb cb, size_t ebCount) :
     point_decompressor_base_1_2(cb, ebCount)

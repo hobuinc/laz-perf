@@ -226,7 +226,7 @@ const char *Point10Compressor::compress(const char *buf)
     if (changed_values & (1 << 2))
     {
         enc_.encodeSymbol(*m_scan_angle_rank[this_val.scan_direction_flag],
-            U8_FOLD(this_val.scan_angle_rank - last_.scan_angle_rank));
+            uint8_t(this_val.scan_angle_rank - last_.scan_angle_rank));
     }
 
     // encode user data if changed
@@ -251,13 +251,13 @@ const char *Point10Compressor::compress(const char *buf)
     k_bits = ic_dx.getK();
     median = last_y_diff_median5[m].get();
     diff = this_val.y - last_.y;
-    ic_dy.compress(enc_, median, diff, (n==1) + ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20));
+    ic_dy.compress(enc_, median, diff, (n==1) + ( k_bits < 20 ? utils::clearBit<0>(k_bits) : 20));
     last_y_diff_median5[m].add(diff);
 
     // compress z coordinate
     k_bits = (ic_dx.getK() + ic_dy.getK()) / 2;
     ic_z.compress(enc_, last_height[l], this_val.z,
-        (n==1) + (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
+        (n==1) + (k_bits < 18 ? utils::clearBit<0>(k_bits) : 18));
     last_height[l] = this_val.z;
     last_ = this_val;
     return buf + sizeof(las::point10);
@@ -340,8 +340,7 @@ char *Point10Decompressor::decompress(char *buf)
         if (changed_values & (1 << 2))
         {
             int val = dec_.decodeSymbol(*m_scan_angle_rank[last_.scan_direction_flag]);
-            last_.scan_angle_rank =
-                static_cast<unsigned char>(U8_FOLD(val + last_.scan_angle_rank));
+            last_.scan_angle_rank = uint8_t(val + last_.scan_angle_rank);
         }
 
         // decompress the user data
@@ -374,14 +373,14 @@ char *Point10Decompressor::decompress(char *buf)
     // decompress y coordinate
     median = last_y_diff_median5[m].get();
     k_bits = ic_dx.getK();
-    diff = ic_dy.decompress(dec_, median, (n==1) + ( k_bits < 20 ? U32_ZERO_BIT_0(k_bits) : 20));
+    diff = ic_dy.decompress(dec_, median, (n==1) + (k_bits < 20 ? utils::clearBit<0>(k_bits) : 20));
     last_.y += diff;
     last_y_diff_median5[m].add(diff);
 
     // decompress z coordinate
     k_bits = (ic_dx.getK() + ic_dy.getK()) / 2;
     last_.z = ic_z.decompress(dec_, last_height[l],
-        (n==1) + (k_bits < 18 ? U32_ZERO_BIT_0(k_bits) : 18));
+        (n==1) + (k_bits < 18 ? utils::clearBit<0>(k_bits) : 18));
     last_height[l] = last_.z;
 
     last_.pack(buf);

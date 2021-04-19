@@ -44,6 +44,8 @@ namespace lazperf
 {
 namespace io
 {
+const uint32_t DefaultChunkSize = 50000;
+
 #pragma pack(push, 1)
 struct vector3
 {
@@ -107,12 +109,17 @@ struct header14 : public header
 #pragma pack(pop)
 } // namespace io
 
+#define FRIEND_TEST(test_case_name, test_name) \
+    friend class test_case_name##_##test_name##_Test
+
 namespace reader
 {
 
 class basic_file
 {
     FRIEND_TEST(io_tests, parses_laszip_vlr_correctly);
+    struct Private;
+
 protected:
     basic_file();
     ~basic_file();
@@ -125,46 +132,23 @@ public:
     void readPoint(char *out);
 
 private:
-    void loadHeader();
-    void fixMinMax();
-    void parseVLRs();
-    void parseLASZIPVLR(const char *buf);
-    void parseChunkTable();
-    void validateHeader();
-
     // The file object is not copyable or copy constructible
     basic_file(const basic_file&) = delete;
     basic_file& operator = (const basic_file&) = delete;
 
-    std::istream *f_;
-    std::unique_ptr<InFileStream> stream_;
-    io::header& header_;
-    io::header14 header14_;
-    laz_vlr laz_;
-    std::vector<uint64_t> chunk_table_offsets_;
-    bool compressed_;
-    las_decompressor::ptr pdecomperssor_;
-
-    // Establish our current state as we iterate through the file
-    struct __chunk_state
-    {
-        int64_t current;
-        int64_t points_read;
-        int64_t current_index;
-
-        __chunk_state() : current(0u), points_read(0u), current_index(-1)
-        {}
-    } chunk_state_;
+    std::unique_ptr<Private> p_;
 };
 
 class mem_file : public basic_file
 {
+    struct Private;
+
 public:
     mem_file(char *buf, size_t count);
+    ~mem_file();
 
 private:
-    charbuf sbuf_;
-    std::istream f_;
+    std::unique_ptr<Private> p_;
 };
 
 class generic_file : public basic_file
@@ -175,11 +159,14 @@ public:
 
 class named_file : public basic_file
 {
+    struct Private;
+
 public:
     named_file(const std::string& filename);
+    ~named_file();
 
 private:
-    std::ifstream f_;
+    std::unique_ptr<Private> p_;
 };
 
 } // namespace reader
@@ -191,6 +178,8 @@ namespace writer
 class basic_file
 {
 protected:
+    struct Private;
+
     basic_file();
     virtual ~basic_file();
 
@@ -200,36 +189,14 @@ public:
     void close();
     virtual bool compressed() const;
 
-private:
-    void updateMinMax(const las::point10& p);
-    void writeHeader();
-    void writeChunks();
-    void writeChunkTable();
-
-    las_compressor::ptr pcompressor_;
-    io::header& header_;
-    io::header14 header14_;
-    unsigned int chunk_size_;
-    std::ostream *f_;
-    std::unique_ptr<OutFileStream> stream_;
-
-    struct __chunk_state
-    {
-        int64_t total_written; // total points written
-        int64_t current_chunk_index; //  the current chunk index we're compressing
-        unsigned int points_in_chunk;
-        std::streamsize last_chunk_write_offset;
-
-        __chunk_state() : total_written(0), current_chunk_index(-1),
-            points_in_chunk(0), last_chunk_write_offset(0)
-        {}
-    } chunk_state_;
-
-    std::vector<int64_t> chunk_sizes_; // all the places where chunks begin
+protected:
+    std::unique_ptr<Private> p_; 
 };
 
 class named_file : public basic_file
 {
+    struct Private;
+
 public:
     struct config
     {
@@ -243,17 +210,18 @@ public:
 
         explicit config();
         config(const io::vector3& scale, const io::vector3& offset,
-            unsigned int chunksize = DefaultChunkSize);
+            unsigned int chunksize = io::DefaultChunkSize);
         config(const io::header& header);
 
         io::header to_header() const;
     };
 
     named_file(const std::string& filename, const config& c);
+    virtual ~named_file();
+
     void close();
 
-private:
-    std::ofstream f_;
+    std::unique_ptr<Private> p_;
 };
 
 } // namespace writer

@@ -31,7 +31,7 @@
 #ifndef __model_hpp__
 #define __model_hpp__
 
-#include "types.hpp"
+#include "coderbase.hpp"
 #include "utils.hpp"
 
 #include <stdexcept>
@@ -41,7 +41,7 @@ namespace lazperf
 namespace models
 {
 		struct arithmetic {
-			arithmetic(U32 syms, bool com = false, U32 *initTable = nullptr) :
+			arithmetic(uint32_t syms, bool com = false, uint32_t *initTable = nullptr) :
 				symbols(syms), compress(com),
 				distribution(nullptr), symbol_count(nullptr), decoder_table(nullptr) {
 				if ( (symbols < 2) || (symbols > (1 << 11)) ) {
@@ -50,27 +50,27 @@ namespace models
 
 				last_symbol = symbols - 1;
 				if ((!compress) && (symbols > 16)) {
-					U32 table_bits = 3;
+					uint32_t table_bits = 3;
 					while (symbols > (1U << (table_bits + 2))) ++table_bits;
 					table_size  = 1 << table_bits;
 					table_shift = DM__LengthShift - table_bits;
-					decoder_table = reinterpret_cast<U32*>(utils::aligned_malloc(sizeof(U32) * (table_size + 2)));
+					decoder_table = reinterpret_cast<uint32_t*>(utils::aligned_malloc(sizeof(uint32_t) * (table_size + 2)));
 				}
 				else { // small alphabet: no table needed
 					decoder_table = 0;
 					table_size = table_shift = 0;
 				}
 
-				distribution = reinterpret_cast<U32*>(utils::aligned_malloc(symbols * sizeof(U32)));
-				symbol_count = reinterpret_cast<U32*>(utils::aligned_malloc(symbols * sizeof(U32)));
+				distribution = reinterpret_cast<uint32_t*>(utils::aligned_malloc(symbols * sizeof(uint32_t)));
+				symbol_count = reinterpret_cast<uint32_t*>(utils::aligned_malloc(symbols * sizeof(uint32_t)));
 
 				total_count = 0;
 				update_cycle = symbols;
 
 				if (initTable)
-					for (U32 k = 0; k < symbols; k++) symbol_count[k] = initTable[k];
+					for (uint32_t k = 0; k < symbols; k++) symbol_count[k] = initTable[k];
 				else
-					for (U32 k = 0; k < symbols; k++) symbol_count[k] = 1;
+					for (uint32_t k = 0; k < symbols; k++) symbol_count[k] = 1;
 
 				update();
 				symbols_until_update = update_cycle = (symbols + 6) >> 1;
@@ -88,17 +88,17 @@ namespace models
 				  symbols_until_update(other.symbols_until_update), last_symbol(other.last_symbol),
 				  table_size(other.table_size), table_shift(other.table_shift)
             {
-                size_t size(symbols * sizeof(U32));
-                distribution = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                size_t size(symbols * sizeof(uint32_t));
+                distribution = reinterpret_cast<uint32_t*>(utils::aligned_malloc(size));
                 std::copy(other.distribution, other.distribution + symbols, distribution);
 
-                symbol_count = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                symbol_count = reinterpret_cast<uint32_t*>(utils::aligned_malloc(size));
                 std::copy(other.symbol_count, other.symbol_count + symbols, symbol_count);
 
                 if (table_size)
                 {
-                    size = (table_size + 2) * sizeof(U32);
-                    decoder_table = reinterpret_cast<U32*>(utils::aligned_malloc(size));
+                    size = (table_size + 2) * sizeof(uint32_t);
+                    decoder_table = reinterpret_cast<uint32_t*>(utils::aligned_malloc(size));
                     std::copy(other.decoder_table, other.decoder_table + (table_size + 2), decoder_table);
                 }
                 else
@@ -148,15 +148,15 @@ namespace models
 				// halve counts when a threshold is reached
 				if ((total_count += update_cycle) > DM__MaxCount) {
 					total_count = 0;
-					for (U32 n = 0; n < symbols; n++)
+					for (uint32_t n = 0; n < symbols; n++)
 					{
 						total_count += (symbol_count[n] = (symbol_count[n] + 1) >> 1);
 					}
 				}
 
 				// compute cumulative distribution, decoder table
-				U32 k, sum = 0, s = 0;
-				U32 scale = 0x80000000U / total_count;
+				uint32_t k, sum = 0, s = 0;
+				uint32_t scale = 0x80000000U / total_count;
 
 				if (compress || (table_size == 0)) {
 					for (k = 0; k < symbols; k++)
@@ -170,7 +170,7 @@ namespace models
 					{
 						distribution[k] = (scale * sum) >> (31 - DM__LengthShift);
 						sum += symbol_count[k];
-						U32 w = distribution[k] >> table_shift;
+						uint32_t w = distribution[k] >> table_shift;
 						while (s < w) decoder_table[++s] = k - 1;
 					}
 					decoder_table[0] = 0;
@@ -179,19 +179,19 @@ namespace models
 
 				// set frequency of model updates
 				update_cycle = (5 * update_cycle) >> 2;
-				U32 max_cycle = (symbols + 6) << 3;
+				uint32_t max_cycle = (symbols + 6) << 3;
 
 				if (update_cycle > max_cycle) update_cycle = max_cycle;
 				symbols_until_update = update_cycle;
 			}
 
-			U32 symbols;
+			uint32_t symbols;
 			bool compress;
 
-			U32 * distribution, * symbol_count, * decoder_table;
+			uint32_t * distribution, * symbol_count, * decoder_table;
 
-			U32 total_count, update_cycle, symbols_until_update;
-			U32 last_symbol, table_size, table_shift;
+			uint32_t total_count, update_cycle, symbols_until_update;
+			uint32_t last_symbol, table_size, table_shift;
 		};
 
 		struct arithmetic_bit {
@@ -234,7 +234,7 @@ namespace models
 				}
 
 				// compute scaled bit 0 probability
-				U32 scale = 0x80000000U / bit_count;
+				uint32_t scale = 0x80000000U / bit_count;
 				bit_0_prob = (bit_0_count * scale) >> (31 - BM__LengthShift);
 
 				// set frequency of model updates
@@ -243,8 +243,8 @@ namespace models
 				bits_until_update = update_cycle;
 			}
 
-			U32 update_cycle, bits_until_update;
-			U32 bit_0_prob, bit_0_count, bit_count;
+			uint32_t update_cycle, bits_until_update;
+			uint32_t bit_0_prob, bit_0_count, bit_count;
 		};
 } // namespace models
 } // namespace lazperf

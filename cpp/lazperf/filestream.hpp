@@ -40,10 +40,10 @@ namespace lazperf
 struct OutFileStream
 {
 public:
-    OutFileStream(std::ostream& out);
+    LAZPERF_EXPORT OutFileStream(std::ostream& out);
 
-    void putBytes(const unsigned char *c, size_t len);
-    OutputCb cb();
+    LAZPERF_EXPORT void putBytes(const unsigned char *c, size_t len);
+    LAZPERF_EXPORT OutputCb cb();
 
 private:
     std::ostream& f_;
@@ -56,12 +56,12 @@ struct InFileStream
     struct Private;
 
 public:
-    InFileStream(std::istream& in);
-    ~InFileStream();
+    LAZPERF_EXPORT InFileStream(std::istream& in);
+    LAZPERF_EXPORT ~InFileStream();
 
     // This will force a fill on the next fetch.
-    void reset();
-    InputCb cb();
+    LAZPERF_EXPORT void reset();
+    LAZPERF_EXPORT InputCb cb();
 
 private:
     std::unique_ptr<Private> p_;
