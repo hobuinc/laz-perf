@@ -648,6 +648,7 @@ TEST(io_tests, issue22)
     std::remove(tempfile.c_str());
 }
 
+/**
 TEST(io_tests, fast)
 {
     std::string dir = "/Users/acbell/nyc2/";
@@ -659,5 +660,6 @@ TEST(io_tests, fast)
         encode(las, outLaz);
     compare(outLaz, las);
 }
+**/
 
 } // namespace lazperf
