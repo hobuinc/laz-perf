@@ -28,7 +28,7 @@
 
 #include "test_main.hpp"
 
-#include <laz-perf/streams.hpp>
+#include <lazperf/streams.hpp>
 
 /**
 TEST(stream_tests, streams_are_sane) {

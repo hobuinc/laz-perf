@@ -119,7 +119,7 @@ size_t laz_vlr::size() const
 
 vlr::vlr_header laz_vlr::header() const
 {
-    vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "laz-perf variant" };
+    vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "lazperf variant" };
 
     return h;
 }

@@ -25,7 +25,7 @@ set(LAZPERF_UNIT_TEST lazperf_tests)
 set(LAZPERF_SHARED_LIB lazperf)
 set(LAZPERF_STATIC_LIB lazperf_s)
 
-add_subdirectory(laz-perf)
+add_subdirectory(lazperf)
 add_subdirectory(examples)
 add_subdirectory(benchmarks)
 add_subdirectory(tools)
@@ -54,9 +54,10 @@ configure_file(../cmake/lazperf-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/lazperf
 
 install(
     FILES
-        laz-perf/lazperf.hpp
-        laz-perf/filestream.hpp
-        laz-perf/vlr.hpp
+        lazperf/lazperf.hpp
+        lazperf/filestream.hpp
+        lazperf/io.hpp
+        lazperf/vlr.hpp
     DESTINATION
         include/lazperf
 )

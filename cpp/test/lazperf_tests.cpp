@@ -36,9 +36,9 @@
 #include <ctime>
 #include <fstream>
 
-#include <laz-perf/encoder.hpp>
-#include <laz-perf/decoder.hpp>
-#include <laz-perf/las.hpp>
+#include <lazperf/encoder.hpp>
+#include <lazperf/decoder.hpp>
+#include <lazperf/las.hpp>
 
 #include "reader.hpp"
 

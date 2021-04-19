@@ -1,7 +1,7 @@
 add_executable(point10 point10.cpp)
 target_include_directories(point10
     PRIVATE
-        ../laz-perf
+        ../lazperf
 )
 target_link_libraries(point10
     PRIVATE
@@ -12,7 +12,7 @@ lazperf_target_compile_settings(point10)
 add_executable(readlaz readlaz.cpp)
 target_include_directories(readlaz
     PRIVATE
-        ../laz-perf
+        ../lazperf
 )
 target_link_libraries(readlaz
     PRIVATE
