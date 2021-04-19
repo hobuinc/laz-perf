@@ -90,21 +90,6 @@ jobs:
             cd build
             ctest
 
-
-  empscripten:
-    name: empscripten
-    runs-on: 'ubuntu-latest'
-    steps:
-      - uses: actions/checkout@v2
-      - name: Fetch container
-        shell: bash -l {0}
-        run: |
-            docker pull trzeci/emscripten:sdk-incoming-64bit
-      - name: Build
-        shell: bash -l {0}
-        run: |
-            docker run  --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit /src/emscripten-build.sh
-
   test-wheel:
     name: Test Wheel ${{ matrix.os }} - ${{ matrix.python-version }}
 
