@@ -20,7 +20,7 @@ install(
 
 install(
     TARGETS
-        ${LAZPERF_LIB}
+        ${LAZPERF_SHARED_LIB}
     EXPORT
         lazperf-targets
     LIBRARY DESTINATION lib
@@ -37,7 +37,7 @@ install(
         lib/cmake/LAZPERF
 )
 
-target_include_directories(${LAZPERF_LIB}
+target_include_directories(${LAZPERF_SHARED_LIB}
     INTERFACE
         $<INSTALL_INTERFACE:include>)
 
