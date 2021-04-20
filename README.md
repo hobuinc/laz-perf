@@ -1,18 +1,17 @@
 
 # What is this?
 
-Alternative [LAZ](http://laszip.org) implementation. It supports compilation to WASM via
-[Emscripten](https://emscripten.org/) so that LAZ data can be decoded in a browser.  This
-project provides an alternative implementation to the [LAStools](http://lastools.org/) library
-that provides a more rigorous software engineering approach.
+LAZperf is an alternative [LAZ](http://laszip.org) implementation. It supports compilation
+to WASM via [Emscripten](https://emscripten.org/) so that LAZ data can be decoded in a browser.
 
 # Building LAZperf for Windows/UNIX
 
-Previous version of LAZperf were header-only C++ libraries, so you could simply include the
+Previous versions of LAZperf were header-only C++ libraries, so you could simply include the
 project header files in your project. Primarily due to licensing issues, this is no longer the
-case and LAZperf needs to be built as a library that you link with your code. LAZperf uses
+case and LAZperf needs to be built as a library that links with your code. LAZperf uses
 CMake as a build system, though it's probably simple to port to another build system as there
-are few source files. Assuming you have Git, CMake, make and C++11 compiler installed, here is the
+are few source files and no dependencies. Assuming you have Git, CMake, make and C++11 compiler
+installed, here is the
 process on the Unix command line. The process is similar on Windows.
 
     git clone https://github.com/hobu/laz-perf.git
