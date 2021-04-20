@@ -11,9 +11,10 @@ configure_file(../cmake/lazperf-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/lazperf
 
 install(
     FILES
-        laz-perf/lazperf.hpp
-        laz-perf/filestream.hpp
-        laz-perf/vlr.hpp
+        lazperf/lazperf.hpp
+        lazperf/filestream.hpp
+        lazperf/vlr.hpp
+        lazperf/io.hpp
     DESTINATION
         include/lazperf
 )

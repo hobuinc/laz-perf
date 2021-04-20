@@ -22,6 +22,8 @@ function(lazperf_target_compile_settings target)
 
     target_compile_options(${target} PRIVATE
         ${PDAL_CXX_STANDARD}
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
         -Wall
         -Wextra
         -Wpointer-arith

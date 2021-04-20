@@ -20,7 +20,6 @@ if (NOT EMSCRIPTEN)
     lazperf_target_compile_settings(${LAZPERF_SHARED_LIB})
 endif()
 
-
 add_library(${LAZPERF_STATIC_LIB} STATIC ${SRCS})
 lazperf_target_compile_settings(${LAZPERF_STATIC_LIB})
 
