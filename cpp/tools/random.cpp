@@ -1,5 +1,6 @@
 // Make a LAS file with random data in it.
 
+#include <climits>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -84,9 +85,10 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         p->number_of_returns_of_given_pulse = std::uniform_int_distribution<>(0, 7)(gen);
         p->scan_direction_flag = std::uniform_int_distribution<>(0, 1)(gen);
         p->edge_of_flight_line = std::uniform_int_distribution<>(0, 1)(gen);
-        p->classification = std::uniform_int_distribution<uint8_t>()(gen);
-        p->scan_angle_rank = std::uniform_int_distribution<int8_t>()(gen);
-        p->user_data = std::uniform_int_distribution<uint8_t>()(gen);
+        // There is no support for uniform_int_distribution<char type> :(
+        p->classification = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->scan_angle_rank = (int8_t)std::uniform_int_distribution<>(-128, 127)(gen);
+        p->user_data = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
         p->point_source_ID = std::uniform_int_distribution<uint16_t>()(gen);
 
         pos += sizeof(las::point10);
@@ -94,7 +96,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         if (pdrf == 1 || pdrf == 3)
         {
             las::gpstime *g = reinterpret_cast<las::gpstime *>(pos);
-            g->value = std::uniform_real_distribution<>()(gen);
+            g->value = std::uniform_int_distribution<int64_t>()(gen);
             pos += sizeof(las::gpstime);
         }
         if (pdrf == 2 || pdrf == 3)
@@ -111,10 +113,11 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         p->y_ = std::uniform_int_distribution<int32_t>()(gen);
         p->z_ = std::uniform_int_distribution<int32_t>()(gen);
         p->intensity_ = std::uniform_int_distribution<int16_t>()(gen);
-        p->returns_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->flags_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->classification_ = std::uniform_int_distribution<uint8_t>()(gen);
-        p->user_data_ = std::uniform_int_distribution<uint8_t>()(gen);
+        // There is no support for uniform_int_distribution<char type> :(
+        p->returns_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->flags_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->classification_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
+        p->user_data_ = (uint8_t)std::uniform_int_distribution<>(0, 255)(gen);
         p->scan_angle_ = std::uniform_int_distribution<int16_t>()(gen);
         p->point_source_ID_ = std::uniform_int_distribution<uint16_t>()(gen);
         p->gpstime_ = std::uniform_real_distribution<>()(gen);
@@ -137,7 +140,7 @@ void createFile(const std::string filename, int pdrf, int extra_bytes, double pe
         }
     }
     for (int i = 0; i < extra_bytes; ++i)
-        *pos++ = std::uniform_int_distribution<char>()(gen);
+        *pos++ = (char)std::uniform_int_distribution<>(0, 255)(gen);
 
     size_t len = pos - buf;
     size_t bits = len * CHAR_BIT;

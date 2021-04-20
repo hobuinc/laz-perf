@@ -5,7 +5,6 @@
 #include <emscripten/bind.h>
 #include <iostream>
 
-#include "streams.hpp"
 #include "io.hpp"
 
 using namespace emscripten;

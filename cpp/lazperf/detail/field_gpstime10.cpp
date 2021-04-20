@@ -149,7 +149,7 @@ const char *Gpstime10Compressor::compress(const char *buf)
             if (curr_gpstime_diff_64 == static_cast<int64_t>(curr_gpstime_diff)) {
                 // compute multiplier between current and last integer difference
                 float multi_f = (float)curr_gpstime_diff / (float)(last_gpstime_diff[last]);
-                int multi = std::round(multi_f);
+                int multi = (int)std::round(multi_f);
 
                 // compress the residual curr_gpstime_diff in dependance on the multiplier
                 if (multi == 1) {

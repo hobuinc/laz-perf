@@ -32,6 +32,8 @@
 
 #include <vector>
 
+#include "lazperf.hpp"
+
 namespace lazperf
 {
 
@@ -52,9 +54,9 @@ public:
     };
 #pragma pack(pop)
 
-    virtual size_t size() const = 0;
-    virtual std::vector<char> data() const = 0;
-    virtual vlr_header header() const = 0;
+    LAZPERF_EXPORT virtual size_t size() const = 0;
+    LAZPERF_EXPORT virtual std::vector<char> data() const = 0;
+    LAZPERF_EXPORT virtual vlr_header header() const = 0;
 };
 
 struct laz_vlr : public vlr
@@ -78,15 +80,15 @@ public:
     uint64_t num_bytes;
     std::vector<laz_item> items;
 
-    laz_vlr();
-    laz_vlr(int format, int ebCount, uint32_t chunksize);
-    laz_vlr(const char *c);
-    ~laz_vlr();
+    LAZPERF_EXPORT laz_vlr();
+    LAZPERF_EXPORT laz_vlr(int format, int ebCount, uint32_t chunksize);
+    LAZPERF_EXPORT laz_vlr(const char *c);
+    LAZPERF_EXPORT ~laz_vlr();
 
-    virtual size_t size() const;
-    virtual std::vector<char> data() const;
-    virtual vlr_header header() const;
-    void fill(const char *c);
+    LAZPERF_EXPORT virtual size_t size() const;
+    LAZPERF_EXPORT virtual std::vector<char> data() const;
+    LAZPERF_EXPORT virtual vlr_header header() const;
+    LAZPERF_EXPORT void fill(const char *c);
 };
 
 struct eb_vlr : public vlr
@@ -111,12 +113,12 @@ public:
 
     std::vector<ebfield> items;
 
-    eb_vlr(size_t bytes);
+    LAZPERF_EXPORT eb_vlr(size_t bytes);
 
-    virtual size_t size() const;
-    virtual std::vector<char> data() const;
-    virtual vlr_header header() const;
-    void addField();
+    LAZPERF_EXPORT virtual size_t size() const;
+    LAZPERF_EXPORT virtual std::vector<char> data() const;
+    LAZPERF_EXPORT virtual vlr_header header() const;
+    LAZPERF_EXPORT void addField();
 };
 
 } // namesapce lazperf

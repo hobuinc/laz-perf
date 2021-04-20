@@ -140,6 +140,8 @@ public:
         utils::pack(uint32_t(value >> 32), buffer + 4);
     }
 
+    // Note that in a LAS file, gps time is a double, not int64_t, but since we always
+    // treat it as int here, we just unpack to that form.
     int64_t value;
 };
 
@@ -210,19 +212,9 @@ struct nir14
 
 using byte14 = std::vector<uint8_t>;
 
-/**
-// just the XYZ fields out of the POINT10 struct
-struct xyz
-{
-                int x, y, z;
 
-                xyz() : x(0), y(0), z(0)
-                {}
-            };
-**/
-
-            struct extrabytes : public std::vector<uint8_t>
-            {};
+struct extrabytes : public std::vector<uint8_t>
+{};
 
 struct point14
 {
@@ -328,10 +320,6 @@ struct point14
 
     double gpsTime() const
     { return gpstime_; }
-    uint64_t uGpsTime() const
-    { return *reinterpret_cast<const uint64_t *>(&gpstime_); }
-    int64_t iGpsTime() const
-    { return *reinterpret_cast<const int64_t *>(&gpstime_); }
     void setGpsTime(double gpstime)
     { gpstime_ = gpstime; }
 
@@ -348,21 +336,6 @@ struct point14
         setScanAngle(utils::unpack<int16_t>(in));       in += sizeof(int16_t);
         setPointSourceID(utils::unpack<uint16_t>(in));  in += sizeof(uint16_t);
         setGpsTime(utils::unpack<double>(in));
-    }
-
-    void pack(char *c)
-    {
-        utils::pack(x(), c);              c += sizeof(int32_t);
-        utils::pack(y(), c);              c += sizeof(int32_t);
-        utils::pack(z(), c);              c += sizeof(int32_t);
-        *c++ = intensity();
-        *c++ = returns();
-        *c++ = flags();
-        *c++ = classification();
-        *c++ = userData();
-        utils::pack(scanAngle(), c);      c += sizeof(int16_t);
-        utils::pack(pointSourceID(), c);  c += sizeof(uint16_t);
-        utils::pack(gpsTime(), c);
     }
 };
 #pragma pack(pop)

@@ -119,7 +119,7 @@ size_t laz_vlr::size() const
 
 vlr::vlr_header laz_vlr::header() const
 {
-    vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "laz-perf variant" };
+    vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "lazperf variant" };
 
     return h;
 }
@@ -200,7 +200,7 @@ void eb_vlr::addField()
     ebfield field;
 
     std::string name = "FIELD_" + std::to_string(items.size());
-    strncpy(field.name, name.data(), 32);
+    memcpy(field.name, name.data(), 32);
 
     items.push_back(field);
 }

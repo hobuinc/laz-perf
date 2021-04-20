@@ -6,7 +6,7 @@ Alternative [LAZ](http://laszip.org) implementation. It supports compilation to 
 project provides an alternative implementation to the [LAStools](http://lastools.org/) library
 that provides a more rigorous software engineering approach.
 
-# Building LAZperf for Windows/UNIX?
+# Building LAZperf for Windows/UNIX
 
 Previous version of LAZperf were header-only C++ libraries, so you could simply include the
 project header files in your project. Primarily due to licensing issues, this is no longer the
