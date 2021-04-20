@@ -1,4 +1,4 @@
-include_directories(../laz-perf)
+include_directories(../lazperf)
 
 if (NOT EMSCRIPTEN)
 	message(FATAL_ERROR "You should not be including this directory for non emscripten builds")
@@ -17,7 +17,7 @@ else(WASM)
 endif()
 
 add_executable(laz-perf laz-perf.cpp)
-target_link_libraries(laz-perf ${LAZPERF_LIB})
+target_link_libraries(laz-perf ${LAZPERF_STATIC_LIB})
 
 if (WASM)
   SET_TARGET_PROPERTIES(laz-perf PROPERTIES SUFFIX .html)
