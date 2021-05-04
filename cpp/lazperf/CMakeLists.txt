@@ -18,6 +18,7 @@ set(SRCS
 if (NOT EMSCRIPTEN)
     add_library(${LAZPERF_SHARED_LIB} SHARED ${SRCS})
     lazperf_target_compile_settings(${LAZPERF_SHARED_LIB})
+    include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
 endif()
 
 add_library(${LAZPERF_STATIC_LIB} STATIC ${SRCS})

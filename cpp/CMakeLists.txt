@@ -37,7 +37,3 @@ if (WITH_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
-
-if (NOT EMSCRIPTEN)
-    include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
-endif()

@@ -5,16 +5,16 @@ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/lazperf-config-vers
     COMPATIBILITY SameMajorVersion
 )
 
-configure_file(../cmake/lazperf-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/lazperf-config.cmake
+configure_file(${PROJECT_SOURCE_DIR}/cmake/lazperf-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/lazperf-config.cmake
     COPYONLY
 )
 
 install(
     FILES
-        lazperf/lazperf.hpp
-        lazperf/filestream.hpp
-        lazperf/vlr.hpp
-        lazperf/io.hpp
+        ${PROJECT_SOURCE_DIR}/cpp/lazperf/lazperf.hpp
+        ${PROJECT_SOURCE_DIR}/cpp/lazperf/filestream.hpp
+        ${PROJECT_SOURCE_DIR}/cpp/lazperf/vlr.hpp
+        ${PROJECT_SOURCE_DIR}/cpp/lazperf/io.hpp
     DESTINATION
         include/lazperf
 )
