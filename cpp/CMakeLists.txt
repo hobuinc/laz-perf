@@ -1,3 +1,6 @@
+if (NOT CMAKE_PROJECT_NAME STREQUAL "LAZPERF")
+    message(FATAL_ERROR "Run cmake from the top level of the source tree")
+endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
