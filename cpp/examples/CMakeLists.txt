@@ -21,7 +21,7 @@ target_link_libraries(readlaz
 lazperf_target_compile_settings(readlaz)
 
 if (EMSCRIPTEN)
-	set(CMAKE_CXX_FLAGS "-s DISABLE_EXCEPTION_CATCHING=2 ${CMAKE_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "-s DISABLE_EXCEPTION_CATCHING=1 ${CMAKE_CXX_FLAGS}")
 	SET_TARGET_PROPERTIES(point10 PROPERTIES SUFFIX .js)
 	SET_TARGET_PROPERTIES(readlaz PROPERTIES SUFFIX .js)
 endif()
