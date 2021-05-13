@@ -22,4 +22,10 @@ endif()
 
 add_library(${LAZPERF_STATIC_LIB} STATIC ${SRCS})
 lazperf_target_compile_settings(${LAZPERF_STATIC_LIB})
+if (EMSCRIPTEN)
+    target_compile_options(${LAZPERF_STATIC_LIB}
+        PUBLIC
+            -s DISABLE_EXCEPTION_CATCHING=0
+    )
+endif()
 
