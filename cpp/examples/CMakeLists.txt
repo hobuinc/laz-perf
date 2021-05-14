@@ -8,8 +8,6 @@ target_link_libraries(point10
         ${LAZPERF_STATIC_LIB}
 )
 lazperf_target_compile_settings(point10)
-static_target_compile_settings(point10)
-static_target_link_settings(point10)
 
 add_executable(readlaz readlaz.cpp)
 target_include_directories(readlaz
@@ -21,8 +19,6 @@ target_link_libraries(readlaz
         ${LAZPERF_STATIC_LIB}
 )
 lazperf_target_compile_settings(readlaz)
-static_target_compile_settings(readlaz)
-static_target_link_settings(readlaz)
 
 if (EMSCRIPTEN)
 #	set(CMAKE_CXX_FLAGS "-s ${CMAKE_CXX_FLAGS}")
