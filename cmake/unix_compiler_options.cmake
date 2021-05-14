@@ -44,8 +44,4 @@ function(lazperf_target_compile_settings target)
             -Wno-unknown-warning-option
         )
     endif()
-
-    if (EMSCRIPTEN)
-        emscripten_target_compile_settings(${target})
-    endif()
 endfunction()

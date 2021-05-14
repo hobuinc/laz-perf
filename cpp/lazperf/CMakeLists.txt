@@ -22,5 +22,5 @@ endif()
 
 add_library(${LAZPERF_STATIC_LIB} STATIC ${SRCS})
 lazperf_target_compile_settings(${LAZPERF_STATIC_LIB})
-target_compile_options(${LAZPERF_STATIC_LIB} PUBLIC ${STATIC_LIB_OPTIONS})
+static_target_compile_settings(${LAZPERF_STATIC_LIB})
 
