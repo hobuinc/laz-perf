@@ -42,6 +42,10 @@ function(lazperf_target_compile_settings target)
             target_compile_options(${target} PRIVATE /MT)
         endif()
     endif()
+
+    if (EMSCRIPTEN)
+        emscripten_target_compile_settings(${target})
+    endif()
 endfunction()
 
 #
