@@ -185,7 +185,7 @@ std::vector<char> laz_vlr::data() const
 // EB VLR
 
 eb_vlr::ebfield::ebfield() :
-    reserved{}, data_type{ htole32(1) }, options{}, name{}, unused{},
+    reserved{}, data_type{ static_cast<uint8_t>(htole32(1)) }, options{}, name{}, unused{},
     no_data{}, minval{}, maxval{}, scale{}, offset{}, description{}
 {}
 
