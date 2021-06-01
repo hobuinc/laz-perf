@@ -32,6 +32,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <memory>
 
 #include "lazperf_base.hpp"
 
