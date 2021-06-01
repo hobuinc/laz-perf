@@ -18,6 +18,14 @@ install(
     DESTINATION
         include/lazperf
 )
+install(
+    FILES
+        lazperf/lazperf_user_base.hpp
+    DESTINATION
+        include/lazperf
+    RENAME
+        lazperf_base.hpp
+)
 
 install(
     TARGETS

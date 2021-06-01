@@ -29,7 +29,7 @@ with the supporting header files as follows:
 # Using LAZperf on Windows/UNIX
 
 Although the LAZperf library is focused on decoding the LAZ data itself, there is support
-for reading a complete LAS or LAZ file. If you have LAZ-comrpessed data, you can decompress
+for reading a complete LAS or LAZ file. If you have LAZ-compressed data, you can decompress
 by creating a decompressor for the right point type and providing a callback that will
 provide data from the LAZ source as requested by the decompressor. For example, to read
 point format 0 data, you might do the following:

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "filestream.hpp"
 #include "excepts.hpp"
 

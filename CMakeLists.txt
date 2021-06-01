@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(LAZPERF VERSION 2.0)
+project(LAZPERF VERSION 2.0.0)
 
 # Allow advanced users to generate Makefiles printing detailed commands
 mark_as_advanced(CMAKE_VERBOSE_MAKEFILE)
@@ -17,13 +17,18 @@ set(LAZPERF_C_LIB_SOVERSION ${LAZPERF_VERSION_MAJOR})
 # Choose package components
 set(WITH_TESTS TRUE CACHE BOOL "Choose if LAZPERF unit tests should be built")
 
-if(WITH_TESTS)
-    if(NOT EMSCRIPTEN)
-        enable_testing()
-        file (DOWNLOAD
-            "https://github.com/PDAL/data/raw/master/autzen/autzen.laz"
-            "cpp/test/raw-sets/autzen.laz")
+if (EMSCRIPTEN)
+    if (WITH_TESTS)
+        message("Disabling tests with emscripten build.")
     endif()
+    set(WITH_TESTS NO)
+endif()
+
+if(WITH_TESTS)
+    enable_testing()
+    file (DOWNLOAD
+        "https://github.com/PDAL/data/raw/master/autzen/autzen.laz"
+        "cpp/test/raw-sets/autzen.laz")
 endif()
 
 include(${PROJECT_SOURCE_DIR}/cmake/compiler_options.cmake)

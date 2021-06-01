@@ -5,7 +5,7 @@ if (NOT EMSCRIPTEN)
 endif()
 
 # we need the bind flag to generate bindings
-set(CMAKE_CXX_FLAGS "--bind -s TOTAL_MEMORY=167772160 -s DISABLE_EXCEPTION_CATCHING=2 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "--bind -s TOTAL_MEMORY=167772160 -s ${CMAKE_CXX_FLAGS}")
 
 # If wasm build was requested, then generate native output
 if (WASM)

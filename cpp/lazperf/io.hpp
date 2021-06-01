@@ -33,12 +33,7 @@
 #include <cstdint>
 #include <fstream>
 
-#include "las.hpp"
-#include "streams.hpp"
-#include "vlr.hpp"
-#include "charbuf.hpp"
-
-#pragma once
+#include "lazperf_base.hpp"
 
 namespace lazperf
 {
@@ -127,9 +122,9 @@ protected:
     void open(std::istream& in);
 
 public:
-    size_t pointCount() const;
-    const io::header& header() const;
-    void readPoint(char *out);
+    LAZPERF_EXPORT size_t pointCount() const;
+    LAZPERF_EXPORT const io::header& header() const;
+    LAZPERF_EXPORT void readPoint(char *out);
 
 private:
     // The file object is not copyable or copy constructible
@@ -144,8 +139,8 @@ class mem_file : public basic_file
     struct Private;
 
 public:
-    mem_file(char *buf, size_t count);
-    ~mem_file();
+    LAZPERF_EXPORT mem_file(char *buf, size_t count);
+    LAZPERF_EXPORT ~mem_file();
 
 private:
     std::unique_ptr<Private> p_;
@@ -154,7 +149,8 @@ private:
 class generic_file : public basic_file
 {
 public:
-    generic_file(std::istream& in);
+    LAZPERF_EXPORT ~generic_file();
+    LAZPERF_EXPORT generic_file(std::istream& in);
 };
 
 class named_file : public basic_file
@@ -162,8 +158,8 @@ class named_file : public basic_file
     struct Private;
 
 public:
-    named_file(const std::string& filename);
-    ~named_file();
+    LAZPERF_EXPORT named_file(const std::string& filename);
+    LAZPERF_EXPORT ~named_file();
 
 private:
     std::unique_ptr<Private> p_;
@@ -184,10 +180,10 @@ protected:
     virtual ~basic_file();
 
 public:
-    void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
-    void writePoint(const char *p);
-    void close();
-    virtual bool compressed() const;
+    LAZPERF_EXPORT void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
+    LAZPERF_EXPORT void writePoint(const char *p);
+    LAZPERF_EXPORT void close();
+    LAZPERF_EXPORT virtual bool compressed() const;
 
 protected:
     std::unique_ptr<Private> p_; 
@@ -216,11 +212,12 @@ public:
         io::header to_header() const;
     };
 
-    named_file(const std::string& filename, const config& c);
-    virtual ~named_file();
+    LAZPERF_EXPORT named_file(const std::string& filename, const config& c);
+    LAZPERF_EXPORT virtual ~named_file();
 
-    void close();
+    LAZPERF_EXPORT void close();
 
+private:
     std::unique_ptr<Private> p_;
 };
 

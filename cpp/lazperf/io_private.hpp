@@ -17,6 +17,10 @@
 // NOTE: This file exists to facilitate testing of private code.
 
 #include "io.hpp"
+#include "las.hpp"
+#include "charbuf.hpp"
+#include "streams.hpp"
+#include "vlr.hpp"
 
 namespace lazperf
 {
