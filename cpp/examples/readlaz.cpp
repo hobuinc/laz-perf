@@ -5,7 +5,7 @@
 #include "io.hpp"
 
 #include <iostream>
-#include <stdio.h>
+#include <string.h>
 #ifdef EMSCRIPTEN_BUILD
 	#include <emscripten.h>
 #endif
