@@ -2,10 +2,10 @@
 // Read a LAZ file
 //
 
-
 #include "io.hpp"
 
-#include <stdio.h>
+#include <iostream>
+#include <string.h>
 #ifdef EMSCRIPTEN_BUILD
 	#include <emscripten.h>
 #endif

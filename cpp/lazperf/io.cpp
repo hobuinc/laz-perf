@@ -330,6 +330,9 @@ mem_file::~mem_file()
 
 // reader::generic_file
 
+generic_file::~generic_file()
+{}
+
 generic_file::generic_file(std::istream& in)
 {
     open(in);
