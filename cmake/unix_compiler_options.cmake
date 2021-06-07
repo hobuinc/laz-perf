@@ -22,8 +22,6 @@ function(lazperf_target_compile_settings target)
 
     target_compile_options(${target} PRIVATE
         ${PDAL_CXX_STANDARD}
-        -fvisibility=hidden
-        -fvisibility-inlines-hidden
         -Wall
         -Wextra
         -Wpointer-arith
@@ -45,3 +43,14 @@ function(lazperf_target_compile_settings target)
         )
     endif()
 endfunction()
+
+function(lazperf_library_compile_settings lib type)
+    lazperf_target_compile_settings(${lib})
+    if (${type} STREQUAL "SHARED")
+        target_compile_options(${lib} PRIVATE
+            -fvisibility=hidden
+            -fvisibility-inlines-hidden
+        )
+    endif()
+endfunction()
+

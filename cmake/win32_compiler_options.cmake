@@ -44,14 +44,12 @@ function(lazperf_target_compile_settings target)
     endif()
 endfunction()
 
+function(lazperf_library_compile_settings lib type)
+    lazperf_target_compile_settings(${lib})
+endfunction()
+
 #
 # Windows htonl and similar are in winsock :(
 #
 set(WINSOCK_LIBRARY ws2_32)
-
-IF(DEFINED ENV{OSGEO4W_HOME})
-	set(CMAKE_INCLUDE_PATH "c:/OSGeo4W64/include;$ENV{CMAKE_INCLUDE_PATH}")
-	set(CMAKE_LIBRARY_PATH "c:/OSGeo4W64/lib;$ENV{CMAKE_LIBRARY_PATH}")
-    set(CMAKE_PREFIX_PATH "c:/OSGeo4W64/cmake;$ENV{CMAKE_LIBRARY_PATH}")
-ENDIF()
 

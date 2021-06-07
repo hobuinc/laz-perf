@@ -1,0 +1,7 @@
+function(lazperf_add_library _target _type)
+    add_library(${_target} ${_type} ${ARGN})
+    lazperf_library_compile_settings(${_target} ${_type})
+    if (${_type} STREQUAL "SHARED")
+        lazperf_install_library(${_target})
+    endif()
+endfunction()

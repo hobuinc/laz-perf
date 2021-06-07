@@ -1,4 +1,0 @@
-recursive-include ../cpp/laz-perf/ *.hpp *.cpp
-include CHANGES.rst README.rst
-include lazperf/pylazperfapi.pyx lazperf/lazperf.pxd lazperf/*.hpp lazperf/*.cpp
-
