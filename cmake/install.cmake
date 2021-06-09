@@ -32,16 +32,16 @@ install(
 
 install(
     FILES
-        lazperf/lazperf.hpp
-        lazperf/filestream.hpp
-        lazperf/vlr.hpp
-        lazperf/io.hpp
+        ./cpp/lazperf/lazperf.hpp
+        ./cpp/lazperf/filestream.hpp
+        ./cpp/lazperf/vlr.hpp
+        ./cpp/lazperf/io.hpp
     DESTINATION
         include/lazperf
 )
 install(
     FILES
-        lazperf/lazperf_user_base.hpp
+        ./cpp/lazperf/lazperf_user_base.hpp
     DESTINATION
         include/lazperf
     RENAME
