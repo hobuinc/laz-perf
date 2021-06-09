@@ -45,6 +45,10 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          toolset: '19.29.30037.0'
+
         if: matrix.os == 'windows-latest'
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -73,6 +77,11 @@ jobs:
         run: |
             cd build
             ninja
+      - name: Install
+        shell: bash -l {0}
+        run: |
+            cd build
+            ninja install
       - name: Test
         shell: bash -l {0}
         run: |
