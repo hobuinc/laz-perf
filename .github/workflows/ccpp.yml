@@ -65,7 +65,7 @@ jobs:
             fi
             mkdir build
             cd build
-            cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON
+            cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=`pwd`/install -Dgtest_force_shared_crt=ON
       - name: Build
         shell: bash -l {0}
         run: |
