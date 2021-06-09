@@ -1,4 +1,4 @@
-set(GTEST_DIR gtest/gtest-02-06-2021)
+set(GTEST_DIR gtest/gtest-1.10.0)
 
 macro(LAZPERF_ADD_TEST _name)
   add_executable(${_name} ${_name}.cpp)
@@ -12,7 +12,7 @@ macro(LAZPERF_ADD_TEST _name)
 endmacro(LAZPERF_ADD_TEST)
 
 configure_file(test_main.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/test_main.hpp)
-add_subdirectory(gtest/gtest-02-06-2021)
+add_subdirectory(${GTEST_DIR})
 
 LAZPERF_ADD_TEST(io_tests)
 LAZPERF_ADD_TEST(lazperf_tests)
