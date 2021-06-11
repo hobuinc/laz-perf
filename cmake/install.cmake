@@ -30,24 +30,6 @@ install(
         lib/cmake/LAZPERF
 )
 
-install(
-    FILES
-        ./cpp/lazperf/lazperf.hpp
-        ./cpp/lazperf/filestream.hpp
-        ./cpp/lazperf/vlr.hpp
-        ./cpp/lazperf/io.hpp
-    DESTINATION
-        include/lazperf
-)
-install(
-    FILES
-        ./cpp/lazperf/lazperf_user_base.hpp
-    DESTINATION
-        include/lazperf
-    RENAME
-        lazperf_base.hpp
-)
-
 #
 # cmake file handling
 #
