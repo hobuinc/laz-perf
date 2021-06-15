@@ -30,7 +30,6 @@ install(
         lazperf_base.hpp
 )
 
-add_subdirectory(examples)
 add_subdirectory(benchmarks)
 add_subdirectory(tools)
 if (EMSCRIPTEN)
@@ -40,5 +39,6 @@ endif()
 if (WITH_TESTS)
     enable_testing()
     add_subdirectory(test)
+    add_subdirectory(examples)
 endif()
 
