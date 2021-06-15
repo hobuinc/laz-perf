@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <string>
 #ifdef EMSCRIPTEN_BUILD
 	#include <emscripten.h>
 #endif
