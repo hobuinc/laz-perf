@@ -41,6 +41,7 @@ namespace lazperf
 namespace io
 {
 const uint32_t DefaultChunkSize = 50000;
+const uint32_t VariableChunkSize = (std::numeric_limits<uint32_t>::max)();
 
 #pragma pack(push, 1)
 struct vector3
@@ -123,7 +124,7 @@ protected:
     void open(std::istream& in);
 
 public:
-    LAZPERF_EXPORT size_t pointCount() const;
+    LAZPERF_EXPORT uint64_t pointCount() const;
     LAZPERF_EXPORT const io::header& header() const;
     LAZPERF_EXPORT void readPoint(char *out);
 
@@ -184,6 +185,8 @@ public:
     LAZPERF_EXPORT void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
     LAZPERF_EXPORT void writePoint(const char *p);
     LAZPERF_EXPORT void close();
+    LAZPERF_EXPORT uint64_t chunk();
+    LAZPERF_EXPORT uint64_t firstChunkOffset() const;
     LAZPERF_EXPORT virtual bool compressed() const;
 
 protected:

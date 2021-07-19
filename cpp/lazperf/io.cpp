@@ -74,25 +74,37 @@ namespace reader
 
 // reader::basic_file
 
+void basic_file::Private::open(std::istream& in)
+{
+    f = &in;
+    //ABELL - move to loadHeader() in order to avoid the reset on InFileStream.
+    stream.reset(new InFileStream(in));
+    loadHeader();
+}
+
 void basic_file::Private::readPoint(char *out)
 {
     if (!compressed)
         stream->cb()(reinterpret_cast<unsigned char *>(out), header.point_record_length);
 
-    // read the next point in
+    // read the next point
     else
     {
-        if (chunk_state.points_read == laz.chunk_size || !pdecompressor)
+        if (!pdecompressor || chunk_point_num == current_chunk->count)
         {
             pdecompressor = build_las_decompressor(stream->cb(), header.point_format_id,
                 header.ebCount());
+
             // reset chunk state
-            chunk_state.current++;
-            chunk_state.points_read = 0;
+            if (current_chunk == nullptr)
+                current_chunk = chunks.data();
+            else
+                current_chunk++;
+            chunk_point_num = 0;
         }
 
         pdecompressor->decompress(out);
-        chunk_state.points_read++;
+        chunk_point_num++;
     }
 }
 
@@ -137,6 +149,15 @@ void basic_file::Private::loadHeader()
     f->seekg(offset);
     stream->reset();
 }
+
+
+uint64_t basic_file::Private::pointCount() const
+{
+    if (header.version.major > 1 || header.version.minor > 3)
+        return header14.point_count_14;
+    return header.point_count;
+}
+
 
 void basic_file::Private::fixMinMax()
 {
@@ -234,42 +255,62 @@ void basic_file::Private::parseChunkTable()
     if (chunk_table_header.version != 0)
         throw error("Bad chunk table. Invalid version.");
 
-    // start pushing in chunk table offsets
-    chunk_table_offsets.clear();
+    // Allocate enough room for the chunk table
+    chunks.resize(chunk_table_header.chunk_count);
 
-    if (laz.chunk_size == (std::numeric_limits<unsigned int>::max)())
-        throw error("Chunk size too large - unsupported.");
+    // decode the index out
+    InFileStream fstream(*f);
 
-    // Allocate enough room for our chunk
-    chunk_table_offsets.resize(chunk_table_header.chunk_count + 1);
+    InCbStream stream(fstream.cb());
+    decoders::arithmetic<InCbStream> decoder(stream);
+    decompressors::integer decomp(32, 2);
 
-    // Add The first one
-    chunk_table_offsets[0] = header.point_offset + sizeof(uint64_t);
+    // start decoder
+    decoder.readInitBytes();
+    decomp.init();
 
-    //ABELL - Use the standard call for this.
-    if (chunk_table_header.chunk_count > 1)
+    uint32_t prev_count = 0;
+    uint32_t prev_offset = 0;
+    uint64_t total_points = pointCount();
+    for (size_t i = 0; i < chunk_table_header.chunk_count; i++)
     {
-        // decode the index out
-        InFileStream fstream(*f);
+        Chunk& chunk = chunks[i];
 
-        InCbStream stream(fstream.cb());
-        decoders::arithmetic<InCbStream> decoder(stream);
-        decompressors::integer decomp(32, 2);
-
-        // start decoder
-        decoder.readInitBytes();
-        decomp.init();
-
-        for (size_t i = 1 ; i <= chunk_table_header.chunk_count; i++)
+        if (laz.chunk_size == io::VariableChunkSize)
         {
-            uint32_t offset = i > 1 ? (int32_t)chunk_table_offsets[i - 1] : 0;
-            chunk_table_offsets[i] = static_cast<uint64_t>(
-                decomp.decompress(decoder, offset, 1));
+            chunk.count = decomp.decompress(decoder, prev_count, 1);
+            prev_count = chunk.count;
+        }
+        else
+        {
+            if (total_points < laz.chunk_size)
+            {
+                chunk.count = total_points;
+                assert(i == chunk_table_header.chunk_count - 1);
+            }
+            else
+            {
+                chunk.count = laz.chunk_size;
+                total_points -= laz.chunk_size;
+            }
         }
 
-        for (size_t i = 1 ; i < chunk_table_offsets.size() ; i ++)
-            chunk_table_offsets[i] += chunk_table_offsets[i - 1];
+        chunk.offset = decomp.decompress(decoder, prev_offset, 1);
+        prev_offset = chunk.offset;
     }
+
+    // Modify the offsets to be absolute rather than relative.
+    for (size_t i = 1; i < chunk_table_header.chunk_count; ++i)
+    {
+        Chunk& chunk = chunks[i];
+        Chunk& prevChunk = chunks[i - 1];
+        chunk.offset += prevChunk.offset;
+    }
+    /**
+    for (auto& chunk : chunks)
+        std::cerr << "Count/offset = " << chunk.count << "/" << chunk.offset << "!\n";
+    std::cerr << "\n";
+    **/
 }
 
 void basic_file::Private::validateHeader()
@@ -295,10 +336,7 @@ basic_file::~basic_file()
 
 void basic_file::open(std::istream& f)
 {
-    p_->f = &f;
-    //ABELL - move to loadHeader() in order to avoid the reset on InFileStream.
-    p_->stream.reset(new InFileStream(f));
-    p_->loadHeader();
+    p_->open(f);
 }
 
 void basic_file::readPoint(char *out)
@@ -311,11 +349,9 @@ const io::header& basic_file::header() const
     return p_->header;
 }
 
-size_t basic_file::pointCount() const
+uint64_t basic_file::pointCount() const
 {
-    if (p_->header.version.major > 1 || p_->header.version.minor > 3)
-        return p_->header14.point_count_14;
-    return p_->header.point_count;
+    return p_->pointCount();
 }
 
 // reader::mem_file
@@ -355,6 +391,24 @@ named_file::~named_file()
 namespace writer
 {
 
+// On compressed output, the data is written in chunks. Normally the chunks are 50,000
+// points, but you can request variable sized chunking by using the value "VariableChunkSize".
+// When using variable-sized chunks, you must call chunk() in order to start a new chunk.
+//
+// An offset to the chunk table is written after the LAS VLRs, where you would normally
+// expect points to begin.  The first chunk of points follows this chunk table offset.
+//
+// The chunk table itself is at the end of the points. The chunk table has its own
+// header that consists of a version number and a chunk count. The chunk table itself
+// is compressed with an integer compressor.  If the chunks are variable-sized,
+// the first item of each chunk table entry is a count of the number of points in
+// the chunk. If the chunks are fixed sized, this value is omitted (not written).
+// Every chunk entry contains an "offset". This offset is a true, absolute offset
+// for the first chunk entry. For all subsequent entries, the offset is really a
+// chunk size, (or an offset from the beginning of the last chunk). So, if you're
+// actually looking for absolute offsets of chunks in the file, you need to build
+// them by adding the sizes of preceding chunks to the offset of the first chunk.
+
 void basic_file::Private::open(std::ostream& out, const io::header& h, uint32_t cs)
 {
     header = h;
@@ -376,7 +430,6 @@ void basic_file::Private::open(std::ostream& out, const io::header& h, uint32_t 
 
     std::vector<char> junk(preludeSize);
     f->write(junk.data(), preludeSize);
-    // the first chunk begins at the end of prelude
     stream.reset(new OutFileStream(out));
 }
 
@@ -400,6 +453,23 @@ void basic_file::Private::updateMinMax(const las::point10& p)
     header.maximum.z = (std::max)(z, header.maximum.z);
 }
 
+uint64_t basic_file::Private::chunk()
+{
+    pcompressor->done();
+    chunks.push_back( {chunk_point_num, chunk_offset });
+    pcompressor = build_las_compressor(stream->cb(), header.point_format_id, header.ebCount());
+    chunk_offset = (uint64_t)f->tellp();
+    chunk_point_num = 0;
+    return chunk_offset;
+}
+
+uint64_t basic_file::Private::firstChunkOffset() const
+{
+    // There is a chunk offset where the first point is supposed to be. The first
+    // chunk follows that.
+    return header.point_offset + sizeof(uint64_t);
+}
+
 void basic_file::Private::writePoint(const char *p)
 {
     if (!compressed())
@@ -411,23 +481,17 @@ void basic_file::Private::writePoint(const char *p)
         {
             pcompressor = build_las_compressor(stream->cb(), header.point_format_id,
                 header.ebCount());
+            chunk_offset = (uint64_t)f->tellp();
+            chunk_point_num = 0;
         }
-        else if (chunk_state.points_in_chunk == chunk_size)
-        {
-            pcompressor->done();
-            chunk_state.points_in_chunk = 0;
-            std::streamsize offset = f->tellp();
-            chunk_sizes.push_back(offset - chunk_state.last_chunk_write_offset);
-            chunk_state.last_chunk_write_offset = offset;
-            pcompressor = build_las_compressor(stream->cb(), header.point_format_id,
-                header.ebCount());
-        }
+        else if ((chunk_point_num == chunk_size) && (chunk_size != io::VariableChunkSize))
+            chunk();
 
         // now write the point
         pcompressor->compress(p);
+        chunk_point_num++;
+        header14.point_count_14++;
     }
-    chunk_state.total_written++;
-    chunk_state.points_in_chunk++;
     updateMinMax(*(reinterpret_cast<const las::point10*>(p)));
 }
 
@@ -436,9 +500,7 @@ void basic_file::Private::close()
     if (compressed())
     {
         pcompressor->done();
-
-        // Note down the size of the offset of this last chunk
-        chunk_sizes.push_back((std::streamsize)f->tellp() - chunk_state.last_chunk_write_offset);
+        chunks.push_back({ chunk_point_num, chunk_offset });
     }
 
     writeHeader();
@@ -467,8 +529,6 @@ void basic_file::Private::writeHeader()
         header.vlr_count++;
     }
 
-    header.point_count = static_cast<unsigned int>(chunk_state.total_written);
-
     //HUH?
     // make sure we re-arrange mins and maxs for writing
     double mx, my, mz, nx, ny, nz;
@@ -482,10 +542,15 @@ void basic_file::Private::writeHeader()
 
     if (header.version.minor == 4)
     {
-        header14.point_count_14 = header.point_count;
+        if (header14.point_count_14 > (std::numeric_limits<uint32_t>::max)())
+            header.point_count = 0;
+        else
+            header.point_count = (uint32_t)header14.point_count_14;
         // Set the WKT bit.
         header.global_encoding |= (1 << 4);
     }
+    else
+        header.point_count = (uint32_t)header14.point_count_14;
 
     f->seekp(0);
     f->write(reinterpret_cast<char*>(&header), header.header_size);
@@ -523,7 +588,7 @@ void basic_file::Private::writeChunkTable()
     {
         unsigned int version,
         chunks_count;
-    } chunk_table_header = { 0, static_cast<unsigned int>(chunk_sizes.size()) };
+    } chunk_table_header = { 0, static_cast<unsigned int>(chunks.size()) };
 #pragma pack(pop)
 
     f->write(reinterpret_cast<char*>(&chunk_table_header), sizeof(chunk_table_header));
@@ -537,10 +602,24 @@ void basic_file::Private::writeChunkTable()
 
     comp.init();
 
-    for (size_t i = 0 ; i < chunk_sizes.size() ; i ++)
+    Chunk prevChunk { 0, 0 };
+    uint32_t last_count = 0;
+    int32_t last_offset = 0;
+    for (size_t i = 0; i < chunks.size(); i++)
     {
-        comp.compress(encoder, i ? static_cast<int>(chunk_sizes[i - 1]) : 0,
-            static_cast<int>(chunk_sizes[i]), 1);
+        Chunk& chunk = chunks[i];
+        if (chunk_size == io::VariableChunkSize)
+        {
+            uint32_t count = (uint32_t)(chunk.count);
+            comp.compress(encoder, last_count, count, 1);
+            last_count = count;
+        }
+
+        uint32_t offset = (uint32_t)(chunk.offset - prevChunk.offset);
+        comp.compress(encoder, last_offset, offset, 1);
+        last_offset = offset;
+
+        prevChunk = chunk;
     }
     encoder.done();
 
@@ -569,6 +648,17 @@ void basic_file::open(std::ostream& out, const io::header& h, uint32_t chunk_siz
 void basic_file::writePoint(const char *buf)
 {
     p_->writePoint(buf);
+}
+
+uint64_t basic_file::firstChunkOffset() const
+{
+    return p_->firstChunkOffset();
+}
+
+uint64_t basic_file::chunk()
+{
+    assert(p_->chunk_size == io::VariableChunkSize);
+    return p_->chunk();
 }
 
 void basic_file::close()

@@ -29,34 +29,34 @@ namespace reader
 
 struct basic_file::Private
 {
-    Private() : header(header14), compressed(false)
+    Private() : header(header14), compressed(false), current_chunk(nullptr)
     {}
 
+    void open(std::istream& f);
     void readPoint(char *out);
     void loadHeader();
+    uint64_t pointCount() const;
     void fixMinMax();
     void parseVLRs();
     void parseLASZIPVLR(const char *);
     void parseChunkTable();
     void validateHeader();
 
-    struct ChunkState
-    {
-        int64_t current;
-        int64_t points_read;
-        int64_t current_index;
-
-        ChunkState() : current(0), points_read(0), current_index(-1)
-        {}
-    } chunk_state;
     std::istream *f;
     std::unique_ptr<InFileStream> stream;
     io::header& header;
     io::header14 header14;
-    laz_vlr laz;
-    std::vector<uint64_t> chunk_table_offsets;
     bool compressed;
     las_decompressor::ptr pdecompressor;
+    laz_vlr laz;
+    struct Chunk
+    {
+        uint64_t count;
+        uint64_t offset;
+    };
+    Chunk *current_chunk;
+    uint32_t chunk_point_num;
+    std::vector<Chunk> chunks;
 };
 
 struct mem_file::Private
@@ -83,10 +83,12 @@ namespace writer
 
 struct basic_file::Private
 {
-    Private() : header(header14), chunk_size(io::DefaultChunkSize), f(nullptr)
+    Private() : chunk_size(io::DefaultChunkSize), header(header14), f(nullptr)
     {}
 
     void close();
+    uint64_t chunk();
+    uint64_t firstChunkOffset() const;
     bool compressed() const;
     void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
     void writePoint(const char *p);
@@ -95,24 +97,20 @@ struct basic_file::Private
     void writeChunks();
     void writeChunkTable();
 
-    struct ChunkState
+    struct Chunk
     {
-        int64_t total_written; // total points written
-        int64_t current_chunk_index; //  the current chunk index we're compressing
-        unsigned int points_in_chunk;
-        std::streamsize last_chunk_write_offset;
-
-        ChunkState() : total_written(0), current_chunk_index(-1),
-            points_in_chunk(0), last_chunk_write_offset(0)
-        {}
-    } chunk_state;
+        uint64_t count;
+        uint64_t offset;
+    };
+    uint64_t chunk_offset;
+    uint32_t chunk_point_num;
+    uint32_t chunk_size;
+    std::vector<Chunk> chunks;
     las_compressor::ptr pcompressor;
     io::header& header;
     io::header14 header14;
-    unsigned int chunk_size;
     std::ostream *f;
     std::unique_ptr<OutFileStream> stream;
-    std::vector<int64_t> chunk_sizes; // all the places where chunks begin
 };
 
 struct named_file::Private

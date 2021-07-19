@@ -104,8 +104,8 @@ struct laz_vlr : public vlr
 
     uint32_t options;
     uint32_t chunk_size;
-    int64_t num_points;
-    int64_t num_bytes;
+    int64_t special_vlr_count;
+    int64_t special_vlr_offset;
 
     std::vector<laz_item> items;
 
