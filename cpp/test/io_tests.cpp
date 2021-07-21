@@ -67,7 +67,9 @@ std::string makeTempFileName()
 
 TEST(io_tests, io_structs_are_of_correct_size)
 {
-    EXPECT_EQ(sizeof(io::header), 227u);
+    EXPECT_EQ(sizeof(io::base_header), 227u);
+    EXPECT_EQ(sizeof(io::header13), 235u);
+    EXPECT_EQ(sizeof(io::header14), 375u);
 }
 
 TEST(io_tests, can_report_invalid_magic)
@@ -101,7 +103,7 @@ TEST(io_tests, parses_header_correctly)
 {
     {
         reader::named_file f(testFile("point10.las.laz"));
-        const io::header& header = f.header();
+        const io::base_header& header = f.header();
 
         EXPECT_EQ(header.version.major, 1);
         EXPECT_EQ(header.version.minor, 2);
@@ -132,23 +134,6 @@ TEST(io_tests, parses_header_correctly)
         EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68);
         EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02);
         EXPECT_DOUBLE_EQ(header.maximum.z, 178.73);
-/**
-        EXPECT_DOUBLE_EQ(header.scale.x, 0.01, 0.0001);
-        EXPECT_DOUBLE_EQ(header.scale.y, 0.01, 0.0001);
-        EXPECT_DOUBLE_EQ(header.scale.z, 0.01, 0.0001);
-
-        EXPECT_DOUBLE_EQ(header.offset.x, 0.0, 0.0001);
-        EXPECT_DOUBLE_EQ(header.offset.y, 0.0, 0.0001);
-        EXPECT_DOUBLE_EQ(header.offset.z, 0.0, 0.0001);
-
-        EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87, 0.0001);
-        EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62, 0.0001);
-        EXPECT_DOUBLE_EQ(header.minimum.z, 123.93, 0.0001);
-
-        EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68, 0.0001);
-        EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02, 0.0001);
-        EXPECT_DOUBLE_EQ(header.maximum.z, 178.73, 0.0001);
-**/
 
         EXPECT_EQ(header.point_count, 1065u);
     }
@@ -265,8 +250,9 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     std::ifstream ucStream(uncompressed, std::ios::binary);
     if (!ucStream.good())
         FAIL() << "Unable to open uncompressed file '" << uncompressed << "'.";
-    io::header header;
-    ucStream.read((char *)&header, sizeof(io::header));
+
+    io::base_header header;
+    ucStream.read((char *)&header, sizeof(header));
     ucStream.seekg(header.point_offset);
     unsigned short pointLen = header.point_record_length;
 
@@ -283,7 +269,7 @@ void compare(const std::string& compressed, const std::string& uncompressed)
 
 void encode(const std::string& lasFilename, const std::string& lazFilename)
 {
-    io::header h;
+    io::base_header h;
     std::ifstream lasStream(lasFilename, std::ios::binary);
     if (!lasStream.good())
         FAIL() << "Unable to open uncompressed file '" << lasFilename << "'.";

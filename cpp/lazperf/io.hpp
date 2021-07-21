@@ -58,7 +58,7 @@ struct vector3
     double z;
 };
 
-struct header
+struct base_header
 {
     char magic[4] { 'L', 'A', 'S', 'F' };
     uint16_t file_source_id {};
@@ -94,11 +94,19 @@ struct header
     vector3 maximum;
 
     int ebCount() const;
+    size_t size() const;
 };
 
-struct header14 : public header
+struct header12 : public base_header
+{};
+
+struct header13 : public header12
 {
     uint64_t wave_offset {0};
+};
+
+struct header14 : public header13
+{
     uint64_t evlr_offset {0};
     uint32_t elvr_count {0};
     uint64_t point_count_14 {0};
@@ -126,7 +134,7 @@ protected:
 
 public:
     LAZPERF_EXPORT uint64_t pointCount() const;
-    LAZPERF_EXPORT const io::header& header() const;
+    LAZPERF_EXPORT const io::base_header& header() const;
     LAZPERF_EXPORT void readPoint(char *out);
 
 private:
@@ -183,7 +191,7 @@ protected:
     virtual ~basic_file();
 
 public:
-    LAZPERF_EXPORT void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
+    LAZPERF_EXPORT void open(std::ostream& out, const io::base_header& h, uint32_t chunk_size);
     LAZPERF_EXPORT void writePoint(const char *p);
     LAZPERF_EXPORT void close();
     LAZPERF_EXPORT uint64_t chunk();
@@ -212,9 +220,9 @@ public:
         explicit config();
         config(const io::vector3& scale, const io::vector3& offset,
             unsigned int chunksize = io::DefaultChunkSize);
-        config(const io::header& header);
+        config(const io::base_header& header);
 
-        io::header to_header() const;
+        io::base_header to_header() const;
     };
 
     LAZPERF_EXPORT named_file(const std::string& filename, const config& c);

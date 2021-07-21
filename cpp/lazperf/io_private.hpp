@@ -29,10 +29,11 @@ namespace reader
 
 struct basic_file::Private
 {
-    Private() : header(header14), compressed(false), current_chunk(nullptr)
+    Private() : header(header14), header13(header14), compressed(false), current_chunk(nullptr)
     {}
 
     void open(std::istream& f);
+    uint64_t firstChunkOffset() const;
     void readPoint(char *out);
     void loadHeader();
     uint64_t pointCount() const;
@@ -44,7 +45,8 @@ struct basic_file::Private
 
     std::istream *f;
     std::unique_ptr<InFileStream> stream;
-    io::header& header;
+    io::base_header& header;
+    io::header13& header13;
     io::header14 header14;
     bool compressed;
     las_decompressor::ptr pdecompressor;
@@ -83,14 +85,15 @@ namespace writer
 
 struct basic_file::Private
 {
-    Private() : chunk_size(io::DefaultChunkSize), header(header14), f(nullptr)
+    Private() : chunk_size(io::DefaultChunkSize), header(header14), header13(header14),
+        f(nullptr)
     {}
 
     void close();
     uint64_t chunk();
     uint64_t firstChunkOffset() const;
     bool compressed() const;
-    void open(std::ostream& out, const io::header& h, uint32_t chunk_size);
+    void open(std::ostream& out, const io::base_header& h, uint32_t chunk_size);
     void writePoint(const char *p);
     void updateMinMax(const las::point10& p);
     void writeHeader();
@@ -102,12 +105,13 @@ struct basic_file::Private
         uint64_t count;
         uint64_t offset;
     };
-    uint64_t chunk_offset;
+    uint64_t prev_chunk_offset;
     uint32_t chunk_point_num;
     uint32_t chunk_size;
     std::vector<Chunk> chunks;
     las_compressor::ptr pcompressor;
-    io::header& header;
+    io::base_header& header;
+    io::header13& header13;
     io::header14 header14;
     std::ostream *f;
     std::unique_ptr<OutFileStream> stream;
