@@ -35,8 +35,10 @@
 
 #include "test_main.hpp"
 
-#include <lazperf/io.hpp>
-#include <lazperf/io_private.hpp>
+#include <lazperf/excepts.hpp>
+#include <lazperf/readers.hpp>
+#include <lazperf/writers.hpp>
+#include <lazperf/readers_private.hpp>
 #include <lazperf/vlr.hpp>
 
 #include <cstdio>

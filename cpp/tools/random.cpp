@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-#include "io.hpp"
+#include "writers.hpp"
 #include "las.hpp"
 
 void outputHelp();

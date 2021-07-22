@@ -2,7 +2,7 @@
 // Read a LAZ file
 //
 
-#include "io.hpp"
+#include "readers.hpp"
 
 #include <iostream>
 #include <string.h>
