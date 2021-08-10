@@ -133,6 +133,11 @@ public:
         if (k) // then c is either smaller than 0 or bigger than 1
         {
             assert((c != 0) && (c != 1));
+            // If k == 32, then the high bit is set, which only happens when the
+            // value we want to encode is INT_MIN and all the information is in k,
+            // which has already been encoded above.
+            if (k == 32)
+                return;
             // translate the corrector c into the k-bit interval [ 0 ... 2^k - 1 ]
             if (c < 0) // then c is in the interval [ - (2^k - 1)  ...  - (2^(k-1)) ]
             {
