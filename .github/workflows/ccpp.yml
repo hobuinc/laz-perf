@@ -48,7 +48,8 @@ jobs:
         if: matrix.os == 'windows-latest'
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          channels: conda-forge
+          channels: conda-forge, defaults
+          show-channel-urls: true
           auto-update-conda: true
           python-version: '3.8'
       - name: Setup
