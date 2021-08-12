@@ -56,8 +56,8 @@ jobs:
         shell: bash -l {0}
         run: |
             conda update -n base -c defaults conda -y
-            conda config --set channel_priority true
             conda config --add channels conda-forge
+            conda config --set channel_priority strict
             conda install -c conda-forge compilers -y
             conda install -c conda-forge ninja cmake -y
             conda install -c conda-forge laz-perf --only-deps -y
