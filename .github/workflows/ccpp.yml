@@ -55,7 +55,8 @@ jobs:
         shell: bash -l {0}
         run: |
             conda update -n base -c defaults conda -y
-            conda install -c conda-forge ninja compilers cmake -y
+            conda install -c conda-forge compilers -y
+            conda install -c conda-forge ninja cmake -y
             conda install -c conda-forge laz-perf --only-deps -y
         continue-on-error: true
       - name: Configure
