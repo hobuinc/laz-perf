@@ -1,4 +1,4 @@
-set(GTEST_DIR gtest/gtest-10-06-21)
+set(GTEST_DIR gtest/gtest-08-11-21)
 
 macro(LAZPERF_ADD_TEST _name)
   add_executable(${_name} ${_name}.cpp)
