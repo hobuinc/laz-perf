@@ -136,6 +136,7 @@ public:
         {
             instream.copy(src, cnt);
             readInitBytes();
+            hasData = true;
         }
     }
 
@@ -325,6 +326,11 @@ public:
         return instream;
     }
 
+    bool valid() const
+    {
+        return hasData;
+    }
+
     arithmetic<TInputStream>& operator = (const arithmetic<TInputStream>&) = delete;
 
 private:
@@ -332,6 +338,7 @@ private:
     {
         value = 0;
         length = AC__MaxLength;
+        hasData = false;
     }
 
     void renorm_dec_interval()
@@ -344,6 +351,7 @@ private:
     uint32_t value;
     uint32_t length;
 
+    bool hasData;
     std::unique_ptr<TInputStream> pIn;
     TInputStream& instream;
 };
