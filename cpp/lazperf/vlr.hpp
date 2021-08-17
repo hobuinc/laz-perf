@@ -76,7 +76,7 @@ public:
 struct LAZPERF_EXPORT laz_vlr : public vlr
 {
 public:
-    struct laz_item
+    struct LAZPERF_EXPORT laz_item
     {
         uint16_t type;
         uint16_t size;

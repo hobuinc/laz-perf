@@ -44,8 +44,7 @@ const uint32_t VariableChunkSize = (std::numeric_limits<uint32_t>::max)();
 
 LAZPERF_EXPORT int baseCount(int format);
 
-#pragma pack(push, 1)
-struct vector3
+struct LAZPERF_EXPORT vector3
 {
     vector3() : x(0), y(0), z(0)
     {}
@@ -153,7 +152,6 @@ struct LAZPERF_EXPORT header14 : public header13
     uint64_t point_count_14 {0};
     uint64_t points_by_return_14[15] {};
 };
-#pragma pack(pop)
 
 // Note that the values must be converted to 32-bit before encoding.
 struct chunk
