@@ -1,11 +1,6 @@
 /*
 ===============================================================================
 
-  FILE:  io.hpp
-
-  CONTENTS:
-    LAZ io
-
   PROGRAMMERS:
 
     martin.isenburg@rapidlasso.com  -  http://rapidlasso.com
@@ -34,15 +29,20 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "lazperf_base.hpp"
 
 namespace lazperf
 {
-namespace io
-{
+
+class LeInserter;
+class LeExtractor;
+
 const uint32_t DefaultChunkSize = 50000;
 const uint32_t VariableChunkSize = (std::numeric_limits<uint32_t>::max)();
+
+LAZPERF_EXPORT int baseCount(int format);
 
 #pragma pack(push, 1)
 struct vector3
@@ -58,7 +58,9 @@ struct vector3
     double z;
 };
 
-struct base_header
+// We currently export the whole struct because we have virtual functions and the vtable
+// doesn't get exported unless you export the struct/class. :(
+struct LAZPERF_EXPORT base_header
 {
     char magic[4] { 'L', 'A', 'S', 'F' };
     uint16_t file_source_id {};
@@ -90,30 +92,75 @@ struct base_header
 
     vector3 scale;
     vector3 offset;
-    vector3 minimum;
-    vector3 maximum;
+    double maxx { std::numeric_limits<double>::lowest() };
+    double minx { (std::numeric_limits<double>::max)() };
+    double maxy { std::numeric_limits<double>::lowest() };
+    double miny { (std::numeric_limits<double>::max)() };
+    double maxz { std::numeric_limits<double>::lowest() };
+    double minz { (std::numeric_limits<double>::max)() };
 
+    size_t sizeFromVersion() const;
     int ebCount() const;
-    size_t size() const;
+    int pointFormat() const;
+    bool compressed() const;
+    static int minorVersion(std::istream& in);
+
+protected:
+    base_header();
 };
 
-struct header12 : public base_header
-{};
-
-struct header13 : public header12
+struct LAZPERF_EXPORT header12 : public base_header
 {
+    header12()
+    {
+        version.minor = 2;
+    }
+
+    static header12 create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    static const size_t Size;
+};
+
+struct LAZPERF_EXPORT header13 : public header12
+{
+    header13()
+    {
+        version.minor = 3;
+    }
+
+    static header13 create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    static const size_t Size;
     uint64_t wave_offset {0};
 };
 
-struct header14 : public header13
+struct LAZPERF_EXPORT header14 : public header13
 {
+    header14()
+    {
+        version.minor = 4;
+    }
+
+    static header14 create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    static const size_t Size;
+
     uint64_t evlr_offset {0};
-    uint32_t elvr_count {0};
+    uint32_t evlr_count {0};
     uint64_t point_count_14 {0};
     uint64_t points_by_return_14[15] {};
 };
 #pragma pack(pop)
-} // namespace io
+
+// Note that the values must be converted to 32-bit before encoding.
+struct chunk
+{
+    uint64_t count;
+    uint64_t offset;
+};
 
 #define FRIEND_TEST(test_case_name, test_name) \
     friend class test_case_name##_##test_name##_Test

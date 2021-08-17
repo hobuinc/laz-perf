@@ -37,29 +37,43 @@
 namespace lazperf
 {
 
-struct vlr
+struct LAZPERF_EXPORT vlr_header
 {
-public:
+    uint16_t reserved;
+    char user_id[16];
+    uint16_t record_id;
+    uint16_t data_length;
+    char description[32];
 
-#pragma pack(push, 1)
-    struct vlr_header
-    {
-        uint16_t reserved;
-        char user_id[16];
-        uint16_t record_id;
-        uint16_t record_length_after_header;
-        char description[32];
-
-        size_t size() const;
-    };
-#pragma pack(pop)
-
-    LAZPERF_EXPORT virtual size_t size() const = 0;
-    LAZPERF_EXPORT virtual std::vector<char> data() const = 0;
-    LAZPERF_EXPORT virtual vlr_header header() const = 0;
+    static vlr_header create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    static const int Size;
 };
 
-struct laz_vlr : public vlr
+struct LAZPERF_EXPORT evlr_header
+{
+    uint16_t reserved;
+    char user_id[16];
+    uint16_t record_id;
+    uint64_t data_length;
+    char description[32];
+
+    static evlr_header create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    static const int Size;
+};
+
+struct LAZPERF_EXPORT vlr
+{
+public:
+    virtual ~vlr();
+    virtual size_t size() const = 0;
+    virtual vlr_header header() const = 0;
+};
+
+struct LAZPERF_EXPORT laz_vlr : public vlr
 {
 public:
     struct laz_item
@@ -80,18 +94,18 @@ public:
     uint64_t num_bytes;
     std::vector<laz_item> items;
 
-    LAZPERF_EXPORT laz_vlr();
-    LAZPERF_EXPORT laz_vlr(int format, int ebCount, uint32_t chunksize);
-    LAZPERF_EXPORT laz_vlr(const char *c);
-    LAZPERF_EXPORT ~laz_vlr();
+    laz_vlr();
+    laz_vlr(int format, int ebCount, uint32_t chunksize);
+    virtual ~laz_vlr();
 
-    LAZPERF_EXPORT virtual size_t size() const;
-    LAZPERF_EXPORT virtual std::vector<char> data() const;
-    LAZPERF_EXPORT virtual vlr_header header() const;
-    LAZPERF_EXPORT void fill(const char *c);
+    static laz_vlr create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual vlr_header header() const;
 };
 
-struct eb_vlr : public vlr
+struct LAZPERF_EXPORT eb_vlr : public vlr
 {
 public:
     struct ebfield
@@ -113,12 +127,50 @@ public:
 
     std::vector<ebfield> items;
 
-    LAZPERF_EXPORT eb_vlr(size_t bytes);
+    eb_vlr();
+    eb_vlr(int ebCount);
+    virtual ~eb_vlr();
 
-    LAZPERF_EXPORT virtual size_t size() const;
-    LAZPERF_EXPORT virtual std::vector<char> data() const;
-    LAZPERF_EXPORT virtual vlr_header header() const;
-    LAZPERF_EXPORT void addField();
+    static eb_vlr create(std::istream& in, int byteSize);
+    void read(std::istream& in, int byteSize);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual vlr_header header() const;
+    void addField();
+};
+
+struct LAZPERF_EXPORT wkt_vlr : public vlr
+{
+public:
+    std::string wkt;
+
+    wkt_vlr();
+    wkt_vlr(const std::string& s);
+    virtual ~wkt_vlr();
+
+    static wkt_vlr create(std::istream& in, int byteSize);
+    void read(std::istream& in, int byteSize);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual vlr_header header() const;
+};
+
+struct LAZPERF_EXPORT copc_vlr : public vlr
+{
+public:
+    uint64_t root_hier_offset;
+    uint64_t root_hier_size;
+    uint64_t span;
+    uint64_t reserved[7];
+
+    copc_vlr();
+    virtual ~copc_vlr();
+
+    static copc_vlr create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual vlr_header header() const;
 };
 
 } // namesapce lazperf

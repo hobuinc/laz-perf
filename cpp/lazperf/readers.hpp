@@ -23,7 +23,8 @@
 
 #pragma once
 
-#include "io.hpp"
+#include "header.hpp"
+#include "vlr.hpp"
 
 namespace lazperf
 {
@@ -43,8 +44,9 @@ protected:
 
 public:
     LAZPERF_EXPORT uint64_t pointCount() const;
-    LAZPERF_EXPORT const io::base_header& header() const;
+    LAZPERF_EXPORT const header12& header() const;
     LAZPERF_EXPORT void readPoint(char *out);
+    LAZPERF_EXPORT laz_vlr lazVlr() const;
 
 private:
     // The file object is not copyable or copy constructible
@@ -80,6 +82,20 @@ class named_file : public basic_file
 public:
     LAZPERF_EXPORT named_file(const std::string& filename);
     LAZPERF_EXPORT ~named_file();
+
+private:
+    std::unique_ptr<Private> p_;
+};
+
+///
+
+class chunk_decompressor
+{
+    struct Private;
+public:
+    LAZPERF_EXPORT chunk_decompressor(int format, int ebCount, const char *srcbuf);
+    LAZPERF_EXPORT ~chunk_decompressor();
+    LAZPERF_EXPORT void decompress(char *outbuf);
 
 private:
     std::unique_ptr<Private> p_;

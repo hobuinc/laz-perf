@@ -36,9 +36,9 @@
 #include "test_main.hpp"
 
 #include <lazperf/excepts.hpp>
+#include <lazperf/las.hpp>
 #include <lazperf/readers.hpp>
 #include <lazperf/writers.hpp>
-#include <lazperf/readers_private.hpp>
 #include <lazperf/vlr.hpp>
 
 #include <cstdio>
@@ -69,9 +69,9 @@ std::string makeTempFileName()
 
 TEST(io_tests, io_structs_are_of_correct_size)
 {
-    EXPECT_EQ(sizeof(io::base_header), 227u);
-    EXPECT_EQ(sizeof(io::header13), 235u);
-    EXPECT_EQ(sizeof(io::header14), 375u);
+    EXPECT_EQ(header12::Size, 227u);
+    EXPECT_EQ(header13::Size, 235u);
+    EXPECT_EQ(header14::Size, 375u);
 }
 
 TEST(io_tests, can_report_invalid_magic)
@@ -103,75 +103,65 @@ void dumpBytes(const char* b, size_t len) {
 
 TEST(io_tests, parses_header_correctly)
 {
-    {
-        reader::named_file f(testFile("point10.las.laz"));
-        const io::base_header& header = f.header();
+    reader::named_file f(testFile("point10.las.laz"));
+    const base_header& header = f.header();
 
-        EXPECT_EQ(header.version.major, 1);
-        EXPECT_EQ(header.version.minor, 2);
+    EXPECT_EQ(header.version.major, 1);
+    EXPECT_EQ(header.version.minor, 2);
 
-        EXPECT_EQ(header.creation.day, 113);
-        EXPECT_EQ(header.creation.year, 2014);
+    EXPECT_EQ(header.creation.day, 113);
+    EXPECT_EQ(header.creation.year, 2014);
 
-        EXPECT_EQ(header.header_size, 227);
-        EXPECT_EQ(header.point_offset, 1301u);
+    EXPECT_EQ(header.header_size, 227);
+    EXPECT_EQ(header.point_offset, 1301u);
 
-        EXPECT_EQ(header.vlr_count, 5u);
+    EXPECT_EQ(header.vlr_count, 5u);
 
-        EXPECT_EQ(header.point_format_id, 0);
-        EXPECT_EQ(header.point_record_length, 20);
+    EXPECT_EQ(header.point_format_id, 0);
+    EXPECT_EQ(header.point_record_length, 20);
 
-        EXPECT_DOUBLE_EQ(header.scale.x, 0.01);
-        EXPECT_DOUBLE_EQ(header.scale.y, 0.01);
-        EXPECT_DOUBLE_EQ(header.scale.z, 0.01);
+    EXPECT_DOUBLE_EQ(header.scale.x, 0.01);
+    EXPECT_DOUBLE_EQ(header.scale.y, 0.01);
+    EXPECT_DOUBLE_EQ(header.scale.z, 0.01);
 
-        EXPECT_DOUBLE_EQ(header.offset.x, 0.0);
-        EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
-        EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
+    EXPECT_DOUBLE_EQ(header.offset.x, 0.0);
+    EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
+    EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
 
-        EXPECT_DOUBLE_EQ(header.minimum.x, 493994.87);
-        EXPECT_DOUBLE_EQ(header.minimum.y, 4877429.62);
-        EXPECT_DOUBLE_EQ(header.minimum.z, 123.93);
+    EXPECT_DOUBLE_EQ(header.minx, 493994.87);
+    EXPECT_DOUBLE_EQ(header.miny, 4877429.62);
+    EXPECT_DOUBLE_EQ(header.minz, 123.93);
 
-        EXPECT_DOUBLE_EQ(header.maximum.x, 494993.68);
-        EXPECT_DOUBLE_EQ(header.maximum.y, 4878817.02);
-        EXPECT_DOUBLE_EQ(header.maximum.z, 178.73);
+    EXPECT_DOUBLE_EQ(header.maxx, 494993.68);
+    EXPECT_DOUBLE_EQ(header.maxy, 4878817.02);
+    EXPECT_DOUBLE_EQ(header.maxz, 178.73);
 
-        EXPECT_EQ(header.point_count, 1065u);
-    }
+    EXPECT_EQ(header.point_count, 1065u);
 }
-
-namespace reader
-{
 
 TEST(io_tests, parses_laszip_vlr_correctly)
 {
-    {
-        reader::named_file f(testFile("point10.las.laz"));
-        auto& vlr = ((reader::basic_file&)f).p_->laz;
+    reader::named_file f(testFile("point10.las.laz"));
+    laz_vlr vlr = f.lazVlr();
 
-        EXPECT_EQ(vlr.compressor, 2);
-        EXPECT_EQ(vlr.coder, 0);
+    EXPECT_EQ(vlr.compressor, 2);
+    EXPECT_EQ(vlr.coder, 0);
 
-        EXPECT_EQ(vlr.ver_major, 2);
-        EXPECT_EQ(vlr.ver_minor, 2);
-        EXPECT_EQ(vlr.revision, 0);
+    EXPECT_EQ(vlr.ver_major, 2);
+    EXPECT_EQ(vlr.ver_minor, 2);
+    EXPECT_EQ(vlr.revision, 0);
 
-        EXPECT_EQ(vlr.options, 0u);
-        EXPECT_EQ(vlr.chunk_size, 50000u);
+    EXPECT_EQ(vlr.options, 0u);
+    EXPECT_EQ(vlr.chunk_size, 50000u);
 
-        EXPECT_EQ(vlr.num_points, -1);
-        EXPECT_EQ(vlr.num_bytes, -1);
+    EXPECT_EQ(vlr.num_points, -1);
+    EXPECT_EQ(vlr.num_bytes, -1);
 
-        EXPECT_EQ(vlr.items.size(), 1u);
-        EXPECT_EQ(vlr.items[0].type, 6);
-        EXPECT_EQ(vlr.items[0].size, 20);
-        EXPECT_EQ(vlr.items[0].version, 2);
-    }
+    EXPECT_EQ(vlr.items.size(), 1u);
+    EXPECT_EQ(vlr.items[0].type, 6);
+    EXPECT_EQ(vlr.items[0].size, 20);
+    EXPECT_EQ(vlr.items[0].version, 2);
 }
-
-} // namespace reader
-
 
 void testPoint(const lazperf::las::point10& p1, const lazperf::las::point10& p2)
 {
@@ -253,8 +243,8 @@ void compare(const std::string& compressed, const std::string& uncompressed)
     if (!ucStream.good())
         FAIL() << "Unable to open uncompressed file '" << uncompressed << "'.";
 
-    io::base_header header;
-    ucStream.read((char *)&header, sizeof(header));
+
+    header12 header = header12::create(ucStream);
     ucStream.seekg(header.point_offset);
     unsigned short pointLen = header.point_record_length;
 
@@ -271,20 +261,19 @@ void compare(const std::string& compressed, const std::string& uncompressed)
 
 void encode(const std::string& lasFilename, const std::string& lazFilename)
 {
-    io::base_header h;
     std::ifstream lasStream(lasFilename, std::ios::binary);
     if (!lasStream.good())
         FAIL() << "Unable to open uncompressed file '" << lasFilename << "'.";
 
-    lasStream.read((char *)&h, sizeof(h));
+    header12 h = header12::create(lasStream);
     lasStream.seekg(h.point_offset);
 
     writer::named_file f(lazFilename, writer::named_file::config(h));
-    char buf[1000];
+    std::vector<char> buf(1000);
     for (size_t i = 0; i < h.point_count; ++i)
     {
-        lasStream.read(buf, h.point_record_length);
-        f.writePoint(buf);
+        lasStream.read(buf.data(), h.point_record_length);
+        f.writePoint(buf.data());
     }
     f.close();
 }
@@ -296,6 +285,7 @@ TEST(io_tests, decodes_single_chunk_files_correctly)
 
 TEST(io_tests, extrabytes)
 {
+    // Total point length of 61 - 27 extra bytes
     compare(testFile("extrabytes.laz"), testFile("extrabytes.las"));
     std::string outLaz(makeTempFileName());
     encode(testFile("extrabytes.las"), outLaz);
@@ -396,8 +386,8 @@ TEST(io_tests, can_decode_large_files)
     }
 }
 
-TEST(io_tests, can_encode_large_files) {
-
+TEST(io_tests, can_encode_large_files)
+{
     checkExists(testFile("autzen_trim.laz"));
     checkExists(testFile("autzen_trim.las"));
 
@@ -444,7 +434,7 @@ TEST(io_tests, variable_chunks)
     checkExists(testFile("autzen_trim.las"));
     {
 
-        writer::named_file::config c({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}, io::VariableChunkSize);
+        writer::named_file::config c({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}, VariableChunkSize);
         c.pdrf = 3;
         writer::named_file f(fname, c);
 
@@ -463,7 +453,7 @@ TEST(io_tests, variable_chunks)
             chunksize--;
             if (chunksize == 0)
             {
-                f.chunk();
+                f.newChunk();
                 chunksize = dist(rd);
             }
         }
@@ -600,12 +590,12 @@ TEST(io_tests, writes_bbox_to_header)
 
     // Now check that the file has correct bounding box
     reader::named_file reader(filename);
-    EXPECT_EQ(reader.header().minimum.x, 1.0);
-    EXPECT_EQ(reader.header().maximum.x, 2.0);
-    EXPECT_EQ(reader.header().minimum.y, -3.0);
-    EXPECT_EQ(reader.header().maximum.y, -2.0);
-    EXPECT_EQ(reader.header().minimum.z, -4.0);
-    EXPECT_EQ(reader.header().maximum.z, 3.0);
+    EXPECT_EQ(reader.header().minx, 1.0);
+    EXPECT_EQ(reader.header().maxx, 2.0);
+    EXPECT_EQ(reader.header().miny, -3.0);
+    EXPECT_EQ(reader.header().maxy, -2.0);
+    EXPECT_EQ(reader.header().minz, -4.0);
+    EXPECT_EQ(reader.header().maxz, 3.0);
 }
 
 TEST(io_tests, issue22)

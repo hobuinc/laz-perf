@@ -133,6 +133,8 @@ public:
         if (k) // then c is either smaller than 0 or bigger than 1
         {
             assert((c != 0) && (c != 1));
+            if (k == 32)
+                return;
             // translate the corrector c into the k-bit interval [ 0 ... 2^k - 1 ]
             if (c < 0) // then c is in the interval [ - (2^k - 1)  ...  - (2^(k-1)) ]
             {

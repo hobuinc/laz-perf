@@ -714,6 +714,7 @@ char *Point14Decompressor::decompress(char *buf, int& scArg)
     }
 
     // Z
+    if (z_dec_.valid())
     {
         uint32_t kbits = (c.dx_decomp_.getK() + c.dy_decomp_.getK()) / 2;
         kbits = (std::min)(kbits, 18U) & ~1;
@@ -721,30 +722,37 @@ char *Point14Decompressor::decompress(char *buf, int& scArg)
         int32_t z = c.z_decomp_.decompress(z_dec_, c.last_z_[ctx], (n == 1) | kbits);
         c.last_.setZ(z);
         c.last_z_[ctx] = z;
-        LAZDEBUG(sumZ.add(c.last_.z()));
     }
+    LAZDEBUG(sumZ.add(c.last_.z()));
 
     // Classification
+    if (class_dec_.valid())
     {
         int32_t ctx = ((r == 1 && r >= n) | ((c.last_.classification() & 0x1F) << 1));
         c.last_.setClassification(class_dec_.decodeSymbol(c.class_model_[ctx]));
-        LAZDEBUG(sumClass.add(c.last_.classification()));
     }
+    LAZDEBUG(sumClass.add(c.last_.classification()));
 
     // Flags
+    auto mergeFlags = [](const las::point14& p)
     {
-        uint32_t last_flags = c.last_.classFlags() |
-            (c.last_.scanDirFlag() << 4) |
-            (c.last_.eofFlag() << 5);
-
-        uint32_t flags = flags_dec_.decodeSymbol(c.flag_model_[last_flags]);
-        LAZDEBUG(sumFlags.add(flags));
+        uint32_t flags = p.classFlags() | (p.scanDirFlag() << 4) | (p.eofFlag() << 5);
+        return flags;
+    };
+    if (flags_dec_.valid())
+    {
+        uint32_t flags = flags_dec_.decodeSymbol(c.flag_model_[mergeFlags(c.last_)]);
         c.last_.setEofFlag((flags >> 5) & 1);
         c.last_.setScanDirFlag((flags >> 4) & 1);
         c.last_.setClassFlags(flags & 0x0F);
+        LAZDEBUG(sumFlags.add(flags));
     }
+    else
+        LAZDEBUG(sumFlags.add(mergeFlags(c.last_)));
+
 
     // Intensity
+    if (intensity_dec_.valid())
     {
         int32_t ctx = gps_time_changed | ((r >= n) << 1) | ((r == 1) << 2);
 
@@ -752,33 +760,32 @@ char *Point14Decompressor::decompress(char *buf, int& scArg)
                 c.last_intensity_[ctx], ctx >> 1);
         c.last_intensity_[ctx] = intensity;
         c.last_.setIntensity(intensity);
-        LAZDEBUG(sumIntensity.add(c.last_.intensity()));
     }
+    LAZDEBUG(sumIntensity.add(c.last_.intensity()));
 
     // Scan angle
+    if (scan_angle_changed)
     {
-        if (scan_angle_changed)
-        {
-            c.last_.setScanAngle(c.scan_angle_decomp_.decompress(scan_angle_dec_,
-                        c.last_.scanAngle(), gps_time_changed));
-        }
-        LAZDEBUG(sumScanAngle.add(c.last_.scanAngle()));
+        c.last_.setScanAngle(c.scan_angle_decomp_.decompress(scan_angle_dec_,
+            c.last_.scanAngle(), gps_time_changed));
     }
+    LAZDEBUG(sumScanAngle.add(c.last_.scanAngle()));
 
     // User data
+    if (user_data_dec_.valid())
     {
         int32_t ctx = c.last_.userData() / 4;
         c.last_.setUserData(user_data_dec_.decodeSymbol(c.user_data_model_[ctx]));
-        LAZDEBUG(sumUserData.add(c.last_.userData()));
     }
+    LAZDEBUG(sumUserData.add(c.last_.userData()));
 
     // Point source ID
+    if (point_source_changed)
     {
-        if (point_source_changed)
-            c.last_.setPointSourceID(c.point_source_id_decomp_.decompress(
-                        point_source_id_dec_, c.last_.pointSourceID(), 0));
-        LAZDEBUG(sumPointSourceId.add(c.last_.pointSourceID()));
+        c.last_.setPointSourceID(c.point_source_id_decomp_.decompress(
+            point_source_id_dec_, c.last_.pointSourceID(), 0));
     }
+    LAZDEBUG(sumPointSourceId.add(c.last_.pointSourceID()));
 
     if (gps_time_changed)
         decodeGpsTime(c);

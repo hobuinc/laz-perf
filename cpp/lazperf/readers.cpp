@@ -29,12 +29,62 @@
 */
 
 #include "readers.hpp"
-#include "readers_private.hpp"
+#include "charbuf.hpp"
+#include "decoder.hpp"
+#include "decompressor.hpp"
+#include "excepts.hpp"
+#include "filestream.hpp"
+#include "streams.hpp"
+#include "vlr.hpp"
 
 namespace lazperf
 {
 namespace reader
 {
+
+struct basic_file::Private
+{
+    Private() : head12(head14), head13(head14), compressed(false), current_chunk(nullptr)
+    {}
+
+    void open(std::istream& f);
+    uint64_t firstChunkOffset() const;
+    void readPoint(char *out);
+    void loadHeader();
+    uint64_t pointCount() const;
+    void parseVLRs();
+    void parseChunkTable();
+    void validateHeader();
+
+    std::istream *f;
+    std::unique_ptr<InFileStream> stream;
+    header12& head12;
+    header13& head13;
+    header14 head14;
+    bool compressed;
+    las_decompressor::ptr pdecompressor;
+    laz_vlr laz;
+    chunk *current_chunk;
+    uint32_t chunk_point_num;
+    std::vector<chunk> chunks;
+};
+
+struct mem_file::Private
+{
+    Private(char *buf, size_t count) : sbuf(buf, count), f(&sbuf)
+    {}
+
+    charbuf sbuf;
+    std::istream f;
+};
+
+struct named_file::Private
+{
+    Private(const std::string& filename) : f(filename, std::ios::binary)
+    {}
+
+    std::ifstream f;
+};
 
 // reader::basic_file
 
@@ -50,21 +100,21 @@ uint64_t basic_file::Private::firstChunkOffset() const
 {
     // There is a chunk offset where the first point is supposed to be. The first
     // chunk follows that.
-    return header.point_offset + sizeof(uint64_t);
+    return head12.point_offset + sizeof(uint64_t);
 }
 
 void basic_file::Private::readPoint(char *out)
 {
     if (!compressed)
-        stream->cb()(reinterpret_cast<unsigned char *>(out), header.point_record_length);
+        stream->cb()(reinterpret_cast<unsigned char *>(out), head12.point_record_length);
 
     // read the next point
     else
     {
         if (!pdecompressor || chunk_point_num == current_chunk->count)
         {
-            pdecompressor = build_las_decompressor(stream->cb(), header.point_format_id,
-                header.ebCount());
+            pdecompressor = build_las_decompressor(stream->cb(), head12.point_format_id,
+                head12.ebCount());
 
             // reset chunk state
             if (current_chunk == nullptr)
@@ -81,33 +131,32 @@ void basic_file::Private::readPoint(char *out)
 
 void basic_file::Private::loadHeader()
 {
-    // Make sure our header is correct
-    char magic[4];
-    f->read(magic, sizeof(magic));
+    std::vector<char> buf(header14::Size);
 
-    if (std::string(magic, magic + 4) != "LASF")
+    f->seekg(0);
+    head12.read(*f);
+
+    if (std::string(head12.magic, head12.magic + 4) != "LASF")
         throw error("Invalid LAS file. Incorrect magic number.");
 
-    // Read the header in
-    f->seekg(0);
-    f->read((char*)&header, sizeof(io::base_header));
-    // If we're version 4, back up and do it again.
-    if (header.version.minor == 3)
+    // If we're version 3 or 4, back up and do it again.
+    if (head12.version.minor == 3)
     {
         f->seekg(0);
-        f->read((char *)&header13, sizeof(io::header13));
+        head13.read(*f);
     }
-    else if (header.version.minor == 4)
+    else if (head12.version.minor == 4)
     {
         f->seekg(0);
-        f->read((char *)&header14, sizeof(io::header14));
+        head14.read(*f);
     }
+    if (head12.version.minor < 2 || head12.version.minor > 4)
+        std::cerr << "Invalid/unsupported version number " <<
+            (int)head12.version.major << "." << (int)head12.version.minor <<
+            " found when loading header.";
 
-    if (header.point_format_id & 0x80)
+    if (head12.compressed())
         compressed = true;
-
-    // The mins and maxes are in a weird order, fix them
-    fixMinMax();
 
     parseVLRs();
 
@@ -120,7 +169,7 @@ void basic_file::Private::loadHeader()
     // set the file pointer to the beginning of data to start reading
     // may have treaded past the EOL, so reset everything before we start reading
     f->clear();
-    uint64_t offset = header.point_offset;
+    uint64_t offset = head12.point_offset;
     if (compressed)
         offset += sizeof(int64_t);
     f->seekg(offset);
@@ -130,60 +179,37 @@ void basic_file::Private::loadHeader()
 
 uint64_t basic_file::Private::pointCount() const
 {
-    if (header.version.major > 1 || header.version.minor > 3)
-        return header14.point_count_14;
-    return header.point_count;
+    if (head12.version.major > 1 || head12.version.minor > 3)
+        return head14.point_count_14;
+    return head12.point_count;
 }
 
-
-void basic_file::Private::fixMinMax()
-{
-    double mx, my, mz, nx, ny, nz;
-
-    io::base_header& h = header;
-    mx = h.minimum.x; nx = h.minimum.y;
-    my = h.minimum.z; ny = h.maximum.x;
-    mz = h.maximum.y; nz = h.maximum.z;
-
-    h.minimum.x = nx; h.maximum.x = mx;
-    h.minimum.y = ny; h.maximum.y = my;
-    h.minimum.z = nz; h.maximum.z = mz;
-}
 
 void basic_file::Private::parseVLRs()
 {
     // move the pointer to the begining of the VLRs
-    f->seekg(header.header_size);
-
-#pragma pack(push, 1)
-    struct {
-        unsigned short reserved;
-        char user_id[16];
-        unsigned short record_id;
-        unsigned short record_length;
-        char desc[32];
-    } vlr_header;
-#pragma pack(pop)
+    f->seekg(head12.header_size);
 
     size_t count = 0;
     bool laszipFound = false;
-    while (count < header.vlr_count && f->good() && !f->eof())
+    while (count < head12.vlr_count && f->good() && !f->eof())
     {
-        f->read((char*)&vlr_header, sizeof(vlr_header));
+        vlr_header h = vlr_header::create(*f);
 
         const char *user_id = "laszip encoded";
 
-        if (std::equal(vlr_header.user_id, vlr_header.user_id + 14, user_id) &&
-            vlr_header.record_id == 22204)
+        if (std::equal(h.user_id, h.user_id + 14, user_id) && h.record_id == 22204)
         {
             laszipFound = true;
-
-            std::unique_ptr<char> buffer(new char[vlr_header.record_length]);
-            f->read(buffer.get(), vlr_header.record_length);
-            parseLASZIPVLR(buffer.get());
+            laz.read(*f);
+            if ((head12.pointFormat() <= 5 && laz.compressor != 2) ||
+                (head12.pointFormat() > 5 && laz.compressor != 3))
+                throw error("Mismatch between point format of " +
+                    std::to_string(head12.pointFormat()) + " and compressor version of " +
+                    std::to_string((int)laz.compressor) + ".");
             break; // no need to keep iterating
         }
-        f->seekg(vlr_header.record_length, std::ios::cur); // jump foward
+        f->seekg(h.data_length, std::ios::cur); // jump foward
         count++;
     }
 
@@ -191,17 +217,10 @@ void basic_file::Private::parseVLRs()
         throw error("Couldn't find LASZIP VLR");
 }
 
-void basic_file::Private::parseLASZIPVLR(const char *buf)
-{
-    laz.fill(buf);
-    if (laz.compressor != 2)
-        throw error("LASZIP format unsupported - invalid compressor version.");
-}
-
 void basic_file::Private::parseChunkTable()
 {
     // Move to the begining of the data
-    f->seekg(header.point_offset);
+    f->seekg(head12.point_offset);
 
     int64_t chunkoffset = 0;
     f->read((char*)&chunkoffset, sizeof(chunkoffset));
@@ -255,7 +274,7 @@ void basic_file::Private::parseChunkTable()
     {
         uint32_t count;
 
-        if (laz.chunk_size == io::VariableChunkSize)
+        if (laz.chunk_size == VariableChunkSize)
         {
             count = decomp.decompress(decoder, prev_count, 0);
             prev_count = count;
@@ -293,16 +312,14 @@ void basic_file::Private::parseChunkTable()
 
 void basic_file::Private::validateHeader()
 {
-    io::base_header& h = header;
-
-    int bit_7 = (h.point_format_id >> 7) & 1;
-    int bit_6 = (h.point_format_id >> 6) & 1;
+    int bit_7 = (head12.point_format_id >> 7) & 1;
+    int bit_6 = (head12.point_format_id >> 6) & 1;
 
     if (bit_7 == 1 && bit_6 == 1)
         throw error("Header bits indicate unsupported old-style compression.");
     if ((bit_7 ^ bit_6) == 0)
         throw error("Header indicates the file is not compressed.");
-    h.point_format_id &= 0x3f;
+    head12.point_format_id &= 0x3f;
 }
 
 
@@ -322,14 +339,19 @@ void basic_file::readPoint(char *out)
     p_->readPoint(out);
 }
 
-const io::base_header& basic_file::header() const
+const header12& basic_file::header() const
 {
-    return p_->header;
+    return p_->head12;
 }
 
 uint64_t basic_file::pointCount() const
 {
     return p_->pointCount();
+}
+
+laz_vlr basic_file::lazVlr() const
+{
+    return p_->laz;
 }
 
 // reader::mem_file
@@ -361,6 +383,38 @@ named_file::named_file(const std::string& filename) : p_(new Private(filename))
 
 named_file::~named_file()
 {}
+
+// Chunk decompressor
+
+struct chunk_decompressor::Private
+{
+    las_decompressor::ptr pdecompressor;
+    const unsigned char *buf;
+
+    void getBytes(unsigned char *b, int len)
+    {
+        while (len--)
+            *b++ = *buf++;
+    }
+};
+
+chunk_decompressor::chunk_decompressor(int format, int ebCount, const char *srcbuf) :
+    p_(new Private)
+{
+    using namespace std::placeholders;
+
+    p_->buf = reinterpret_cast<const unsigned char *>(srcbuf);
+    InputCb cb = std::bind(&Private::getBytes, p_.get(), _1, _2);
+    p_->pdecompressor = build_las_decompressor(cb, format, ebCount);
+}
+
+chunk_decompressor::~chunk_decompressor()
+{}
+
+void chunk_decompressor::decompress(char *outbuf)
+{
+    p_->pdecompressor->decompress(outbuf);
+}
 
 } // namespace reader
 } // namespace lazperf

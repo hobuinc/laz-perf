@@ -23,7 +23,9 @@
 
 #pragma once
 
-#include "io.hpp"
+#include <memory>
+
+#include "header.hpp"
 
 namespace lazperf
 {
@@ -39,10 +41,10 @@ protected:
     virtual ~basic_file();
 
 public:
-    LAZPERF_EXPORT void open(std::ostream& out, const io::base_header& h, uint32_t chunk_size);
+    LAZPERF_EXPORT void open(std::ostream& out, const header12& h, uint32_t chunk_size);
     LAZPERF_EXPORT void writePoint(const char *p);
     LAZPERF_EXPORT void close();
-    LAZPERF_EXPORT uint64_t chunk();
+    LAZPERF_EXPORT uint64_t newChunk();
     LAZPERF_EXPORT uint64_t firstChunkOffset() const;
     LAZPERF_EXPORT virtual bool compressed() const;
 
@@ -58,19 +60,19 @@ public:
     struct config
     {
     public:
-        io::vector3 scale;
-        io::vector3 offset;
+        vector3 scale;
+        vector3 offset;
         unsigned int chunk_size;
         int pdrf;
         int minor_version;
         int extra_bytes;
 
         explicit config();
-        config(const io::vector3& scale, const io::vector3& offset,
-            unsigned int chunksize = io::DefaultChunkSize);
-        config(const io::base_header& header);
+        config(const vector3& scale, const vector3& offset,
+            unsigned int chunksize = DefaultChunkSize);
+        config(const header12& header);
 
-        io::base_header to_header() const;
+        header12 to_header() const;
     };
 
     LAZPERF_EXPORT named_file(const std::string& filename, const config& c);
@@ -79,6 +81,19 @@ public:
     LAZPERF_EXPORT void close();
 
 private:
+    std::unique_ptr<Private> p_;
+};
+
+class chunk_compressor
+{
+    struct Private;
+public:
+    LAZPERF_EXPORT chunk_compressor(int format, int ebCount);
+    LAZPERF_EXPORT ~chunk_compressor();
+    LAZPERF_EXPORT void compress(const char *inbuf);
+    LAZPERF_EXPORT std::vector<unsigned char> done();
+
+protected:
     std::unique_ptr<Private> p_;
 };
 

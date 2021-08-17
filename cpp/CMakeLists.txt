@@ -16,9 +16,9 @@ install(
     FILES
         lazperf/lazperf.hpp
         lazperf/filestream.hpp
-        lazperf/vlr.hpp
-        lazperf/io.hpp
+        lazperf/header.hpp
         lazperf/readers.hpp
+        lazperf/vlr.hpp
         lazperf/writers.hpp
     DESTINATION
         include/lazperf
