@@ -28,6 +28,8 @@
 ===============================================================================
 */
 
+#include <string>
+
 #include "readers.hpp"
 #include "charbuf.hpp"
 #include "decoder.hpp"
@@ -204,7 +206,7 @@ void basic_file::Private::parseVLRs()
             laz.read(*f);
             if ((head12.pointFormat() <= 5 && laz.compressor != 2) ||
                 (head12.pointFormat() > 5 && laz.compressor != 3))
-                throw error("Mismatch between point format of " +
+                throw error(std::string("Mismatch between point format of ") +
                     std::to_string(head12.pointFormat()) + " and compressor version of " +
                     std::to_string((int)laz.compressor) + ".");
             break; // no need to keep iterating
