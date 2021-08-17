@@ -5,7 +5,7 @@
 #include <emscripten/bind.h>
 #include <iostream>
 
-#include "io.hpp"
+#include "readers.hpp"
 
 using namespace emscripten;
 
