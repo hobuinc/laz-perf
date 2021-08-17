@@ -48,15 +48,19 @@ jobs:
         if: matrix.os == 'windows-latest'
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          channels: conda-forge
+          channels: conda-forge, defaults
+          show-channel-urls: true
           auto-update-conda: true
           python-version: '3.8'
       - name: Setup
         shell: bash -l {0}
         run: |
             conda update -n base -c defaults conda -y
-            conda install ninja compilers cmake -y
-            conda install laz-perf --only-deps -y
+            conda config --add channels conda-forge
+            conda config --set channel_priority strict
+            conda install -c conda-forge compilers -y
+            conda install -c conda-forge ninja cmake -y
+            conda install -c conda-forge laz-perf --only-deps -y
         continue-on-error: true
       - name: Configure
         shell: bash -l {0}
