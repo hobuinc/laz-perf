@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <cstring>
 #include <vector>
 
 #include "portable_endian.hpp"

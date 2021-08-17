@@ -183,7 +183,7 @@ void header13::read(std::istream& in)
 
 void header13::write(std::ostream& out) const
 {
-    ((header12 *)this)->write(out);
+    ((const header12 *)this)->write(out);
 
     std::vector<char> buf(header13::Size - header12::Size);
     LeInserter s(buf.data(), buf.size());
@@ -219,7 +219,7 @@ void header14::read(std::istream& in)
 
 void header14::write(std::ostream& out) const
 {
-    ((header13 *)this)->write(out);
+    ((const header13 *)this)->write(out);
 
     std::vector<char> buf(header14::Size - header13::Size);
     LeInserter s(buf.data(), buf.size());
