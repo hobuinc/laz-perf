@@ -40,7 +40,7 @@ protected:
     basic_file();
     ~basic_file();
 
-    void open(std::istream& in);
+    bool open(std::istream& in);
 
 public:
     LAZPERF_EXPORT uint64_t pointCount() const;

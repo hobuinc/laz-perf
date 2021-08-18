@@ -85,14 +85,11 @@ size_t base_header::sizeFromVersion() const
 {
     size_t size = 0;
     if (version.minor == 2)
-        size = 227;      // 1.2 size
+        size = header12::Size;
     else if (version.minor == 3)
-        size = 235;     // 1.3 size
+        size = header13::Size;
     else if (version.minor == 4)
-        size = 375;     // 1.4 size
-    else
-        std::cerr << "Invalid minor version " << (int)version.minor <<
-            " when determining header size.\n";
+        size = header14::Size;
     return size;
 }
 

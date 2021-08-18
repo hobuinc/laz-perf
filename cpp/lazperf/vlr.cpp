@@ -378,17 +378,16 @@ void wkt_vlr::read(std::istream& in, int byteSize)
     wkt.assign(buf.data(), buf.size());
 }
 
+void wkt_vlr::write(std::ostream& out) const
+{
+    out.write(wkt.data(), wkt.size());
+}
+
 size_t wkt_vlr::size() const
 {
     return wkt.size();
 }
 
-/**
-std::vector<char> wkt_vlr::data() const
-{
-    return std::vector<char>(wkt.data(), wkt.data() + wkt.size());
-}
-**/
 
 vlr_header wkt_vlr::header() const
 {
@@ -419,6 +418,17 @@ void copc_vlr::read(std::istream& in)
     s >> root_hier_offset >> root_hier_size >> span;
     for (int i = 0; i < 7; ++i)
         s >> reserved[i];
+}
+
+void copc_vlr::write(std::ostream& out) const
+{
+    std::vector<char> buf(size());
+    LeInserter s(buf.data(), buf.size());
+
+    s << root_hier_offset << root_hier_size << span;
+    for (int i = 0; i < 7; ++i)
+        s << reserved[i];
+    out.write(buf.data(), buf.size());
 }
 
 size_t copc_vlr::size() const

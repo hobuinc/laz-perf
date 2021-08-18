@@ -526,8 +526,6 @@ las_compressor::ptr build_las_compressor(OutputCb cb, int format, size_t ebCount
     case 8:
         compressor.reset(new point_compressor_8(cb, ebCount));
         break;
-    default:
-        std::cerr << "Invalid/unsupported format " << format << ".\n";
     }
     return compressor;
 }

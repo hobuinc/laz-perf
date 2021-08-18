@@ -49,10 +49,10 @@ struct basic_file::Private
     Private() : head12(head14), head13(head14), compressed(false), current_chunk(nullptr)
     {}
 
-    void open(std::istream& f);
+    bool open(std::istream& f);
     uint64_t firstChunkOffset() const;
     void readPoint(char *out);
-    void loadHeader();
+    bool loadHeader();
     uint64_t pointCount() const;
     void parseVLRs();
     void parseChunkTable();
@@ -90,12 +90,12 @@ struct named_file::Private
 
 // reader::basic_file
 
-void basic_file::Private::open(std::istream& in)
+bool basic_file::Private::open(std::istream& in)
 {
     f = &in;
     //ABELL - move to loadHeader() in order to avoid the reset on InFileStream.
     stream.reset(new InFileStream(in));
-    loadHeader();
+    return loadHeader();
 }
 
 uint64_t basic_file::Private::firstChunkOffset() const
@@ -131,7 +131,7 @@ void basic_file::Private::readPoint(char *out)
     }
 }
 
-void basic_file::Private::loadHeader()
+bool basic_file::Private::loadHeader()
 {
     std::vector<char> buf(header14::Size);
 
@@ -153,9 +153,7 @@ void basic_file::Private::loadHeader()
         head14.read(*f);
     }
     if (head12.version.minor < 2 || head12.version.minor > 4)
-        std::cerr << "Invalid/unsupported version number " <<
-            (int)head12.version.major << "." << (int)head12.version.minor <<
-            " found when loading header.";
+        return false;
 
     if (head12.compressed())
         compressed = true;
@@ -176,6 +174,7 @@ void basic_file::Private::loadHeader()
         offset += sizeof(int64_t);
     f->seekg(offset);
     stream->reset();
+    return true;
 }
 
 
@@ -331,9 +330,9 @@ basic_file::basic_file() : p_(new Private)
 basic_file::~basic_file()
 {}
 
-void basic_file::open(std::istream& f)
+bool basic_file::open(std::istream& f)
 {
-    p_->open(f);
+    return p_->open(f);
 }
 
 void basic_file::readPoint(char *out)
@@ -360,7 +359,8 @@ laz_vlr basic_file::lazVlr() const
 
 mem_file::mem_file(char *buf, size_t count) : p_(new Private(buf, count))
 {
-    open(p_->f);
+    if (!open(p_->f))
+        throw error("Couldn't open mem_file as LAS/LAZ");
 }
 
 mem_file::~mem_file()
@@ -373,14 +373,16 @@ generic_file::~generic_file()
 
 generic_file::generic_file(std::istream& in)
 {
-    open(in);
+    if (!open(in))
+        throw error("Couldn't open generic_file as LAS/LAZ");
 }
 
 // reader::named_file
 
 named_file::named_file(const std::string& filename) : p_(new Private(filename))
 {
-    open(p_->f);
+    if (!open(p_->f))
+        throw error("Couldn't open named_file as LAS/LAZ");;
 }
 
 named_file::~named_file()

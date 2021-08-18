@@ -41,7 +41,7 @@ protected:
     virtual ~basic_file();
 
 public:
-    LAZPERF_EXPORT void open(std::ostream& out, const header12& h, uint32_t chunk_size);
+    LAZPERF_EXPORT bool open(std::ostream& out, const header12& h, uint32_t chunk_size);
     LAZPERF_EXPORT void writePoint(const char *p);
     LAZPERF_EXPORT void close();
     LAZPERF_EXPORT uint64_t newChunk();

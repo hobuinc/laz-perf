@@ -49,7 +49,7 @@ struct basic_file::Private
     uint64_t newChunk();
     uint64_t firstChunkOffset() const;
     bool compressed() const;
-    void open(std::ostream& out, const header12& h, uint32_t chunk_size);
+    bool open(std::ostream& out, const header12& h, uint32_t chunk_size);
     void writePoint(const char *p);
     void updateMinMax(const las::point10& p);
     void writeHeader();
@@ -102,8 +102,11 @@ struct named_file::Private
 // Note that after being read, the table is fixed up to be usable when reading
 // points.
 
-void basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs)
+bool basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs)
 {
+    if (h.version.major != 1 || h.version.minor < 2 || h.version.minor > 4)
+        return false;
+
     f = &out;
     head12 = h;
     chunk_size = cs;
@@ -115,6 +118,7 @@ void basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs
         out.seekp(sizeof(uint64_t), std::ios_base::cur);
     }
     stream.reset(new OutFileStream(out));
+    return true;
 }
 
 bool basic_file::Private::compressed() const
@@ -197,6 +201,10 @@ void basic_file::Private::writeHeader()
     laz_vlr lazVlr(head14.pointFormat(), head14.ebCount(), chunk_size);
     eb_vlr ebVlr(head14.ebCount());
 
+    // Set the version number to 2 in order to write something reasonable.
+    if (head14.version.minor < 2 || head14.version.minor > 4)
+        head14.version.minor = 2;
+
     // point_format_id and point_record_length  are set on open().
     head14.header_size = head14.sizeFromVersion();
     head14.point_offset = head14.header_size;
@@ -231,9 +239,6 @@ void basic_file::Private::writeHeader()
         head13.write(*f);
     else if (head14.version.minor == 4)
         head14.write(*f);
-    else
-        std::cerr << "Invalid header version " << (int)head14.version.minor <<
-            " when writing header.\n";
 
     if (compressed())
     {
@@ -293,9 +298,9 @@ bool basic_file::compressed() const
     return p_->compressed();
 }
 
-void basic_file::open(std::ostream& out, const header12& h, uint32_t chunk_size)
+bool basic_file::open(std::ostream& out, const header12& h, uint32_t chunk_size)
 {
-    p_->open(out, h, chunk_size);
+   return  p_->open(out, h, chunk_size);
 }
 
 void basic_file::writePoint(const char *buf)
