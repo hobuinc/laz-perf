@@ -338,16 +338,6 @@ size_t eb_vlr::size() const
     return 192 * items.size();
 }
 
-// Since all we fill in is a single byte field and a string field, we don't
-// need to worry about byte ordering.
-/**
-std::vector<char> eb_vlr::data() const
-{
-    const char *start = reinterpret_cast<const char *>(items.data());
-    return std::vector<char>(start, start + size());
-}
-**/
-
 vlr_header eb_vlr::header() const
 {
     return vlr_header { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
