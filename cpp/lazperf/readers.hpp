@@ -44,7 +44,7 @@ protected:
 
 public:
     LAZPERF_EXPORT uint64_t pointCount() const;
-    LAZPERF_EXPORT const header12& header() const;
+    LAZPERF_EXPORT const header14& header() const;
     LAZPERF_EXPORT void readPoint(char *out);
     LAZPERF_EXPORT laz_vlr lazVlr() const;
 

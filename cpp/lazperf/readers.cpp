@@ -338,9 +338,9 @@ void basic_file::readPoint(char *out)
     p_->readPoint(out);
 }
 
-const header12& basic_file::header() const
+const header14& basic_file::header() const
 {
-    return p_->head12;
+    return p_->head14;
 }
 
 uint64_t basic_file::pointCount() const
