@@ -158,10 +158,16 @@ public:
 struct LAZPERF_EXPORT copc_vlr : public vlr
 {
 public:
-    uint64_t root_hier_offset;
-    uint64_t root_hier_size;
-    uint64_t span;
-    uint64_t reserved[7];
+    int64_t span {0};
+    uint64_t root_hier_offset {0};
+    uint64_t root_hier_size {0};
+    uint64_t laz_vlr_offset {0};
+    uint64_t laz_vlr_size {0};
+    uint64_t wkt_vlr_offset {0};
+    uint64_t wkt_vlr_size {0};
+    uint64_t eb_vlr_offset {0};
+    uint64_t eb_vlr_size {0};
+    uint64_t reserved[11] {0};
 
     copc_vlr();
     virtual ~copc_vlr();

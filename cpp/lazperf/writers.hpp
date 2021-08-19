@@ -57,7 +57,7 @@ class named_file : public basic_file
     struct Private;
 
 public:
-    struct config
+    struct LAZPERF_EXPORT config
     {
     public:
         vector3 scale;

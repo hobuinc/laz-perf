@@ -386,6 +386,7 @@ vlr_header wkt_vlr::header() const
 
 //
 
+// Initialized in header.
 copc_vlr::copc_vlr()
 {}
 
@@ -405,8 +406,10 @@ void copc_vlr::read(std::istream& in)
     in.read(buf.data(), buf.size());
     LeExtractor s(buf.data(), buf.size());
 
-    s >> root_hier_offset >> root_hier_size >> span;
-    for (int i = 0; i < 7; ++i)
+    s >> span >> root_hier_offset >> root_hier_size;
+    s >> laz_vlr_offset >> laz_vlr_size >> wkt_vlr_offset >> wkt_vlr_size;
+    s >> eb_vlr_offset >> eb_vlr_size;
+    for (int i = 0; i < 11; ++i)
         s >> reserved[i];
 }
 
@@ -415,15 +418,17 @@ void copc_vlr::write(std::ostream& out) const
     std::vector<char> buf(size());
     LeInserter s(buf.data(), buf.size());
 
-    s << root_hier_offset << root_hier_size << span;
-    for (int i = 0; i < 7; ++i)
+    s << span << root_hier_offset << root_hier_size;
+    s << laz_vlr_offset << laz_vlr_size << wkt_vlr_offset << wkt_vlr_size;
+    s << eb_vlr_offset << eb_vlr_size;
+    for (int i = 0; i < 11; ++i)
         s << reserved[i];
     out.write(buf.data(), buf.size());
 }
 
 size_t copc_vlr::size() const
 {
-    return sizeof(uint64_t) * 10;
+    return sizeof(uint64_t) * 20;
 }
 
 vlr_header copc_vlr::header() const
