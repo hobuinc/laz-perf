@@ -40,10 +40,10 @@ namespace lazperf
 struct LAZPERF_EXPORT vlr_header
 {
     uint16_t reserved;
-    char user_id[16];
+    std::string user_id; // 16 chars max
     uint16_t record_id;
     uint16_t data_length;
-    char description[32];
+    std::string description; // 32 chars max
 
     static vlr_header create(std::istream& in);
     void read(std::istream& in);
@@ -54,10 +54,10 @@ struct LAZPERF_EXPORT vlr_header
 struct LAZPERF_EXPORT evlr_header
 {
     uint16_t reserved;
-    char user_id[16];
+    std::string user_id;  // 16 chars max
     uint16_t record_id;
     uint64_t data_length;
-    char description[32];
+    std::string description;  // 32 chars max
 
     static evlr_header create(std::istream& in);
     void read(std::istream& in);

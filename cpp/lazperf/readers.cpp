@@ -197,9 +197,7 @@ void basic_file::Private::parseVLRs()
     {
         vlr_header h = vlr_header::create(*f);
 
-        const char *user_id = "laszip encoded";
-
-        if (std::equal(h.user_id, h.user_id + 14, user_id) && h.record_id == 22204)
+        if (h.user_id == "laszip encoded" && h.record_id == 22204)
         {
             laszipFound = true;
             laz.read(*f);
