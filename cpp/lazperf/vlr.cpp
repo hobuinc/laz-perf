@@ -241,8 +241,8 @@ void laz_vlr::write(std::ostream& out) const
 // EB VLR
 
 eb_vlr::ebfield::ebfield() :
-    reserved{}, data_type{1}, options{}, name{}, unused{},
-    no_data{}, minval{}, maxval{}, scale{}, offset{}, description{}
+    reserved{}, data_type{1}, options{}, unused{},
+    no_data{}, minval{}, maxval{}, scale{}, offset{}
 {}
 
 eb_vlr::eb_vlr()
@@ -326,10 +326,7 @@ void eb_vlr::addField()
 {
     ebfield field;
 
-    std::string name = "FIELD_" + std::to_string(items.size());
-    name.resize(32, ' ');
-    memcpy(field.name, name.data(), 32);
-
+    field.name = "FIELD_" + std::to_string(items.size());
     items.push_back(field);
 }
 

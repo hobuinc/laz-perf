@@ -113,14 +113,14 @@ public:
         uint8_t reserved[2];
         uint8_t data_type;
         uint8_t options;
-        char name[32];
+        std::string name;
         uint8_t unused[4];
         double no_data[3];
         double minval[3];
         double maxval[3];
         double scale[3];
         double offset[3];
-        char description[32];
+        std::string description;
 
         ebfield();
     };
