@@ -30,14 +30,90 @@
 
 #include <string>
 
+#include "Extractor.hpp"
+#include "Inserter.hpp"
 #include "utils.hpp"
 #include "vlr.hpp"
 
 namespace lazperf
 {
 
-size_t vlr::vlr_header::size() const
-{ return sizeof(vlr::vlr_header); }
+const int vlr_header::Size = 54;
+
+vlr_header vlr_header::create(std::istream& in)
+{
+    vlr_header h;
+    h.read(in);
+    return h;
+}
+
+void vlr_header::read(std::istream& in)
+{
+    std::vector<char> buf(Size);
+    in.read(buf.data(), buf.size());
+    LeExtractor s(buf.data(), buf.size());
+
+    s >> reserved;
+    s.get(user_id, 16);
+    s >> record_id >> data_length;
+    s.get(description, 32);
+}
+
+void vlr_header::write(std::ostream& out) const
+{
+    std::vector<char> buf(Size);
+    LeInserter s(buf.data(), buf.size());
+
+    s << reserved;
+    s.put(user_id, 16);
+    s << record_id << data_length;
+    s.put(description, 32);
+
+    out.write(buf.data(), buf.size());
+}
+
+///
+
+const int evlr_header::Size = 60;
+
+evlr_header evlr_header::create(std::istream& in)
+{
+    evlr_header h;
+    h.read(in);
+    return h;
+}
+
+void evlr_header::read(std::istream& in)
+{
+    std::vector<char> buf(Size);
+    in.read(buf.data(), buf.size());
+    LeExtractor s(buf.data(), buf.size());
+    
+    s >> reserved;
+    s.get(user_id, 16);
+    s >> record_id >> data_length;
+    s.get(description, 32);
+}
+
+void evlr_header::write(std::ostream& out) const
+{
+    std::vector<char> buf(Size);
+    LeInserter s(buf.data(), buf.size());
+
+    s << reserved;
+    s.put(user_id, 16);
+    s << record_id << data_length;
+    s.put(description, 32);
+
+    out.write(buf.data(), buf.size());
+}
+
+
+///
+
+vlr::~vlr()
+{}
+
 
 // LAZ VLR
 
@@ -106,101 +182,151 @@ laz_vlr::laz_vlr(int format, int ebCount, uint32_t chunksize) :
     }
 }
 
-laz_vlr::laz_vlr(const char *data)
-{
-    fill(data);
-}
-
 size_t laz_vlr::size() const
 {
     return 34 + (items.size() * 6);
 }
 
-vlr::vlr_header laz_vlr::header() const
+vlr_header laz_vlr::header() const
 {
     vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "lazperf variant" };
 
     return h;
 }
 
-void laz_vlr::fill(const char *data)
+laz_vlr laz_vlr::create(std::istream& in)
 {
-    using namespace utils;
+    laz_vlr lazVlr;
+    lazVlr.read(in);
+    return lazVlr;
+}
 
-    compressor = unpack<uint16_t>(data);          data += sizeof(compressor);
-    coder = unpack<uint16_t>(data);               data += sizeof(coder);
-    ver_major = *(const unsigned char *)data++;
-    ver_minor = *(const unsigned char *)data++;
-    revision = unpack<uint16_t>(data);            data += sizeof(revision);
-    options = unpack<uint32_t>(data);             data += sizeof(options);
-    chunk_size = unpack<uint32_t>(data);          data += sizeof(chunk_size);
-    num_points = unpack<int64_t>(data);           data += sizeof(num_points);
-    num_bytes = unpack<int64_t>(data);            data += sizeof(num_bytes);
+void laz_vlr::read(std::istream& in)
+{
+    std::vector<char> buf(34);
+    in.read(buf.data(), buf.size());
+    LeExtractor s(buf.data(), buf.size());
 
     uint16_t num_items;
-    num_items = unpack<uint16_t>(data);           data += sizeof(num_items);
+
+    s >> compressor >> coder >> ver_major >> ver_minor >> revision >> options >>
+        chunk_size >> num_points >> num_bytes >> num_items;
+
+    buf.resize(num_items * 6);
+    in.read(buf.data(), buf.size());
+    LeExtractor s2(buf.data(), buf.size());
     items.clear();
-    for (int i = 0 ; i < num_items; i ++)
+    for (int i = 0; i < num_items; i++)
     {
         laz_item item;
 
-        item.type = unpack<uint16_t>(data);       data += sizeof(item.type);
-        item.size = unpack<uint16_t>(data);       data += sizeof(item.size);
-        item.version = unpack<uint16_t>(data);    data += sizeof(item.version);
-
+        s2 >> item.type >> item.size >> item.version;
         items.push_back(item);
     }
 }
 
-std::vector<char> laz_vlr::data() const
+void laz_vlr::write(std::ostream& out) const
 {
-    using namespace utils;
-
     std::vector<char> buf(size());
-    uint16_t num_items = items.size();
+    LeInserter s(buf.data(), buf.size());
 
-    char *dst = reinterpret_cast<char *>(buf.data());
-    pack(compressor, dst);                      dst += sizeof(compressor);
-    pack(coder, dst);                           dst += sizeof(coder);
-    *dst++ = ver_major;
-    *dst++ = ver_minor;
-    pack(revision, dst);                        dst += sizeof(revision);
-    pack(options, dst);                         dst += sizeof(options);
-    pack(chunk_size, dst);                      dst += sizeof(chunk_size);
-    pack(num_points, dst);                      dst += sizeof(num_points);
-    pack(num_bytes, dst);                       dst += sizeof(num_bytes);
-    pack(num_items, dst);                       dst += sizeof(num_items);
-    for (size_t k = 0 ; k < items.size() ; k++)
-    {
-        const laz_item& item = items[k];
-
-        pack(item.type, dst);                   dst += sizeof(item.type);
-        pack(item.size, dst);                   dst += sizeof(item.size);
-        pack(item.version, dst);                dst += sizeof(item.size);
-    }
-    return buf;
+    s << compressor << coder << ver_major << ver_minor << revision << options;
+    s << chunk_size << num_points << num_bytes << (uint16_t)items.size();
+    for (const laz_item& item : items)
+        s << item.type << item.size << item.version;
+    out.write(buf.data(), buf.size());
 }
+
 
 // EB VLR
 
 eb_vlr::ebfield::ebfield() :
-    reserved{}, data_type{1}, options{}, name{}, unused{},
-    no_data{}, minval{}, maxval{}, scale{}, offset{}, description{}
+    reserved{}, data_type{1}, options{}, unused{},
+    no_data{}, minval{}, maxval{}, scale{}, offset{}
 {}
 
-eb_vlr::eb_vlr(size_t bytes)
+eb_vlr::eb_vlr()
+{}
+
+eb_vlr::eb_vlr(int ebCount)
 {
-    for (size_t i = 0; i < bytes; ++i)
+    while (ebCount--)
         addField();
+}
+
+eb_vlr::~eb_vlr()
+{}
+
+eb_vlr eb_vlr::create(std::istream& in, int byteSize)
+{
+    eb_vlr ebVlr;
+    ebVlr.read(in, byteSize);
+    return ebVlr;
+}
+
+void eb_vlr::read(std::istream& in, int byteSize)
+{
+    std::vector<char> buf(byteSize);
+    LeExtractor s(buf.data(), buf.size());
+    in.read(buf.data(), buf.size());
+
+    int numItems = byteSize / 192;
+    items.clear();
+    for (int i = 0; i < numItems; ++i)
+    {
+        ebfield field;
+
+        s.get(field.reserved, 2);
+        s >> field.data_type >> field.options;
+        s.get(field.name, 32);
+        s.get(field.unused, 4);
+        for (int i = 0; i < 3; ++i)
+            s >> field.no_data[i];
+        for (int i = 0; i < 3; ++i)
+            s >> field.minval[i];
+        for (int i = 0; i < 3; ++i)
+            s >> field.maxval[i];
+        for (int i = 0; i < 3; ++i)
+            s >> field.scale[i];
+        for (int i = 0; i < 3; ++i)
+            s >> field.offset[i];
+        s.get(field.description, 32);
+        items.push_back(field);
+    }
+}
+
+void eb_vlr::write(std::ostream& out) const
+{
+    std::vector<char> buf(items.size() * 192);
+    LeInserter s(buf.data(), buf.size());
+
+    for (const ebfield& field : items)
+    {
+        s.put(field.reserved, 2);
+        s << field.data_type << field.options;
+        s.put(field.name, 32);
+        s.put(field.unused, 4);
+        for (int i = 0; i < 3; ++i)
+            s << field.no_data[i];
+        for (int i = 0; i < 3; ++i)
+            s << field.minval[i];
+        for (int i = 0; i < 3; ++i)
+            s << field.maxval[i];
+        for (int i = 0; i < 3; ++i)
+            s << field.scale[i];
+        for (int i = 0; i < 3; ++i)
+            s << field.offset[i];
+        s.put(field.description, 32);
+    }
+
+    out.write(buf.data(), buf.size());
 }
 
 void eb_vlr::addField()
 {
     ebfield field;
 
-    std::string name = "FIELD_" + std::to_string(items.size());
-    memcpy(field.name, name.data(), 32);
-
+    field.name = "FIELD_" + std::to_string(items.size());
     items.push_back(field);
 }
 
@@ -209,17 +335,103 @@ size_t eb_vlr::size() const
     return 192 * items.size();
 }
 
-// Since all we fill in is a single byte field and a string field, we don't
-// need to worry about byte ordering.
-std::vector<char> eb_vlr::data() const
-{
-    const char *start = reinterpret_cast<const char *>(items.data());
-    return std::vector<char>(start, start + size());
-}
-
-vlr::vlr_header eb_vlr::header() const
+vlr_header eb_vlr::header() const
 {
     return vlr_header { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
 }
 
+//
+
+wkt_vlr::wkt_vlr()
+{}
+
+wkt_vlr::wkt_vlr(const std::string& s) : wkt(s)
+{}
+
+wkt_vlr::~wkt_vlr()
+{}
+
+wkt_vlr wkt_vlr::create(std::istream& in, int byteSize)
+{
+    wkt_vlr wktVlr;
+    wktVlr.read(in, byteSize);
+    return wktVlr;
+}
+
+void wkt_vlr::read(std::istream& in, int byteSize)
+{
+    std::vector<char> buf(byteSize);
+    in.read(buf.data(), buf.size());
+    wkt.assign(buf.data(), buf.size());
+}
+
+void wkt_vlr::write(std::ostream& out) const
+{
+    out.write(wkt.data(), wkt.size());
+}
+
+size_t wkt_vlr::size() const
+{
+    return wkt.size();
+}
+
+
+vlr_header wkt_vlr::header() const
+{
+    return vlr_header { 0, "LASF_Projection", 2112, (uint16_t)size(), ""  };
+}
+
+//
+
+// Initialized in header.
+copc_vlr::copc_vlr()
+{}
+
+copc_vlr::~copc_vlr()
+{}
+
+copc_vlr copc_vlr::create(std::istream& in)
+{
+    copc_vlr copcVlr;
+    copcVlr.read(in);
+    return copcVlr;
+}
+
+void copc_vlr::read(std::istream& in)
+{
+    std::vector<char> buf(size());
+    in.read(buf.data(), buf.size());
+    LeExtractor s(buf.data(), buf.size());
+
+    s >> span >> root_hier_offset >> root_hier_size;
+    s >> laz_vlr_offset >> laz_vlr_size >> wkt_vlr_offset >> wkt_vlr_size;
+    s >> eb_vlr_offset >> eb_vlr_size;
+    for (int i = 0; i < 11; ++i)
+        s >> reserved[i];
+}
+
+void copc_vlr::write(std::ostream& out) const
+{
+    std::vector<char> buf(size());
+    LeInserter s(buf.data(), buf.size());
+
+    s << span << root_hier_offset << root_hier_size;
+    s << laz_vlr_offset << laz_vlr_size << wkt_vlr_offset << wkt_vlr_size;
+    s << eb_vlr_offset << eb_vlr_size;
+    for (int i = 0; i < 11; ++i)
+        s << reserved[i];
+    out.write(buf.data(), buf.size());
+}
+
+size_t copc_vlr::size() const
+{
+    return sizeof(uint64_t) * 20;
+}
+
+vlr_header copc_vlr::header() const
+{
+    return vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC offsets" };
+}
+
 } // namespace lazperf
+

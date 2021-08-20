@@ -391,7 +391,7 @@ char *point_decompressor_6::decompress(char *out)
 
     if (p_->first_)
     {
-        // Read the point count the streams for each data member.
+        // Read the point count and the stream sizes for each data member.
         p_->cbStream_ >> p_->chunk_count_;
         p_->point_.readSizes();
         if (p_->byte_.count())
@@ -525,6 +525,7 @@ las_compressor::ptr build_las_compressor(OutputCb cb, int format, size_t ebCount
         break;
     case 8:
         compressor.reset(new point_compressor_8(cb, ebCount));
+        break;
     }
     return compressor;
 }
@@ -562,6 +563,7 @@ las_decompressor::ptr build_las_decompressor(InputCb cb, int format, size_t ebCo
 
 // CHUNK TABLE
 
+// NOTE: Only works with fixed-sized chunks.
 void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks)
 {
     OutCbStream stream(cb);
@@ -579,9 +581,35 @@ void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks)
     encoder.done();
 }
 
-std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks)
+void compress_chunk_table(OutputCb cb, const std::vector<chunk>& chunks, bool variable)
 {
-    std::vector<uint32_t> chunks;
+    OutCbStream stream(cb);
+    encoders::arithmetic<OutCbStream> encoder(stream);
+    compressors::integer compressor(32, 2);
+
+    uint32_t count_predictor = 0;
+    uint32_t offset_predictor = 0;
+
+    compressor.init();
+    for (const chunk& chunk : chunks)
+    {
+        if (variable)
+        {
+            uint32_t count = htole32((uint32_t)chunk.count);
+            compressor.compress(encoder, count_predictor, count, 0);
+            count_predictor = count;
+        }
+
+        uint32_t offset = htole32((uint32_t)chunk.offset);
+        compressor.compress(encoder, offset_predictor, offset, 1);
+        offset_predictor = offset;
+    }
+    encoder.done();
+}
+
+std::vector<chunk> decompress_chunk_table(InputCb cb, size_t numChunks, bool variable)
+{
+    std::vector<chunk> chunks;
 
     InCbStream stream(cb);
     decoders::arithmetic<InCbStream> decoder(stream);
@@ -590,11 +618,21 @@ std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks)
     decoder.readInitBytes();
     decomp.init();
 
-    uint32_t predictor = 0;
+    uint32_t offset_predictor = 0;
+    uint32_t count_predictor = 0;
     for (size_t i = 0; i < numChunks; ++i)
     {
-        predictor = decomp.decompress(decoder, predictor, 1);
-        chunks.push_back(le32toh(predictor));
+        chunk c;
+        if (variable)
+        {
+            count_predictor = decomp.decompress(decoder, count_predictor, 0);
+            c.count = le32toh(count_predictor);
+        }
+        else
+            c.count = 0;
+        offset_predictor = decomp.decompress(decoder, offset_predictor, 1);
+        c.offset = le32toh(offset_predictor);
+        chunks.push_back(c);
     }
     return chunks;
 }

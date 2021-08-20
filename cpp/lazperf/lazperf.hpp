@@ -1,8 +1,6 @@
 /*
 ===============================================================================
 
-  FILE:  las.hpp
-
   CONTENTS:
     Point formats for LAS
 
@@ -34,6 +32,7 @@
 #include <memory>
 #include <vector>
 
+#include "header.hpp"
 #include "lazperf_base.hpp"
 
 namespace lazperf
@@ -262,8 +261,13 @@ LAZPERF_EXPORT las_decompressor::ptr build_las_decompressor(InputCb, int format,
 // CHUNK TABLE
 
 // Note that the chunk values are sizes, rather than offsets.
+
+// This functions is only for fixed-sized chunks.
 LAZPERF_EXPORT void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks);
-LAZPERF_EXPORT std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks);
+LAZPERF_EXPORT void compress_chunk_table(OutputCb cb, const std::vector<chunk>& chunks,
+    bool variableChunks = false);
+LAZPERF_EXPORT std::vector<chunk> decompress_chunk_table(InputCb cb, size_t numChunks,
+    bool variableChunks = false);
 
 } // namespace lazperf
 

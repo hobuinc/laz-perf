@@ -135,6 +135,12 @@ struct MemoryStream
     const uint8_t *data() const
     { return buf.data(); }
 
+    const std::vector<unsigned char>& buffer() const
+    { return buf; }
+
+    std::vector<unsigned char>& buffer()
+    { return buf; }
+
     std::vector<unsigned char> buf; // cuz I'm ze faste
     size_t idx;
 };
