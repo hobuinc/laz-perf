@@ -5,6 +5,7 @@
 #include <emscripten/bind.h>
 #include <iostream>
 
+#include "header.hpp"
 #include "readers.hpp"
 
 using namespace emscripten;
@@ -46,6 +47,29 @@ class LASZip
 		std::shared_ptr<lazperf::reader::mem_file> mem_file_;
 };
 
+class ChunkDecoder
+{
+public:
+    ChunkDecoder()
+    {}
+
+    void open(int pdrf, int point_length, unsigned int inputBuf)
+    {
+        int ebCount = point_length - lazperf::baseCount(pdrf);
+        char *buf = reinterpret_cast<char *>(inputBuf);
+        decomp_.reset(new lazperf::reader::chunk_decompressor(pdrf, ebCount, buf));
+    }
+
+    void getPoint(unsigned int outBuf)
+    {
+        char *buf = reinterpret_cast<char *>(outBuf);
+        decomp_->decompress(buf);
+    }
+
+private:
+    std::shared_ptr<lazperf::reader::chunk_decompressor> decomp_;
+};
+
 EMSCRIPTEN_BINDINGS(my_module) {
 	class_<LASZip>("LASZip")
 		.constructor()
@@ -54,4 +78,10 @@ EMSCRIPTEN_BINDINGS(my_module) {
         .function("getPointFormat", &LASZip::getPointFormat)
 		.function("getPoint", &LASZip::getPoint)
 		.function("getCount", &LASZip::getCount);
+
+    class_<ChunkDecoder>("ChunkDecoder")
+        .constructor()
+        .function("open", &ChunkDecoder::open)
+        .function("getPoint", &LASZip::getPoint);
 }
+
