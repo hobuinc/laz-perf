@@ -82,6 +82,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
     class_<ChunkDecoder>("ChunkDecoder")
         .constructor()
         .function("open", &ChunkDecoder::open)
-        .function("getPoint", &LASZip::getPoint);
+        .function("getPoint", &ChunkDecoder::getPoint);
 }
 
