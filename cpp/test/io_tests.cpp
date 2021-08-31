@@ -144,23 +144,31 @@ TEST(io_tests, parses_laszip_vlr_correctly)
     reader::named_file f(testFile("point10.las.laz"));
     laz_vlr vlr = f.lazVlr();
 
-    EXPECT_EQ(vlr.compressor, 2);
-    EXPECT_EQ(vlr.coder, 0);
+    auto check = [](const laz_vlr& vlr)
+    {
+        EXPECT_EQ(vlr.compressor, 2);
+        EXPECT_EQ(vlr.coder, 0);
 
-    EXPECT_EQ(vlr.ver_major, 2);
-    EXPECT_EQ(vlr.ver_minor, 2);
-    EXPECT_EQ(vlr.revision, 0);
+        EXPECT_EQ(vlr.ver_major, 2);
+        EXPECT_EQ(vlr.ver_minor, 2);
+        EXPECT_EQ(vlr.revision, 0);
 
-    EXPECT_EQ(vlr.options, 0u);
-    EXPECT_EQ(vlr.chunk_size, 50000u);
+        EXPECT_EQ(vlr.options, 0u);
+        EXPECT_EQ(vlr.chunk_size, 50000u);
 
-    EXPECT_EQ(vlr.num_points, -1);
-    EXPECT_EQ(vlr.num_bytes, -1);
+        EXPECT_EQ(vlr.num_points, -1);
+        EXPECT_EQ(vlr.num_bytes, -1);
 
-    EXPECT_EQ(vlr.items.size(), 1u);
-    EXPECT_EQ(vlr.items[0].type, 6);
-    EXPECT_EQ(vlr.items[0].size, 20);
-    EXPECT_EQ(vlr.items[0].version, 2);
+        EXPECT_EQ(vlr.items.size(), 1u);
+        EXPECT_EQ(vlr.items[0].type, 6);
+        EXPECT_EQ(vlr.items[0].size, 20);
+        EXPECT_EQ(vlr.items[0].version, 2);
+    };
+
+    check(vlr);
+    std::vector<char> vd = vlr.data();
+    laz_vlr vlr2(vd.data());
+    check(vlr2);
 }
 
 void testPoint(const lazperf::las::point10& p1, const lazperf::las::point10& p2)

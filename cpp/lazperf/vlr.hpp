@@ -103,6 +103,10 @@ public:
     void write(std::ostream& out) const;
     virtual size_t size() const;
     virtual vlr_header header() const;
+
+    // Deprecated.
+    std::vector<char> data() const;
+    laz_vlr(const char *vlrdata);
 };
 
 struct LAZPERF_EXPORT eb_vlr : public vlr

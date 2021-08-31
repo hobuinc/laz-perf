@@ -32,6 +32,7 @@
 
 #include "Extractor.hpp"
 #include "Inserter.hpp"
+#include "charbuf.hpp"
 #include "utils.hpp"
 #include "vlr.hpp"
 
@@ -237,6 +238,24 @@ void laz_vlr::write(std::ostream& out) const
     out.write(buf.data(), buf.size());
 }
 
+// Deprecated
+std::vector<char> laz_vlr::data() const
+{
+    std::vector<char> v(size());
+    charbuf sbuf(v.data(), v.size());
+    std::ostream out(&sbuf);
+    write(out);
+    return v;
+}
+
+// Deprecated
+laz_vlr::laz_vlr(const char *d)
+{
+    uint16_t num_items = le16toh(*reinterpret_cast<const uint16_t *>(d + 32));
+    charbuf sbuf(const_cast<char *>(d), 34 + num_items * 6);
+    std::istream in(&sbuf);
+    read(in);
+}
 
 // EB VLR
 
