@@ -49,7 +49,10 @@ point format 0 data, you might do the following:
 
     char pointbuf[100];
     for (int i = 0; i < num_points; ++i)
+    {
         decompressor(pointbuf);
+        // Do something with the point data in 'pointbuf'
+    }
 
 Compression follows a similar pattern -- see the accompanying examples and tests.
 
@@ -61,7 +64,7 @@ You can also use LAZperf to read LAZ data from an entire LAZ or LAS file:
 
     char pointbuf[100];
     for (size_t i = 0; i < f.header().point_count; ++i)
-        c.readPoint(pointbuf);
+        f.readPoint(pointbuf);
 
 A memory file interface exists If your LAS/LAZ data is internal rather than in a file:
 
@@ -71,7 +74,7 @@ A memory file interface exists If your LAS/LAZ data is internal rather than in a
 
     char pointbuf[100];
     for (size_t i = 0; i < f.header().point_count; ++i)
-        c.readPoint(pointbuf);
+        f.readPoint(pointbuf);
 
 
 # Buiding LAZperf for use in a browser.
