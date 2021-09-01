@@ -165,6 +165,7 @@ TEST(io_tests, parses_laszip_vlr_correctly)
         EXPECT_EQ(vlr.items[0].version, 2);
     };
 
+    // Test deprecated functions.
     check(vlr);
     std::vector<char> vd = vlr.data();
     laz_vlr vlr2(vd.data());
