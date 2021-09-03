@@ -93,7 +93,7 @@ struct named_file::Private
 // 
 // A chunk table entry is created after each chunk of points has been created and written.
 // If the chunks are variable size, the chunk table entries consist of a count followed by
-/  an "offset".  The count is the number of points in the chunk. The offset is the the number
+// an "offset".  The count is the number of points in the chunk. The offset is the the number
 // of bytes written in the chunk.  If the chunks are fixed size, the count entry is not written.
 //
 // Note that after being read, the table is fixed up to be usable when reading
