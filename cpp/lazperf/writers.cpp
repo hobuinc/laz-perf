@@ -85,19 +85,16 @@ struct named_file::Private
 // When using variable-sized chunks, you must call newChunk() in order to start a new chunk.
 //
 // An offset to the chunk table is written after the LAS VLRs, where you would normally
-// expect points to begin.  The first chunk of points follows this chunk table offset.
+// expect points to begin.  The first chunk of points follows the 8 byte chunk table offset.
 //
-// The chunk table is at the end of the points. It has its own
+// The chunk table itself is at the end of the point chunks. It has its own
 // header that consists of a version number and a chunk count. The chunk table entries
-// are compressed with an integer compressor.  The chunk entry for the first chunk
-// is not written to the chunk table as it can be computed from other information
-// in the file.
+// are compressed with an integer compressor.
 // 
-// If the chunks are variable size, the chunks consist of a count followed by an offset.
-// The count is the number of points in the *previous* chunk. The offset is the size in
-// bytes of the *previous* chunk.
-//
-// If the chunks are fixed size, the count entry is not written.
+// A chunk table entry is created after each chunk of points has been created and written.
+// If the chunks are variable size, the chunk table entries consist of a count followed by
+/  an "offset".  The count is the number of points in the chunk. The offset is the the number
+// of bytes written in the chunk.  If the chunks are fixed size, the count entry is not written.
 //
 // Note that after being read, the table is fixed up to be usable when reading
 // points.
