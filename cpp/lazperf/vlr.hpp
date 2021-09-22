@@ -108,7 +108,7 @@ public:
 struct LAZPERF_EXPORT eb_vlr : public vlr
 {
 public:
-    struct ebfield
+    struct LAZPERF_EXPORT ebfield
     {
         uint8_t reserved[2];
         uint8_t data_type;
@@ -155,6 +155,66 @@ public:
     virtual vlr_header header() const;
 };
 
+
+struct LAZPERF_EXPORT copc_extents_vlr : public lazperf::vlr
+{
+public:
+
+    struct LAZPERF_EXPORT CopcExtent
+    {
+        double minimum;
+        double maximum;
+
+        CopcExtent();
+        CopcExtent(double minimum, double maximum);
+    };
+
+    std::vector<CopcExtent> items;
+
+    copc_extents_vlr(int itemCount);
+    copc_extents_vlr();
+    virtual ~copc_extents_vlr();
+
+    static copc_extents_vlr create(std::istream& in, int byteSize);
+    void read(std::istream& in, int byteSize);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual lazperf::vlr_header header() const;
+};
+
+struct LAZPERF_EXPORT copc_info_vlr : public lazperf::vlr
+{
+public:
+    int64_t span {0};
+    uint64_t root_hier_offset {0};
+    uint64_t root_hier_size {0};
+    uint64_t laz_vlr_offset {0};
+    uint64_t laz_vlr_size {0};
+    uint64_t wkt_vlr_offset {0};
+    uint64_t wkt_vlr_size {0};
+    uint64_t eb_vlr_offset {0};
+    uint64_t eb_vlr_size {0};
+    uint64_t extent_vlr_offset {0};
+    uint64_t extent_vlr_size {0};
+    double center_x {0.0};
+    double center_y {0.0};
+    double center_z {0.0};
+    double halfsize {0.0};
+
+    uint64_t reserved[5] {0};
+
+    copc_info_vlr();
+    virtual ~copc_info_vlr();
+
+    static copc_info_vlr create(std::istream& in);
+    void read(std::istream& in);
+    void write(std::ostream& out) const;
+    virtual size_t size() const;
+    virtual lazperf::vlr_header header() const;
+};
+
+
+// This was a COPC draft VLR definition
 struct LAZPERF_EXPORT copc_vlr : public vlr
 {
 public:

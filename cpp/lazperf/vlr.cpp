@@ -88,7 +88,7 @@ void evlr_header::read(std::istream& in)
     std::vector<char> buf(Size);
     in.read(buf.data(), buf.size());
     LeExtractor s(buf.data(), buf.size());
-    
+
     s >> reserved;
     s.get(user_id, 16);
     s >> record_id >> data_length;
@@ -432,6 +432,145 @@ vlr_header copc_vlr::header() const
 {
     return vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC offsets" };
 }
+
+
+copc_extents_vlr::copc_extents_vlr()
+{}
+
+
+copc_extents_vlr::copc_extents_vlr(int byteSize)
+{
+    int itemCount = byteSize / sizeof(CopcExtent);
+    items.resize(itemCount);
+}
+
+
+copc_extents_vlr::~copc_extents_vlr()
+{}
+
+
+copc_extents_vlr::CopcExtent::CopcExtent() :
+    minimum((std::numeric_limits<double>::max)()),
+    maximum((std::numeric_limits<double>::min)())
+{}
+
+
+copc_extents_vlr::CopcExtent::CopcExtent(double minimum, double maximum) :
+    minimum(minimum),
+    maximum(maximum)
+{}
+
+
+copc_extents_vlr copc_extents_vlr::create(std::istream& in, int byteSize)
+{
+    copc_extents_vlr extentsVlr;
+    extentsVlr.read(in, byteSize);
+    return extentsVlr;
+}
+
+
+void copc_extents_vlr::read(std::istream& in, int byteSize)
+{
+    std::vector<char> buf(byteSize);
+    LeExtractor s(buf.data(), buf.size());
+    in.read(buf.data(), buf.size());
+
+    int numItems = byteSize / sizeof(CopcExtent);
+    items.clear();
+    for (int i = 0; i < numItems; ++i)
+    {
+        CopcExtent field;
+
+        s >> field.minimum >> field.maximum;
+        items.push_back(field);
+    }
+}
+
+
+void copc_extents_vlr::write(std::ostream& out) const
+{
+    std::vector<char> buf(size());
+    LeInserter s(buf.data(), buf.size());
+
+    for (auto& i: items)
+    {
+        s << i.minimum << i.maximum;
+    }
+
+    out.write(buf.data(), buf.size());
+}
+
+
+size_t copc_extents_vlr::size() const
+{
+    return items.size() * sizeof(CopcExtent);
+}
+
+
+lazperf::vlr_header copc_extents_vlr::header() const
+{
+    return lazperf::vlr_header { 0, "entwine", 10000, (uint16_t)size(), "COPC extents" };
+}
+
+
+// Initialized in header.
+copc_info_vlr::copc_info_vlr()
+{}
+
+
+copc_info_vlr::~copc_info_vlr()
+{}
+
+
+copc_info_vlr copc_info_vlr::create(std::istream& in)
+{
+    copc_info_vlr copcVlr;
+    copcVlr.read(in);
+    return copcVlr;
+}
+
+
+void copc_info_vlr::read(std::istream& in)
+{
+    std::vector<char> buf(size());
+    in.read(buf.data(), buf.size());
+    LeExtractor s(buf.data(), buf.size());
+
+    s >> span >> root_hier_offset >> root_hier_size;
+    s >> laz_vlr_offset >> laz_vlr_size >> wkt_vlr_offset >> wkt_vlr_size;
+    s >> eb_vlr_offset >> eb_vlr_size >> extent_vlr_offset >> extent_vlr_size;
+    s >> center_x >> center_y >> center_z >> halfsize;
+    for (int i = 0; i < 5; ++i)
+        s >> reserved[i];
+}
+
+
+void copc_info_vlr::write(std::ostream& out) const
+{
+    std::vector<char> buf(size());
+    LeInserter s(buf.data(), buf.size());
+
+    s << span << root_hier_offset << root_hier_size;
+    s << laz_vlr_offset << laz_vlr_size << wkt_vlr_offset << wkt_vlr_size;
+    s << eb_vlr_offset << eb_vlr_size << extent_vlr_offset << extent_vlr_size;
+    s << center_x << center_y << center_z << halfsize;
+    for (int i = 0; i < 5; ++i)
+        s << reserved[i];
+    out.write(buf.data(), buf.size());
+}
+
+
+size_t copc_info_vlr::size() const
+{
+    return sizeof(uint64_t) * 20;
+}
+
+
+lazperf::vlr_header copc_info_vlr::header() const
+{
+    return lazperf::vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC info" };
+}
+
 
 } // namespace lazperf
 
