@@ -440,7 +440,7 @@ copc_extents_vlr::copc_extents_vlr()
 
 copc_extents_vlr::copc_extents_vlr(int byteSize)
 {
-    int itemCount = byteSize / sizeof(CopcExtent);
+    int itemCount = byteSize / (sizeof(double) + sizeof(double));
     items.resize(itemCount);
 }
 
@@ -475,7 +475,7 @@ void copc_extents_vlr::read(std::istream& in, int byteSize)
     LeExtractor s(buf.data(), buf.size());
     in.read(buf.data(), buf.size());
 
-    int numItems = byteSize / sizeof(CopcExtent);
+    int numItems = byteSize / sizeof(double) + sizeof(double);
     items.clear();
     for (int i = 0; i < numItems; ++i)
     {
@@ -503,7 +503,7 @@ void copc_extents_vlr::write(std::ostream& out) const
 
 size_t copc_extents_vlr::size() const
 {
-    return items.size() * sizeof(CopcExtent);
+    return items.size() * (sizeof(double) + sizeof(double));
 }
 
 
