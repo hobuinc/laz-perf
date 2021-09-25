@@ -172,6 +172,10 @@ void basic_file::Private::writePoint(const char *p)
         else if ((chunk_point_num == chunk_size) && (chunk_size != VariableChunkSize))
             newChunk();
 
+        if (!pcompressor) {
+            throw std::invalid_argument("No compressor for point format");
+        }
+
         // now write the point
         pcompressor->compress(p);
         chunk_point_num++;

@@ -126,6 +126,10 @@ void basic_file::Private::readPoint(char *out)
             chunk_point_num = 0;
         }
 
+        if (!pdecompressor) {
+            throw std::invalid_argument("No decompressor for point format");
+        }
+
         pdecompressor->decompress(out);
         chunk_point_num++;
     }
