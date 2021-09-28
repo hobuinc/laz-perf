@@ -475,7 +475,7 @@ void copc_extents_vlr::read(std::istream& in, int byteSize)
     LeExtractor s(buf.data(), buf.size());
     in.read(buf.data(), buf.size());
 
-    int numItems = byteSize / sizeof(double) + sizeof(double);
+    int numItems = byteSize / (sizeof(double) + sizeof(double));
     items.clear();
     for (int i = 0; i < numItems; ++i)
     {
