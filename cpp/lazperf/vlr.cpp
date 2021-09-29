@@ -430,7 +430,7 @@ size_t copc_vlr::size() const
 
 vlr_header copc_vlr::header() const
 {
-    return vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC offsets" };
+    return vlr_header { 0, "copc", 1, (uint16_t)size(), "COPC offsets" };
 }
 
 
@@ -438,9 +438,8 @@ copc_extents_vlr::copc_extents_vlr()
 {}
 
 
-copc_extents_vlr::copc_extents_vlr(int byteSize)
+copc_extents_vlr::copc_extents_vlr(int itemCount)
 {
-    int itemCount = byteSize / (sizeof(double) + sizeof(double));
     items.resize(itemCount);
 }
 
@@ -509,7 +508,7 @@ size_t copc_extents_vlr::size() const
 
 lazperf::vlr_header copc_extents_vlr::header() const
 {
-    return lazperf::vlr_header { 0, "entwine", 10000, (uint16_t)size(), "COPC extents" };
+    return lazperf::vlr_header { 0, "copc", 10000, (uint16_t)size(), "COPC extents" };
 }
 
 
@@ -568,7 +567,7 @@ size_t copc_info_vlr::size() const
 
 lazperf::vlr_header copc_info_vlr::header() const
 {
-    return lazperf::vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC info" };
+    return lazperf::vlr_header { 0, "copc", 1, (uint16_t)size(), "COPC info" };
 }
 
 

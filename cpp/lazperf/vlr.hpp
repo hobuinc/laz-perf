@@ -162,11 +162,12 @@ public:
 
     struct LAZPERF_EXPORT CopcExtent
     {
-        double minimum;
-        double maximum;
+        double minimum {0.0};
+        double maximum {0.0};
 
         CopcExtent();
-        CopcExtent(double minimum, double maximum);
+        CopcExtent(double minimum,
+                   double maximum);
     };
 
     std::vector<CopcExtent> items;
