@@ -502,7 +502,8 @@ void copc_info_vlr::read(std::istream& in)
     LeExtractor s(buf.data(), buf.size());
 
     s >> center_x >> center_y >> center_z >> halfsize >> spacing;
-    for (int i = 0; i < 15; ++i)
+    s >> root_hier_offset >> root_hier_size;
+    for (int i = 0; i < 13; ++i)
         s >> reserved[i];
 }
 
@@ -513,7 +514,8 @@ void copc_info_vlr::write(std::ostream& out) const
     LeInserter s(buf.data(), buf.size());
 
     s << center_x << center_y << center_z << halfsize << spacing;
-    for (int i = 0; i < 15; ++i)
+    s << root_hier_offset << root_hier_size;
+    for (int i = 0; i < 13; ++i)
         s << reserved[i];
     out.write(buf.data(), buf.size());
 }

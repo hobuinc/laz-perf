@@ -194,7 +194,9 @@ public:
     double center_z {0.0};
     double halfsize {0.0};
     double spacing {0.0};
-    uint64_t reserved[15] {0};
+    uint64_t root_hier_offset {0};
+    uint64_t root_hier_size {0};
+    uint64_t reserved[13] {0};
 
     copc_info_vlr();
     virtual ~copc_info_vlr();
