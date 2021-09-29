@@ -169,15 +169,14 @@ public:
         double minimum {0.0};
         double maximum {0.0};
 
-        CopcExtent();
         CopcExtent(double minimum,
                    double maximum);
     };
 
     std::vector<CopcExtent> items;
 
-    copc_extents_vlr(int itemCount);
     copc_extents_vlr();
+    void addItem(const CopcExtent& item);;
     virtual ~copc_extents_vlr();
 
     static copc_extents_vlr create(std::istream& in, int byteSize);
@@ -190,23 +189,12 @@ public:
 struct LAZPERF_EXPORT copc_info_vlr : public lazperf::vlr
 {
 public:
-    int64_t span {0};
-    uint64_t root_hier_offset {0};
-    uint64_t root_hier_size {0};
-    uint64_t laz_vlr_offset {0};
-    uint64_t laz_vlr_size {0};
-    uint64_t wkt_vlr_offset {0};
-    uint64_t wkt_vlr_size {0};
-    uint64_t eb_vlr_offset {0};
-    uint64_t eb_vlr_size {0};
-    uint64_t extent_vlr_offset {0};
-    uint64_t extent_vlr_size {0};
     double center_x {0.0};
     double center_y {0.0};
     double center_z {0.0};
     double halfsize {0.0};
-
-    uint64_t reserved[5] {0};
+    double spacing {0.0};
+    uint64_t reserved[15] {0};
 
     copc_info_vlr();
     virtual ~copc_info_vlr();
@@ -219,30 +207,6 @@ public:
 };
 
 
-// This was a COPC draft VLR definition
-struct LAZPERF_EXPORT copc_vlr : public vlr
-{
-public:
-    int64_t span {0};
-    uint64_t root_hier_offset {0};
-    uint64_t root_hier_size {0};
-    uint64_t laz_vlr_offset {0};
-    uint64_t laz_vlr_size {0};
-    uint64_t wkt_vlr_offset {0};
-    uint64_t wkt_vlr_size {0};
-    uint64_t eb_vlr_offset {0};
-    uint64_t eb_vlr_size {0};
-    uint64_t reserved[11] {0};
-
-    copc_vlr();
-    virtual ~copc_vlr();
-
-    static copc_vlr create(std::istream& in);
-    void read(std::istream& in);
-    void write(std::ostream& out) const;
-    virtual size_t size() const;
-    virtual vlr_header header() const;
-};
 
 } // namesapce lazperf
 
