@@ -467,9 +467,7 @@ copc_extents_vlr::~copc_extents_vlr()
 {}
 
 
-copc_extents_vlr::CopcExtent::CopcExtent() :
-    minimum((std::numeric_limits<double>::max)()),
-    maximum((std::numeric_limits<double>::min)())
+copc_extents_vlr::CopcExtent::CopcExtent()
 {}
 
 
