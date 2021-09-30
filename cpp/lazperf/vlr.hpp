@@ -205,7 +205,7 @@ public:
     void read(std::istream& in);
     void write(std::ostream& out) const;
     virtual size_t size() const;
-    virtual lazperf::vlr_header header() const;
+    virtual vlr_header header() const;
 };
 
 
