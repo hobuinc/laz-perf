@@ -109,6 +109,17 @@ void evlr_header::write(std::ostream& out) const
     out.write(buf.data(), buf.size());
 }
 
+/// Index Record
+
+vlr_index_rec::vlr_index_rec(const vlr_header& h, uint64_t byte_offset) :
+    user_id(h.user_id), record_id(h.record_id), data_length(h.data_length),
+    description(h.description), byte_offset(byte_offset)
+{}
+
+vlr_index_rec::vlr_index_rec(const evlr_header& h, uint64_t byte_offset) :
+    user_id(h.user_id), record_id(h.record_id), data_length(h.data_length),
+    description(h.description), byte_offset(byte_offset)
+{}
 
 ///
 
@@ -183,16 +194,24 @@ laz_vlr::laz_vlr(int format, int ebCount, uint32_t chunksize) :
     }
 }
 
-size_t laz_vlr::size() const
+uint64_t laz_vlr::size() const
 {
     return 34 + (items.size() * 6);
 }
 
 vlr_header laz_vlr::header() const
 {
-    vlr_header h { 0, "laszip encoded", 22204, (uint16_t)size(), "lazperf variant" };
+    return vlr_header { 0, "laszip encoded", 22204, (uint16_t)size(), "lazperf variant" };
+}
 
-    return h;
+evlr_header laz_vlr::eheader() const
+{
+    return evlr_header { 0, "laszip encoded", 22204, size(), "lazperf variant" };
+}
+
+bool laz_vlr::valid() const
+{
+    return items.size();
 }
 
 laz_vlr laz_vlr::create(std::istream& in)
@@ -349,14 +368,19 @@ void eb_vlr::addField()
     items.push_back(field);
 }
 
-size_t eb_vlr::size() const
+uint64_t eb_vlr::size() const
 {
     return 192 * items.size();
 }
 
 vlr_header eb_vlr::header() const
 {
-    return vlr_header { 0, "LASF_Spec", 4, (uint16_t)size(), ""  };
+    return vlr_header { 0, "LASF_Spec", 4, (uint16_t)size(), "" };
+}
+
+evlr_header eb_vlr::eheader() const
+{
+    return evlr_header { 0, "LASF_Spec", 4, size(), "" };
 }
 
 //
@@ -389,67 +413,74 @@ void wkt_vlr::write(std::ostream& out) const
     out.write(wkt.data(), wkt.size());
 }
 
-size_t wkt_vlr::size() const
+uint64_t wkt_vlr::size() const
 {
     return wkt.size();
 }
 
-
 vlr_header wkt_vlr::header() const
 {
-    return vlr_header { 0, "LASF_Projection", 2112, (uint16_t)size(), ""  };
+    return vlr_header { 0, "LASF_Projection", 2112, (uint16_t)size(), "" };
+}
+
+evlr_header wkt_vlr::eheader() const
+{
+    return evlr_header { 0, "LASF_Projection", 2112, size(), "" };
 }
 
 //
 
 // Initialized in header.
-copc_vlr::copc_vlr()
+copc_info_vlr::copc_info_vlr()
 {}
 
-copc_vlr::~copc_vlr()
+copc_info_vlr::~copc_info_vlr()
 {}
 
-copc_vlr copc_vlr::create(std::istream& in)
+copc_info_vlr copc_info_vlr::create(std::istream& in)
 {
-    copc_vlr copcVlr;
+    copc_info_vlr copcVlr;
     copcVlr.read(in);
     return copcVlr;
 }
 
-void copc_vlr::read(std::istream& in)
+void copc_info_vlr::read(std::istream& in)
 {
     std::vector<char> buf(size());
     in.read(buf.data(), buf.size());
     LeExtractor s(buf.data(), buf.size());
 
-    s >> span >> root_hier_offset >> root_hier_size;
-    s >> laz_vlr_offset >> laz_vlr_size >> wkt_vlr_offset >> wkt_vlr_size;
-    s >> eb_vlr_offset >> eb_vlr_size;
-    for (int i = 0; i < 11; ++i)
+    s >> center_x >> center_y >> center_z >> halfsize >> spacing;
+    s >> root_hier_offset >> root_hier_size;
+    for (int i = 0; i < 13; ++i)
         s >> reserved[i];
 }
 
-void copc_vlr::write(std::ostream& out) const
+void copc_info_vlr::write(std::ostream& out) const
 {
     std::vector<char> buf(size());
     LeInserter s(buf.data(), buf.size());
 
-    s << span << root_hier_offset << root_hier_size;
-    s << laz_vlr_offset << laz_vlr_size << wkt_vlr_offset << wkt_vlr_size;
-    s << eb_vlr_offset << eb_vlr_size;
-    for (int i = 0; i < 11; ++i)
+    s << center_x << center_y << center_z << halfsize << spacing;
+    s << root_hier_offset << root_hier_size;
+    for (int i = 0; i < 13; ++i)
         s << reserved[i];
     out.write(buf.data(), buf.size());
 }
 
-size_t copc_vlr::size() const
+uint64_t copc_info_vlr::size() const
 {
     return sizeof(uint64_t) * 20;
 }
 
-vlr_header copc_vlr::header() const
+vlr_header copc_info_vlr::header() const
 {
-    return vlr_header { 0, "entwine", 1, (uint16_t)size(), "COPC offsets" };
+    return vlr_header { 0, "copc", 1, (uint16_t)size(), "COPC offsets" };
+}
+
+evlr_header copc_info_vlr::eheader() const
+{
+    return evlr_header { 0, "copc", 1, size(), "COPC offsets" };
 }
 
 } // namespace lazperf

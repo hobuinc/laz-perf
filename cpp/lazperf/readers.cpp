@@ -55,6 +55,8 @@ struct basic_file::Private
     bool loadHeader();
     uint64_t pointCount() const;
     void parseVLRs();
+    bool extractVlr(const std::string& user_id, uint16_t record_id, uint64_t data_length);
+    std::vector<char> vlrData(const std::string& user_id, uint16_t record_id);
     void parseChunkTable();
     void validateHeader();
 
@@ -66,9 +68,11 @@ struct basic_file::Private
     bool compressed;
     las_decompressor::ptr pdecompressor;
     laz_vlr laz;
+    eb_vlr eb;
     chunk *current_chunk;
     uint32_t chunk_point_num;
     std::vector<chunk> chunks;
+    std::vector<vlr_index_rec> vlr_index;
 };
 
 struct mem_file::Private
@@ -191,29 +195,81 @@ void basic_file::Private::parseVLRs()
     // move the pointer to the begining of the VLRs
     f->seekg(head12.header_size);
 
+    // Search VLRs
     size_t count = 0;
-    bool laszipFound = false;
     while (count < head12.vlr_count && f->good() && !f->eof())
     {
         vlr_header h = vlr_header::create(*f);
+        vlr_index.emplace_back(h, f->tellg());
 
-        if (h.user_id == "laszip encoded" && h.record_id == 22204)
-        {
-            laszipFound = true;
-            laz.read(*f);
-            if ((head12.pointFormat() <= 5 && laz.compressor != 2) ||
-                (head12.pointFormat() > 5 && laz.compressor != 3))
-                throw error(std::string("Mismatch between point format of ") +
-                    std::to_string(head12.pointFormat()) + " and compressor version of " +
-                    std::to_string((int)laz.compressor) + ".");
-            break; // no need to keep iterating
-        }
-        f->seekg(h.data_length, std::ios::cur); // jump foward
+        // If we don't read the VLR, seek past it.
+        if (!extractVlr(h.user_id, h.record_id, h.data_length))
+            f->seekg(h.data_length, std::ios::cur); // jump forward
         count++;
     }
 
-    if (compressed && !laszipFound)
+    // Search EVLRs
+    if (head14.evlr_count && head14.evlr_offset != 0)
+    {
+        f->seekg(head14.evlr_offset);
+
+        size_t count = 0;
+        while (count < head14.evlr_count && f->good() && !f->eof())
+        {
+            evlr_header h = evlr_header::create(*f);
+            vlr_index.emplace_back(h, f->tellg());
+
+            // If we don't read the VLR, seek past it.
+            if (!extractVlr(h.user_id, h.record_id, h.data_length))
+                f->seekg(h.data_length, std::ios::cur); // jump forward
+            count++;
+        }
+    }
+
+    if (compressed && !laz.valid())
         throw error("Couldn't find LASZIP VLR");
+}
+
+bool basic_file::Private::extractVlr(const std::string& user_id, uint16_t record_id,
+    uint64_t data_length)
+{
+    // Extract LASzip VLR
+    if (user_id == "laszip encoded" && record_id == 22204)
+    {
+        laz.read(*f);
+        if ((head12.pointFormat() <= 5 && laz.compressor != 2) ||
+                (head12.pointFormat() > 5 && laz.compressor != 3))
+            throw error(std::string("Mismatch between point format of ") +
+                    std::to_string(head12.pointFormat()) + " and compressor version of " +
+                    std::to_string((int)laz.compressor) + ".");
+        return true;
+    }
+    // Extract EB VLR
+    else if (user_id == "LASF_Spec" && record_id == 4)
+    {
+        eb.read(*f, data_length);
+        return true;
+    }
+    return false;
+}
+
+std::vector<char> basic_file::Private::vlrData(const std::string& user_id, uint16_t record_id)
+{
+    std::vector<char> data;
+
+    // Go through the VLR index looking for the one we want. If we find it, seek to the data
+    // location, read the data into the vector, then seek pack where we were.
+    for (vlr_index_rec& rec : vlr_index)
+        if (rec.user_id == user_id && rec.record_id == record_id)
+        {
+            auto position = f->tellg();
+            f->seekg(rec.byte_offset);
+            data.resize(rec.data_length);
+            f->read(data.data(), rec.data_length);
+            f->seekg(position);
+            break;
+        }
+    return data;
 }
 
 void basic_file::Private::parseChunkTable()
@@ -351,6 +407,11 @@ uint64_t basic_file::pointCount() const
 laz_vlr basic_file::lazVlr() const
 {
     return p_->laz;
+}
+
+std::vector<char> basic_file::vlrData(const std::string& user_id, uint16_t record_id)
+{
+    return p_->vlrData(user_id, record_id);
 }
 
 // reader::mem_file

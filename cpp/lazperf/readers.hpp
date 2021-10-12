@@ -47,6 +47,7 @@ public:
     LAZPERF_EXPORT const header14& header() const;
     LAZPERF_EXPORT void readPoint(char *out);
     LAZPERF_EXPORT laz_vlr lazVlr() const;
+    LAZPERF_EXPORT std::vector<char> vlrData(const std::string& user_id, uint16_t record_id);
 
 private:
     // The file object is not copyable or copy constructible

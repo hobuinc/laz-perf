@@ -65,12 +65,25 @@ struct LAZPERF_EXPORT evlr_header
     static const int Size;
 };
 
+struct vlr_index_rec
+{
+    std::string user_id;  // 16 chars max
+    uint16_t record_id;
+    uint64_t data_length;
+    std::string description;  // 32 chars max
+    uint64_t byte_offset;
+
+    vlr_index_rec(const vlr_header& h, uint64_t byte_offset);
+    vlr_index_rec(const evlr_header& h, uint64_t byte_offset);
+};
+
 struct LAZPERF_EXPORT vlr
 {
 public:
     virtual ~vlr();
-    virtual size_t size() const = 0;
+    virtual uint64_t size() const = 0;
     virtual vlr_header header() const = 0;
+    virtual evlr_header eheader() const = 0;
 };
 
 struct LAZPERF_EXPORT laz_vlr : public vlr
@@ -99,10 +112,12 @@ public:
     virtual ~laz_vlr();
 
     static laz_vlr create(std::istream& in);
+    bool valid() const;
     void read(std::istream& in);
     void write(std::ostream& out) const;
-    virtual size_t size() const;
+    virtual uint64_t size() const;
     virtual vlr_header header() const;
+    virtual evlr_header eheader() const;
 
     // Deprecated.
     std::vector<char> data() const;
@@ -138,8 +153,9 @@ public:
     static eb_vlr create(std::istream& in, int byteSize);
     void read(std::istream& in, int byteSize);
     void write(std::ostream& out) const;
-    virtual size_t size() const;
+    virtual uint64_t size() const;
     virtual vlr_header header() const;
+    virtual evlr_header eheader() const;
     void addField();
 };
 
@@ -155,32 +171,32 @@ public:
     static wkt_vlr create(std::istream& in, int byteSize);
     void read(std::istream& in, int byteSize);
     void write(std::ostream& out) const;
-    virtual size_t size() const;
+    virtual uint64_t size() const;
     virtual vlr_header header() const;
+    virtual evlr_header eheader() const;
 };
 
-struct LAZPERF_EXPORT copc_vlr : public vlr
+struct LAZPERF_EXPORT copc_info_vlr : public vlr
 {
 public:
-    int64_t span {0};
-    uint64_t root_hier_offset {0};
-    uint64_t root_hier_size {0};
-    uint64_t laz_vlr_offset {0};
-    uint64_t laz_vlr_size {0};
-    uint64_t wkt_vlr_offset {0};
-    uint64_t wkt_vlr_size {0};
-    uint64_t eb_vlr_offset {0};
-    uint64_t eb_vlr_size {0};
-    uint64_t reserved[11] {0};
+    double center_x;
+    double center_y;
+    double center_z;
+    double halfsize;
+    double spacing;
+    uint64_t root_hier_offset;
+    uint64_t root_hier_size;
+    uint64_t reserved[13] {0};
 
-    copc_vlr();
-    virtual ~copc_vlr();
+    copc_info_vlr();
+    virtual ~copc_info_vlr();
 
-    static copc_vlr create(std::istream& in);
+    static copc_info_vlr create(std::istream& in);
     void read(std::istream& in);
     void write(std::ostream& out) const;
-    virtual size_t size() const;
+    virtual uint64_t size() const;
     virtual vlr_header header() const;
+    virtual evlr_header eheader() const;
 };
 
 } // namesapce lazperf
