@@ -637,6 +637,22 @@ TEST(io_tests, issue22)
     std::remove(tempfile.c_str());
 }
 
+TEST(io_tests, vlrIndex)
+{
+    reader::named_file f(testFile("point10.las.laz"));
+
+    std::vector<char> vlr = f.vlrData("LASF_Projection", 34735);
+    EXPECT_EQ(vlr.size(), 72u);
+    vlr = f.vlrData("Foo", 34735);
+    EXPECT_EQ(vlr.size(), 0u);
+    vlr = f.vlrData("LASF_Projection", 25);
+    EXPECT_EQ(vlr.size(), 0u);
+    vlr = f.vlrData("LASF_Projection", 34737);
+    EXPECT_EQ(vlr.size(), 28u);
+    vlr = f.vlrData("liblas", 2112);
+    EXPECT_EQ(vlr.size(), 640u);
+}
+
 /**
 TEST(io_tests, fast)
 {
