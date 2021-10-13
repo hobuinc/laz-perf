@@ -199,5 +199,37 @@ public:
     virtual evlr_header eheader() const;
 };
 
+struct LAZPERF_EXPORT copc_extents_vlr : public lazperf::vlr
+{
+public:
+
+    struct LAZPERF_EXPORT CopcExtent
+    {
+        double minimum;
+        double maximum;
+
+        CopcExtent(double minimum, double maximum) : minimum(minimum), maximum(maximum)
+        {}
+
+        CopcExtent() : minimum(0), maximum(0)
+        {}
+    };
+
+    std::vector<CopcExtent> items;
+
+    copc_extents_vlr();
+    copc_extents_vlr(int numExtentItems);
+    void setItem(int i, const CopcExtent& item);
+    void addItem(const CopcExtent& item);
+    virtual ~copc_extents_vlr();
+
+    static copc_extents_vlr create(std::istream& in, int byteSize);
+    void read(std::istream& in, int byteSize);
+    void write(std::ostream& out) const;
+    virtual uint64_t size() const;
+    virtual lazperf::vlr_header header() const;
+    virtual lazperf::evlr_header eheader() const;
+};
+
 } // namesapce lazperf
 
