@@ -127,7 +127,7 @@ public:
 struct LAZPERF_EXPORT eb_vlr : public vlr
 {
 public:
-    struct ebfield
+    struct LAZPERF_EXPORT ebfield
     {
         uint8_t reserved[2];
         uint8_t data_type;
