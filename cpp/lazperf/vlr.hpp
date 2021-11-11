@@ -127,7 +127,7 @@ public:
 struct LAZPERF_EXPORT eb_vlr : public vlr
 {
 public:
-    struct ebfield
+    struct LAZPERF_EXPORT ebfield
     {
         uint8_t reserved[2];
         uint8_t data_type;
@@ -186,7 +186,9 @@ public:
     double spacing;
     uint64_t root_hier_offset;
     uint64_t root_hier_size;
-    uint64_t reserved[13] {0};
+    double gpstime_minimum;
+    double gpstime_maximum;
+    uint64_t reserved[11] {0};
 
     copc_info_vlr();
     virtual ~copc_info_vlr();

@@ -89,7 +89,7 @@ void evlr_header::read(std::istream& in)
     std::vector<char> buf(Size);
     in.read(buf.data(), buf.size());
     LeExtractor s(buf.data(), buf.size());
-    
+
     s >> reserved;
     s.get(user_id, 16);
     s >> record_id >> data_length;
@@ -452,7 +452,8 @@ void copc_info_vlr::read(std::istream& in)
 
     s >> center_x >> center_y >> center_z >> halfsize >> spacing;
     s >> root_hier_offset >> root_hier_size;
-    for (int i = 0; i < 13; ++i)
+    s >> gpstime_minimum >> gpstime_minimum;
+    for (int i = 0; i < 11; ++i)
         s >> reserved[i];
 }
 
@@ -463,7 +464,8 @@ void copc_info_vlr::write(std::ostream& out) const
 
     s << center_x << center_y << center_z << halfsize << spacing;
     s << root_hier_offset << root_hier_size;
-    for (int i = 0; i < 13; ++i)
+    s << gpstime_minimum << gpstime_minimum;
+    for (int i = 0; i < 11; ++i)
         s << reserved[i];
     out.write(buf.data(), buf.size());
 }
