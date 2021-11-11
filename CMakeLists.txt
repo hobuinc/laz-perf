@@ -31,4 +31,12 @@ if(WITH_TESTS)
         "cpp/test/raw-sets/autzen.laz")
 endif()
 
+# Encourage user to specify a build type (e.g. Release, Debug, etc.), otherwise set it to Release.
+if(NOT CMAKE_CONFIGURATION_TYPES)
+    if(NOT CMAKE_BUILD_TYPE)
+        message(STATUS "Setting build type to 'Release' as none was specified.")
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY VALUE "Release")
+    endif()
+endif()
+
 add_subdirectory(cpp)
