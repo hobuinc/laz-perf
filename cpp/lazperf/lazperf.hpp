@@ -44,23 +44,23 @@ using OutputCb = std::function<void(const unsigned char *, size_t)>;
 // Called when compressed input is to be read.
 using InputCb = std::function<void(unsigned char *, size_t)>;
 
-class las_compressor
+class LAZPERF_EXPORT las_compressor
 {
 public:
     typedef std::shared_ptr<las_compressor> ptr;
 
-    LAZPERF_EXPORT virtual const char *compress(const char *in) = 0;
-    LAZPERF_EXPORT virtual void done() = 0;
-    LAZPERF_EXPORT virtual ~las_compressor();
+    virtual const char *compress(const char *in) = 0;
+    virtual void done() = 0;
+    virtual ~las_compressor();
 };
 
-class las_decompressor
+class LAZPERF_EXPORT las_decompressor
 {
 public:
     typedef std::shared_ptr<las_decompressor> ptr;
 
-    LAZPERF_EXPORT virtual char *decompress(char *in) = 0;
-    LAZPERF_EXPORT virtual ~las_decompressor();
+    virtual char *decompress(char *in) = 0;
+    virtual ~las_decompressor();
 };
 
 class point_compressor_base_1_2 : public las_compressor
