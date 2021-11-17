@@ -477,12 +477,12 @@ uint64_t copc_info_vlr::size() const
 
 vlr_header copc_info_vlr::header() const
 {
-    return vlr_header { 0, "copc", 1, (uint16_t)size(), "COPC offsets" };
+    return vlr_header { 0, "copc", 1, (uint16_t)size(), "COPC info VLR" };
 }
 
 evlr_header copc_info_vlr::eheader() const
 {
-    return evlr_header { 0, "copc", 1, size(), "COPC offsets" };
+    return evlr_header { 0, "copc", 1, size(), "COPC info VLR" };
 }
 
 } // namespace lazperf
