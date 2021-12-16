@@ -73,12 +73,17 @@
 #       define htole32(x) (x)
 #       define be32toh ntohl
 #       define le32toh(x) (x)
-
-#       define htobe64 htonll
+                        
 #       define htole64(x) (x)
-#       define be64toh ntohll
 #       define le64toh(x) (x)
-
+#   ifndef __MINGW32__
+#       define be64toh ntohll
+#       define htobe64 htonll
+#   else
+#       define be64toh(x) ((((uint64_t)ntohl((x) & 0xFFFFFFFFUL)) << 32) | ntohl((uint32_t)((x) >> 32)))
+#       define htobe64(x) ((((uint64_t)htonl((x) & 0xFFFFFFFFUL)) << 32) | htonl((uint32_t)((x) >> 32)))
+#   endif
+                         
 #   elif BYTE_ORDER == BIG_ENDIAN
 
                                 /* that would be xbox 360 */
