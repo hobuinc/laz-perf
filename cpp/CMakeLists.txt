@@ -20,7 +20,7 @@ install(
         lazperf/readers.hpp
         lazperf/vlr.hpp
         lazperf/writers.hpp
-        lazperf/lazperf_base.hpp
+        ${CMAKE_BINARY_DIR}/lazperf_base.hpp
     DESTINATION
         include/lazperf
 )

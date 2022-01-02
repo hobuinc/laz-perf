@@ -5,6 +5,9 @@ project(LAZPERF VERSION 3.0.0)
 set(ROOT_DIR ${PROJECT_SOURCE_DIR})
 include(${ROOT_DIR}/cmake/common.cmake NO_POLICY_SCOPE)
 
+configure_file(${ROOT_DIR}/cmake/lazperf_base.in ${CMAKE_BINARY_DIR}/lazperf_base.hpp)
+include_directories(${CMAKE_BINARY_DIR})
+
 # Allow advanced users to generate Makefiles printing detailed commands
 mark_as_advanced(CMAKE_VERBOSE_MAKEFILE)
 
