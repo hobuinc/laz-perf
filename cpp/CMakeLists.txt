@@ -20,16 +20,9 @@ install(
         lazperf/readers.hpp
         lazperf/vlr.hpp
         lazperf/writers.hpp
+        lazperf/lazperf_base.hpp
     DESTINATION
         include/lazperf
-)
-install(
-    FILES
-        lazperf/lazperf_user_base.hpp
-    DESTINATION
-        include/lazperf
-    RENAME
-        lazperf_base.hpp
 )
 
 add_subdirectory(benchmarks)

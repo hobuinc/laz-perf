@@ -8,6 +8,9 @@ target_link_libraries(point10
         ${LAZPERF_STATIC_LIB}
 )
 lazperf_target_compile_settings(point10)
+if (WIN32)
+    target_compile_definitions(point10 PRIVATE LAZPERF_LIB_STATIC)
+endif()
 
 add_executable(readlaz readlaz.cpp)
 target_include_directories(readlaz
@@ -19,6 +22,9 @@ target_link_libraries(readlaz
         ${LAZPERF_STATIC_LIB}
 )
 lazperf_target_compile_settings(readlaz)
+if (WIN32)
+    target_compile_definitions(readlaz PRIVATE LAZPERF_LIB_STATIC)
+endif()
 
 if (EMSCRIPTEN)
 	SET_TARGET_PROPERTIES(point10 PROPERTIES SUFFIX .js)

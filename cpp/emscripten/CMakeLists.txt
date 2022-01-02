@@ -18,6 +18,9 @@ endif()
 
 add_executable(laz-perf laz-perf.cpp)
 target_link_libraries(laz-perf ${LAZPERF_STATIC_LIB})
+if (WIN32)
+  target_compile_definitions(laz-perf PRIVATE LAZPERF_LIB_STATIC)
+endif()
 
 if (WASM)
   SET_TARGET_PROPERTIES(laz-perf PROPERTIES SUFFIX .html)

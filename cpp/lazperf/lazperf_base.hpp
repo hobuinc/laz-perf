@@ -1,4 +1,3 @@
-
 #pragma once
 
 #define LAZPERF_MAJOR_VERSION 3
@@ -7,9 +6,16 @@
 #define LAZPERF_VERSION 3.0.0
 
 #ifdef _WIN32
+#ifndef LAZPERF_LIB_STATIC
+#ifdef LAZPERF_DLL_EXPORT
 #define LAZPERF_EXPORT __declspec(dllexport)
+#else
+#define LAZPERF_EXPORT __declspec(dllimport)
+#endif
+#else
+#define LAZPERF_EXPORT
+#endif
 #else
 // This may not be necessary. The GCC doc says it take __declspec((dllexport))
 #define LAZPERF_EXPORT __attribute__((visibility ("default")))
 #endif
-
