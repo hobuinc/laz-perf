@@ -48,6 +48,8 @@ struct LAZPERF_EXPORT vlr_header
     static vlr_header create(std::istream& in);
     void read(std::istream& in);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     static const int Size;
 };
 
@@ -62,6 +64,8 @@ struct LAZPERF_EXPORT evlr_header
     static evlr_header create(std::istream& in);
     void read(std::istream& in);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     static const int Size;
 };
 
@@ -115,12 +119,12 @@ public:
     bool valid() const;
     void read(std::istream& in);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     virtual uint64_t size() const;
     virtual vlr_header header() const;
     virtual evlr_header eheader() const;
 
-    // Deprecated.
-    std::vector<char> data() const;
     laz_vlr(const char *vlrdata);
 };
 
@@ -153,6 +157,8 @@ public:
     static eb_vlr create(std::istream& in, int byteSize);
     void read(std::istream& in, int byteSize);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     virtual uint64_t size() const;
     virtual vlr_header header() const;
     virtual evlr_header eheader() const;
@@ -171,6 +177,8 @@ public:
     static wkt_vlr create(std::istream& in, int byteSize);
     void read(std::istream& in, int byteSize);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     virtual uint64_t size() const;
     virtual vlr_header header() const;
     virtual evlr_header eheader() const;
@@ -196,6 +204,8 @@ public:
     static copc_info_vlr create(std::istream& in);
     void read(std::istream& in);
     void write(std::ostream& out) const;
+    void fill(const char *buf, size_t bufsize);
+    std::vector<char> data() const;
     virtual uint64_t size() const;
     virtual vlr_header header() const;
     virtual evlr_header eheader() const;
