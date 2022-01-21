@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) 2014, Hobu Inc., hobu@hobu.co
+* Copyright (c) 2022, Hobu Inc., info@hobu.co
 *
 * All rights reserved.
 *
