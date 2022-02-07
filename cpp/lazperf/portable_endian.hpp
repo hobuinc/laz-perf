@@ -62,7 +62,9 @@
 
 #   include <winsock2.h>
 
-#   if BYTE_ORDER == LITTLE_ENDIAN #       define htobe16 htons #       define htole16(x) (x)
+#   if BYTE_ORDER == LITTLE_ENDIAN
+#       define htobe16 htons
+#       define htole16(x) (x)
 #       define be16toh ntohs
 #       define le16toh(x) (x)
 
