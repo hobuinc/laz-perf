@@ -358,11 +358,6 @@ void basic_file::Private::parseChunkTable()
     // This discards the last offset, which we don't care about. The last count is
     // never filled in.
     chunks.resize(chunk_table_header.chunk_count);
-    /**
-    for (auto& chunk : chunks)
-        std::cerr << "Count/offset = " << chunk.count << "/" << chunk.offset << "!\n";
-    std::cerr << "\n";
-    **/
 }
 
 void basic_file::Private::validateHeader()
