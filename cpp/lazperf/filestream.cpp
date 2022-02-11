@@ -112,17 +112,18 @@ void InFileStream::Private::getBytes(unsigned char *buf, size_t request)
     }
     else
     {
+        unsigned char* buf_ptr = buf;
         do
         {
             size_t bytes = (std::min)(request, available);
             unsigned char *begin = buf_.data() + offset_;
             unsigned char *end = begin + bytes;
-            std::copy(begin, end, buf);
+            std::copy(begin, end, buf_ptr);
             offset_ += bytes;
             request -= bytes;
             if (request == 0)
                 break;
-            buf += bytes;
+            buf_ptr += bytes;
             available = fillit();
         } while (true);
     }
