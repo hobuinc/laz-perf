@@ -1,0 +1,13 @@
+{
+  "name": "@landrush/laz-perf",
+  "version": "0.0.1",
+  "description": "",
+  "module": "module/index.js",
+  "main": "lib/index.js",
+  "scripts": {},
+  "author": "",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/emscripten": "^1.39.6"
+  }
+}
