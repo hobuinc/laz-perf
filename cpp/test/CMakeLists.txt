@@ -1,5 +1,7 @@
 set(GTEST_DIR gtest/gtest-10-06-21)
 
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
 macro(LAZPERF_ADD_TEST _name)
   add_executable(${_name} ${_name}.cpp)
   target_link_libraries(${_name} gtest ${LAZPERF_STATIC_LIB})
