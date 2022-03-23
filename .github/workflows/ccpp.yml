@@ -53,7 +53,8 @@ jobs:
       - name: Install CMake and Ninja
         shell: bash -l {0}
         run: |
-            python -m pip install cmake ninja
+            python --version
+            pip install cmake ninja
       - name: Configure
         shell: bash -l {0}
         run: |
