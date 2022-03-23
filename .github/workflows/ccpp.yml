@@ -42,26 +42,21 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v3
+        name: Install Python
+        with:
+          python-version: '3.10'
       - name: Checkout submodules
         run: git submodule update --init --recursive
+
       - uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-latest'
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          channels: conda-forge, defaults
-          show-channel-urls: true
-          auto-update-conda: true
-          python-version: '3.8'
-      - name: Setup
-        shell: bash -l {0}
+
+      - name: Install CMake and Ninja
         run: |
-            conda update -n base -c defaults conda -y
-            conda config --add channels conda-forge
-            conda config --set channel_priority strict
-            conda install -c conda-forge compilers -y
-            conda install -c conda-forge ninja cmake -y
-            conda install -c conda-forge laz-perf --only-deps -y
-        continue-on-error: true
+            which python
+            python --version
+            pip install cmake ninja
       - name: Configure
         shell: bash -l {0}
         run: |
