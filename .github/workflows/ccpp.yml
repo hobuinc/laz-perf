@@ -53,8 +53,8 @@ jobs:
         if: matrix.os == 'windows-latest'
 
       - name: Install CMake and Ninja
-        shell: bash -l {0}
         run: |
+            which python
             python --version
             pip install cmake ninja
       - name: Configure
