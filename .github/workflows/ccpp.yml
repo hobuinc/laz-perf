@@ -42,14 +42,16 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
     steps:
       - uses: actions/checkout@v2
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
-      - uses: ilammy/msvc-dev-cmd@v1
-        if: matrix.os == 'windows-latest'
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v3
         name: Install Python
         with:
           python-version: '3.10'
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows-latest'
+
       - name: Install CMake and Ninja
         shell: bash -l {0}
         run: |
