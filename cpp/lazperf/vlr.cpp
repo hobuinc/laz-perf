@@ -330,7 +330,7 @@ eb_vlr::eb_vlr(int ebCount)
         eb_vlr::ebfield field;
 
         field.name = "FIELD_" + std::to_string(i);
-        ebVlr.addField(field);
+        addField(field);
     }
 }
 
