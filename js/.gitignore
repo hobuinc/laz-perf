@@ -1,0 +1,11 @@
+*
+
+!/src/
+!/src/**
+!package.json
+!package-lock.json
+!.gitignore
+!.npmignore
+!rollup.config.js
+!tsconfig.json
+!wasm.sh
