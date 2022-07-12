@@ -1,6 +1,6 @@
 {
   "name": "laz-perf",
-  "version": "3.0.0",
+  "version": "0.0.3",
   "description": "LAZ implementation compiled to WASM via Emscripten for LAZ support in a browser",
   "main": "lib/index.js",
   "homepage": "https://github.com/hobuinc/laz-perf",
