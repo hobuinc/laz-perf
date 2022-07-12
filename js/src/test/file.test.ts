@@ -2,45 +2,32 @@ import { promises as fs } from "fs";
 import { join } from "path";
 
 import { createLazPerf } from "..";
+import { parseHeader } from "./utils";
 
 const testdatadir = join(__dirname, "../../../cpp/test/raw-sets");
 
-test("read file", async () => {
+test("file reader", async () => {
   const file = await fs.readFile(join(testdatadir, "autzen_trim.laz"));
 
-  // Pluck out some necessary values from the header.  We could hard-code them,
-  // but this way we ensure that this test will be re-examined if the test file
-  // is ever updated.
-  const pointDataRecordFormat = file.readUint8(104) & 0b1111;
-  const pointDataRecordLength = file.readUint16LE(105);
-  const pointCount = file.readUint32LE(107);
-  const scale = [
-    file.readDoubleLE(131),
-    file.readDoubleLE(139),
-    file.readDoubleLE(147),
-  ];
-  const offset = [
-    file.readDoubleLE(155),
-    file.readDoubleLE(163),
-    file.readDoubleLE(171),
-  ];
-  const min = [
-    file.readDoubleLE(187),
-    file.readDoubleLE(203),
-    file.readDoubleLE(219),
-  ];
-  const max = [
-    file.readDoubleLE(179),
-    file.readDoubleLE(195),
-    file.readDoubleLE(211),
-  ];
+  const {
+    pointDataRecordFormat,
+    pointDataRecordLength,
+    pointCount,
+    scale,
+    offset,
+    min,
+    max,
+  } = parseHeader(file);
+
+	// Check some header values for sanity, for example we want to make sure we
+	// don't get a pointCount of 0 and then not perform any data checks.
   expect(pointDataRecordFormat).toEqual(3);
   expect(pointDataRecordLength).toEqual(34);
   expect(pointCount).toEqual(110_000);
   expect(scale).toEqual([0.01, 0.01, 0.01]);
   expect(min.every((v, i) => v < max[i])).toBe(true);
 
-	// Create our Emscripten module.
+  // Create our Emscripten module.
   const LazPerf = await createLazPerf();
   const laszip = new LazPerf.LASZip();
 
