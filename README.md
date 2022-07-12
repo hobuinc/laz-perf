@@ -77,26 +77,37 @@ A memory file interface exists If your LAS/LAZ data is internal rather than in a
         f.readPoint(pointbuf);
 
 
-# Buiding LAZperf for use in a browser.
+# Using LAZperf in JavaScript/TypeScript
 
-In order to build LAZperf for the browser, you must have the
-[Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) installed.
-You will also need Git and CMake.
-Activate the installation to set the necessary EMSDK environment variable then follow
-these steps:
+### Install
+LAZperf is available as a UMD module compatible with both NodeJS and browsers,
+and includes TypeScript definitions.
+```
+npm install laz-perf
+```
 
-    git clone https://github.com/hobu/laz-perf.git
-    cd laz-perf
-    mkdir build
-    cd build
-    . ../emscripten-build.sh
+### Usage
+```
+import { createLazPerf } from 'laz-perf'
 
-This should create two files in the subdirectory build/cpp/emscripten: laz-perf.js and
-laz-perf.wasm. Both are necessary for running LAZperf from the browser.
+const LazPerf = await createLazPerf()
 
-# Using LAZperf in a browser
+// File reader API.
+const laszip = new LazPerf.LASZip()
+laszip.open(filePointer, fileByteLength)
+for (let i = 0; i < pointCount; ++i) {
+    laszip.getPoint(dataPointer)
+    // Do something with point data.
+}
 
-See the file cpp/emscripten/index.html for an example of how to decode LAZ data in
-the browser. Note that laz-perf.js will fetch laz-perf.wasm when run. You don't need
-to fetch it manually.
+// Chunk decoder API.
+const decoder = new LazPerf.ChunkDecoder()
+decoder.open(pointDataRecordFormat, pointDataRecordLength, chunkPointer)
+for (let i = 0; i < pointCount; ++i) {
+    decoder.getPoint(dataPointer)
+    // Do something with point data.
+}
+```
 
+See unit tests in `js/src/test` for further details and how to interact with the
+Emscripten heap to work with the data.

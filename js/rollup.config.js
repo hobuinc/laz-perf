@@ -15,7 +15,7 @@ export default {
   plugins: [
     commonjs({ include: "src/laz-perf.js" }),
     typescript({
-      tsconfig: "./tsconfig.json",
+      tsconfig: "./tsconfig.production.json",
       // Put declarations at the top level of the output dir.
       // declarationDir: ".",
     }),

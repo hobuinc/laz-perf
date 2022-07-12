@@ -2,10 +2,15 @@
 
 !/src/
 !/src/**
+!.prettierignore
+!.prettierrc.json
+!babel.config.js
+!jest.config.js
 !package.json
 !package-lock.json
 !.gitignore
 !.npmignore
 !rollup.config.js
 !tsconfig.json
+!tsconfig.production.json
 !wasm.sh

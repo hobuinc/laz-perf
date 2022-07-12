@@ -1,7 +1,6 @@
 {
   "include": ["src"],
   "exclude": [],
-  // "exclude": ["lib/cjs"],
   "compilerOptions": {
     "baseUrl": "src",
     "rootDir": "src",
