@@ -12,7 +12,6 @@ docker run -it --rm -v $(pwd):/src emscripten/emsdk:2.0.34 bash -c \
 	cmake \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN_FILE}" \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DWASM=1 \
 		.. && \
 	emmake make VERBOSE=1
 "

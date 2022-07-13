@@ -10,7 +10,6 @@ on:
       - published
 
 jobs:
-
   emscripten:
     runs-on: 'ubuntu-latest'
     steps:
@@ -31,7 +30,12 @@ jobs:
           cd lazperf
           mkdir build
           cd build
-          . ../emscripten-build.sh
+          cmake \
+            -G "Unix Makefiles" \
+            -DCMAKE_TOOLCHAIN_FILE="$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+            -DCMAKE_BUILD_TYPE=Release \
+            ..
+          $EMSDK/upstream/emscripten/emmake make VERBOSE=1
 
   base:
     name: Base library ${{ matrix.os }}

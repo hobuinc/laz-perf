@@ -12,7 +12,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s INITIAL_MEMORY=262144")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s TOTAL_STACK=65536")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1")
 
-# If wasm build was requested, then generate native output
+if (NOT WASM EQUAL 0)
+  set(WASM 1)
+endif()
+
 if (WASM)
   message(STATUS "WASM Emscripten output has been enabled")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=1 -s \"BINARYEN_METHOD='native-wasm'\"")
