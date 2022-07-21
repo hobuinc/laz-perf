@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(LAZPERF VERSION 3.1.0)
+project(LAZPERF VERSION 3.1.1)
 
 set(ROOT_DIR ${PROJECT_SOURCE_DIR})
 include(${ROOT_DIR}/cmake/common.cmake NO_POLICY_SCOPE)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Allow advanced users to generate Makefiles printing detailed commands
 mark_as_advanced(CMAKE_VERBOSE_MAKEFILE)
