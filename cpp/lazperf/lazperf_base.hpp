@@ -2,9 +2,9 @@
 #pragma once
 
 #define LAZPERF_MAJOR_VERSION 3
-#define LAZPERF_MINOR_VERSION 1
-#define LAZPERF_REVISION 1
-#define LAZPERF_VERSION 3.1.1
+#define LAZPERF_MINOR_VERSION 2
+#define LAZPERF_REVISION 0
+#define LAZPERF_VERSION 3.2.0
 
 #ifdef _WIN32
 #define LAZPERF_EXPORT __declspec(dllexport)
