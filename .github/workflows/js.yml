@@ -28,6 +28,7 @@ jobs:
         run: |
           . emsdk/emsdk_env.sh
           cd laz-perf
+          echo "Where am I? `pwd`"
           mkdir build
           cd build
           cmake \
@@ -40,6 +41,7 @@ jobs:
       - name: Test
         run: |
           echo "Where am I? `pwd`"
+          ls
           cd js
           npm ci
           npm test --all
