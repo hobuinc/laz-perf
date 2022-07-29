@@ -37,8 +37,9 @@ jobs:
             ..
           $EMSDK/upstream/emscripten/emmake make VERBOSE=1
           cp ./cpp/emscripten/laz-perf.* ../js/src/
-      - name: Build
+      - name: Test
         run: |
+          echo "Where am I? `pwd`"
           cd js
           npm ci
           npm test --all
