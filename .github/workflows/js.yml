@@ -10,7 +10,7 @@ on:
       - published
 
 jobs:
-  emscripten:
+  test:
     runs-on: 'ubuntu-latest'
     steps:
       - name: Checkout
@@ -39,6 +39,6 @@ jobs:
           cp ./cpp/emscripten/laz-perf.* ../js/src/
       - name: Build
         run: |
-          cd ../js
+          cd js
           npm ci
           npm test --all
