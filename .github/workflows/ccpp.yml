@@ -10,33 +10,6 @@ on:
       - published
 
 jobs:
-  emscripten:
-    runs-on: 'ubuntu-latest'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          path: lazperf
-      - name: Emsdk
-        run: |
-          git clone https://github.com/emscripten-core/emsdk.git
-          cd emsdk
-          git pull
-          ./emsdk install latest
-          ./emsdk activate latest
-      - name : Run
-        run: |
-          . emsdk/emsdk_env.sh
-          cd lazperf
-          mkdir build
-          cd build
-          cmake \
-            -G "Unix Makefiles" \
-            -DCMAKE_TOOLCHAIN_FILE="$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
-            -DCMAKE_BUILD_TYPE=Release \
-            ..
-          $EMSDK/upstream/emscripten/emmake make VERBOSE=1
-
   base:
     name: Base library ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
