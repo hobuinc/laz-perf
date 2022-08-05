@@ -1,0 +1,21 @@
+{
+  "include": ["src"],
+  "exclude": [],
+  "compilerOptions": {
+    "baseUrl": "src",
+    "rootDir": "src",
+    "outDir": "lib",
+    "declarationDir": ".",
+
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "declaration": true,
+
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+  }
+}

@@ -1,0 +1,44 @@
+on:
+  push:
+    branches:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+  release:
+    types:
+      - published
+
+jobs:
+  test:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: laz-perf
+      - name: Emsdk
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git pull
+          ./emsdk install latest
+          ./emsdk activate latest
+      - name: Wasm
+        run: |
+          . emsdk/emsdk_env.sh
+          cd laz-perf
+          mkdir build
+          cd build
+          cmake \
+            -G "Unix Makefiles" \
+            -DCMAKE_TOOLCHAIN_FILE="$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+            -DCMAKE_BUILD_TYPE=Release \
+            ..
+          $EMSDK/upstream/emscripten/emmake make VERBOSE=1
+          cp ./cpp/emscripten/laz-perf.* ../js/src/
+      - name: Test
+        run: |
+          cd laz-perf/js
+          npm ci
+          npm test --all

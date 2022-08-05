@@ -10,29 +10,6 @@ on:
       - published
 
 jobs:
-
-  emscripten:
-    runs-on: 'ubuntu-latest'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          path: lazperf
-      - name: Emsdk
-        run: |
-          git clone https://github.com/emscripten-core/emsdk.git
-          cd emsdk
-          git pull
-          ./emsdk install latest
-          ./emsdk activate latest
-      - name : Run
-        run: |
-          . emsdk/emsdk_env.sh
-          cd lazperf
-          mkdir build
-          cd build
-          . ../emscripten-build.sh
-
   base:
     name: Base library ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
