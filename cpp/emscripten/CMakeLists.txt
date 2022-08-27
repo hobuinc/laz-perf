@@ -30,6 +30,10 @@ else (WASM)
   set(CMAKE_CXX_FLAGS "-s WASM=0 ${CMAKE_CXX_FLAGS}")
 endif()
 
+if (ENVIRONMENT AND NOT ${ENVIRONMENT} STREQUAL "all")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ENVIRONMENT=${ENVIRONMENT}")
+endif()
+
 message("FLAGS: ${CMAKE_CXX_FLAGS}")
 
 add_executable(laz-perf laz-perf.cpp)

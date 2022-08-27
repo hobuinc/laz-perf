@@ -5,10 +5,11 @@
     "baseUrl": "src",
     "rootDir": "src",
     "outDir": "lib",
-    "declarationDir": ".",
+    "declarationDir": "lib",
 
-    "target": "esnext",
-    "module": "esnext",
+    "target": "es2019",
+    "module": "commonjs",
+
     "lib": ["es2020", "dom"],
     "declaration": true,
 
