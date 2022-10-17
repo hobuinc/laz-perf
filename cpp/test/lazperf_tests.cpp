@@ -38,6 +38,7 @@
 
 #include <lazperf/encoder.hpp>
 #include <lazperf/decoder.hpp>
+#include <lazperf/writers.hpp>
 #include <lazperf/las.hpp>
 
 #include "reader.hpp"
@@ -423,6 +424,12 @@ TEST(lazperf_tests, dynamic_compressor_works) {
 }
 
 
+TEST(lazperf_tests, empty_file_write) {
+
+    writer::named_file::config c({0.01,0.01,0.01}, {0.0,0.0,0.0});
+    writer::named_file out(testFile("no-points.laz"), c);
+    out.close();
+}
 TEST(lazperf_tests, dynamic_decompressor_can_decode_laszip_buffer) {
 
 	std::ifstream f(testFile("point10-1.las.laz.raw"), std::ios::binary);
@@ -513,7 +520,7 @@ TEST(lazperf_tests, can_encode_match_laszip_point10color)
     test::reader las(testFile("point-color.las"));
 
     MemoryStream s;
-    
+
     point_compressor_2 comp(s.outCb());
 
 #pragma pack(push, 1)
