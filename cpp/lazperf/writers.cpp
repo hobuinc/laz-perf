@@ -90,7 +90,7 @@ struct named_file::Private
 // The chunk table itself is at the end of the point chunks. It has its own
 // header that consists of a version number and a chunk count. The chunk table entries
 // are compressed with an integer compressor.
-// 
+//
 // A chunk table entry is created after each chunk of points has been created and written.
 // If the chunks are variable size, the chunk table entries consist of a count followed by
 // an "offset".  The count is the number of points in the chunk. The offset is the the number
@@ -184,7 +184,8 @@ void basic_file::Private::close()
 {
     if (compressed())
     {
-        pcompressor->done();
+        if (pcompressor)
+            pcompressor->done();
         chunks.push_back({ chunk_point_num, (uint64_t)f->tellp() });
     }
 
@@ -387,7 +388,7 @@ named_file::named_file(const std::string& filename, const named_file::config& c)
     p_(new Private(basic_file::p_.get()))
 {
     p_->open(filename, c);
-}    
+}
 
 named_file::~named_file()
 {}
