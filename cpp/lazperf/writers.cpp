@@ -219,11 +219,11 @@ void basic_file::Private::writeHeader()
     {
         head14.vlr_count++;
         head14.point_format_id |= (1 << 7);
-        head14.point_offset += lazVlr.size() + lazVlr.header().Size;
+        head14.point_offset += (uint32_t)(lazVlr.size() + lazVlr.header().Size);
     }
     if (head14.ebCount())
     {
-        head14.point_offset += ebVlr.size() + ebVlr.header().Size;
+        head14.point_offset += (uint32_t)(ebVlr.size() + ebVlr.header().Size);
         head14.vlr_count++;
     }
 
