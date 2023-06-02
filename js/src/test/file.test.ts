@@ -79,3 +79,37 @@ test('file reader', async () => {
     laszip.delete()
   }
 })
+
+test('not legacy point count', async () => {
+  const file = await fs.readFile(join(testdatadir, 'point-time-1.4.las.laz'))
+
+  // Overwrite the legacy point count with a zero value.  In our
+  // laszip.pointCount() below, we should still get the right value from the
+  // non-legacy field.
+  file.writeUint32LE(0, 107)
+
+  const { pointDataRecordLength } = parseHeader(file)
+
+  const LazPerf = await createLazPerf()
+  const laszip = new LazPerf.LASZip()
+
+  // Allocate our memory in the Emscripten heap: a filePtr buffer for our
+  // compressed content and a single point's worth of bytes for our output.
+  const dataPtr = LazPerf._malloc(pointDataRecordLength)
+  const filePtr = LazPerf._malloc(file.byteLength)
+
+  // Copy our data into the Emscripten heap so we can point at it in getPoint().
+  LazPerf.HEAPU8.set(
+    new Uint8Array(file.buffer, file.byteOffset, file.byteLength),
+    filePtr
+  )
+
+  try {
+    laszip.open(filePtr, file.byteLength)
+    expect(laszip.getCount()).toEqual(1065)
+  } finally {
+    LazPerf._free(filePtr)
+    LazPerf._free(dataPtr)
+    laszip.delete()
+  }
+})
