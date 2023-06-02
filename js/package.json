@@ -1,6 +1,6 @@
 {
   "name": "laz-perf",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "LAZ implementation compiled to WASM via Emscripten for LAZ support in a browser",
   "main": "lib/node/index.js",
   "browser": "lib/web/index.js",
