@@ -30,7 +30,7 @@ class LASZip
 
 		unsigned int getCount() const
         {
-			return static_cast<unsigned int>(mem_file_->header().point_count);
+			return static_cast<unsigned int>(mem_file_->pointCount());
 		}
 
         unsigned int getPointLength() const
