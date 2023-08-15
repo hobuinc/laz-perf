@@ -667,4 +667,79 @@ TEST(io_tests, fast)
 }
 **/
 
+namespace
+{
+
+void pre_1_2_common_header_checks(const base_header& header)
+{
+  EXPECT_EQ(header.global_encoding, 0);
+  EXPECT_EQ(header.version.major, 1);
+  EXPECT_EQ(header.creation.day, 200);
+  EXPECT_EQ(header.creation.year, 2023);
+  EXPECT_EQ(header.header_size, 227);
+  EXPECT_EQ(header.point_format_id, 0);
+  EXPECT_EQ(header.point_record_length, 20);
+  EXPECT_DOUBLE_EQ(header.scale.x, 1.0);
+  EXPECT_DOUBLE_EQ(header.scale.y, 1.0);
+  EXPECT_DOUBLE_EQ(header.scale.z, 1.0);
+  EXPECT_DOUBLE_EQ(header.offset.x, 0.0);
+  EXPECT_DOUBLE_EQ(header.offset.y, 0.0);
+  EXPECT_DOUBLE_EQ(header.offset.z, 0.0);
+  EXPECT_DOUBLE_EQ(header.minx, 1.0);
+  EXPECT_DOUBLE_EQ(header.miny, 2.0);
+  EXPECT_DOUBLE_EQ(header.minz, 3.0);
+  EXPECT_DOUBLE_EQ(header.maxx, 1.0);
+  EXPECT_DOUBLE_EQ(header.maxy, 2.0);
+  EXPECT_DOUBLE_EQ(header.maxz, 3.0);
+  EXPECT_EQ(header.point_count, 1);
+}
+
+void pre_1_2_common_point_checks(const las::point10& p10)
+{
+  EXPECT_DOUBLE_EQ(p10.x, 1.0);
+  EXPECT_DOUBLE_EQ(p10.y, 2.0);
+  EXPECT_DOUBLE_EQ(p10.z, 3.0);
+  EXPECT_EQ(p10.intensity, 42);
+  EXPECT_EQ(p10.return_number, 1);
+  EXPECT_EQ(p10.number_of_returns_of_given_pulse, 1);
+  EXPECT_EQ(p10.classification, 5);
+  EXPECT_EQ(p10.scan_angle_rank, 7);
+}
+
+}
+
+TEST(io_tests, can_read_1_0)
+{
+  for (const std::string filename : { "point10-1.0.las", "point10-1.0.laz" })
+  {
+    reader::named_file f(testFile(filename));
+    const base_header& header = f.header();
+    pre_1_2_common_header_checks(header);
+    EXPECT_EQ(header.version.minor, 0);
+    EXPECT_EQ(header.global_encoding, 0);
+
+    las::point10 p10;
+    f.readPoint(reinterpret_cast<char*>(&p10));
+    pre_1_2_common_point_checks(p10);
+    EXPECT_EQ(p10.user_data, 0);
+  }
+}
+
+TEST(io_tests, can_read_1_1)
+{
+  for (const std::string filename : { "point10-1.1.las", "point10-1.1.laz" })
+  {
+    reader::named_file f(testFile(filename));
+    const base_header& header = f.header();
+    pre_1_2_common_header_checks(header);
+    EXPECT_EQ(header.version.minor, 1);
+    EXPECT_EQ(header.file_source_id, 1000);
+
+    las::point10 p10;
+    f.readPoint(reinterpret_cast<char*>(&p10));
+    pre_1_2_common_point_checks(p10);
+    EXPECT_EQ(p10.user_data, 13);
+  }
+}
+
 } // namespace lazperf
