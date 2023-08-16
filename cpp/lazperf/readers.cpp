@@ -156,7 +156,7 @@ bool basic_file::Private::loadHeader()
         f->seekg(0);
         head14.read(*f);
     }
-    if (head12.version.minor < 2 || head12.version.minor > 4)
+    else if (head12.version.minor > 4)
         return false;
 
     if (head12.compressed())
