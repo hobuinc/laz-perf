@@ -742,4 +742,13 @@ TEST(io_tests, can_read_1_1)
   }
 }
 
+TEST(io_tests, can_open_no_points_file)
+{
+    for (const std::string filename : { "no-points-1.3.las", "no-points-1.3.laz" })
+    {
+        reader::named_file f(testFile(filename));
+        EXPECT_EQ(f.header().point_count, 0);
+    }
+}
+
 } // namespace lazperf
