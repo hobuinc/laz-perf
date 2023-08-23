@@ -742,4 +742,25 @@ TEST(io_tests, can_read_1_1)
   }
 }
 
+TEST(io_tests, can_open_no_points_file)
+{
+    for (const std::string filename : { "no-points-1.3.las", "no-points-1.3.laz" })
+    {
+        reader::named_file f(testFile(filename));
+        EXPECT_EQ(f.header().point_count, 0);
+    }
+}
+
+TEST(io_tests, write_laz_with_no_points_and_read_back)
+{
+    const auto file_name = makeTempFileName();
+
+    const writer::named_file::config c({ 0.01, 0.01, 0.01 }, { 0.0, 0.0, 0.0 });
+    writer::named_file out(file_name, c);
+    out.close();
+
+    reader::named_file f(file_name);
+    EXPECT_EQ(f.header().point_count, 0);
+}
+
 } // namespace lazperf

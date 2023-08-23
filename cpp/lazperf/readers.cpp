@@ -306,6 +306,14 @@ void basic_file::Private::parseChunkTable()
     if (chunk_table_header.version != 0)
         throw error("Bad chunk table. Invalid version.");
 
+    if (chunk_table_header.chunk_count == 0)
+    {
+        if (pointCount() != 0)
+            throw error("Missing chunk table.");
+
+        return;
+    }
+
     // Allocate enough room for the chunk table plus one because of the crazy way that
     // the chunk table is written. Once it is fixed up, we resize back to the correct size.
     chunks.resize(chunk_table_header.chunk_count + 1);
