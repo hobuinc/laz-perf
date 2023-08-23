@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 
-project(LAZPERF VERSION 3.3.0)
+project(LAZPERF VERSION 3.4.0)
 
 set(ROOT_DIR ${PROJECT_SOURCE_DIR})
 include(${ROOT_DIR}/cmake/common.cmake NO_POLICY_SCOPE)
