@@ -49,7 +49,7 @@ struct basic_file::Private
     uint64_t newChunk();
     uint64_t firstChunkOffset() const;
     bool compressed() const;
-    bool open(std::ostream& out, const header12& h, uint32_t chunk_size);
+    bool open(std::ostream& out, const header12& h, uint32_t chunk_size, eb_vlr&& user_vlr = {});
     void writePoint(const char *p);
     void updateMinMax(const las::point10& p);
     void writeHeader();
@@ -65,6 +65,7 @@ struct basic_file::Private
     header14 head14;
     std::ostream *f;  // Pointer because we don't have a reference target at construction.
     std::unique_ptr<OutFileStream> stream;
+    eb_vlr user_vlr;
 };
 
 struct named_file::Private
@@ -74,7 +75,7 @@ struct named_file::Private
     Private(Base *b) : base(b)
     {}
 
-    void open(const std::string& filename, const named_file::config& c);
+    void open(const std::string& filename, const named_file::config& c, eb_vlr&& user_vlr = {});
 
     Base *base;
     std::ofstream file;
@@ -99,7 +100,7 @@ struct named_file::Private
 // Note that after being read, the table is fixed up to be usable when reading
 // points.
 
-bool basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs)
+bool basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs, eb_vlr&& user_vlr_)
 {
     if (h.version.major != 1 || h.version.minor < 2 || h.version.minor > 4)
         return false;
@@ -107,6 +108,18 @@ bool basic_file::Private::open(std::ostream& out, const header12& h, uint32_t cs
     f = &out;
     head12 = h;
     chunk_size = cs;
+    user_vlr = user_vlr_;
+
+    if (user_vlr.items.empty()) {
+      for (int i = 0; i < head14.ebCount(); ++i)
+      {
+          eb_vlr::ebfield field;
+
+          field.name = "FIELD_" + std::to_string(i);
+          user_vlr_.addField(field);
+      }
+    }
+
     writeHeader();
 
     if (compressed())
@@ -198,15 +211,6 @@ void basic_file::Private::close()
 void basic_file::Private::writeHeader()
 {
     laz_vlr lazVlr(head14.pointFormat(), head14.ebCount(), chunk_size);
-    eb_vlr ebVlr;
-
-    for (int i = 0; i < head14.ebCount(); ++i)
-    {
-        eb_vlr::ebfield field;
-
-        field.name = "FIELD_" + std::to_string(i);
-        ebVlr.addField(field);
-    }
 
     // Set the version number to 2 in order to write something reasonable.
     if (head14.version.minor < 2 || head14.version.minor > 4)
@@ -224,7 +228,7 @@ void basic_file::Private::writeHeader()
     }
     if (head14.ebCount())
     {
-        head14.point_offset += (uint32_t)(ebVlr.size() + ebVlr.header().Size);
+        head14.point_offset += (uint32_t)(user_vlr.size() + user_vlr.header().Size);
         head14.vlr_count++;
     }
 
@@ -255,8 +259,8 @@ void basic_file::Private::writeHeader()
     }
     if (head14.ebCount())
     {
-        ebVlr.header().write(*f);
-        ebVlr.write(*f);
+        user_vlr.header().write(*f);
+        user_vlr.write(*f);
     }
 }
 
@@ -305,9 +309,9 @@ bool basic_file::compressed() const
     return p_->compressed();
 }
 
-bool basic_file::open(std::ostream& out, const header12& h, uint32_t chunk_size)
+bool basic_file::open(std::ostream& out, const header12& h, uint32_t chunk_size, eb_vlr&& user_vlr)
 {
-   return  p_->open(out, h, chunk_size);
+   return  p_->open(out, h, chunk_size, std::move(user_vlr));
 }
 
 void basic_file::writePoint(const char *buf)
@@ -372,7 +376,7 @@ header12 named_file::config::to_header() const
     return h;
 }
 
-void named_file::Private::open(const std::string& filename, const named_file::config& c)
+void named_file::Private::open(const std::string& filename, const named_file::config& c, eb_vlr&& user_vlr)
 {
     header12 h = c.to_header();
 
@@ -381,14 +385,14 @@ void named_file::Private::open(const std::string& filename, const named_file::co
     file.open(filename, std::ios::binary | std::ios::trunc);
     if (!file.good())
         throw error("Couldn't open '" + filename + "' for writing.");
-    base->open(file, h, c.chunk_size);
+    base->open(file, h, c.chunk_size, std::move(user_vlr));
 }
 
 
-named_file::named_file(const std::string& filename, const named_file::config& c) :
+named_file::named_file(const std::string& filename, const named_file::config& c, eb_vlr&& user_vlr) :
     p_(new Private(basic_file::p_.get()))
 {
-    p_->open(filename, c);
+    p_->open(filename, c, std::move(user_vlr));
 }
 
 named_file::~named_file()
