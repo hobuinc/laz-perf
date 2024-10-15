@@ -8,7 +8,7 @@
     "declarationDir": "lib",
 
     "target": "es2019",
-    "module": "commonjs",
+    "module": "ESNext",
 
     "lib": ["es2020", "dom"],
     "declaration": true,

@@ -23,10 +23,23 @@ declare class ChunkDecoder {
 
   getPoint(pointer: Pointer): void
 }
+declare class LazWriter {
+  constructor()
+  delete(): void
+
+  open(data: Pointer, length: number): void
+  setPointFormat(format: number): LazWriter
+  setTransform(offsetX: number, offsetY: number, offsetZ: number, scaleX: number, scaleY: number, scaleZ: number): LazWriter
+  setChunkSize(chunkSize: number): LazWriter
+  writePoint(inputBuf: Pointer): void
+  newChunk(): bigint
+  close(): bigint
+}
 
 export declare interface LazPerf extends EmscriptenModule {
   LASZip: typeof LASZip
   ChunkDecoder: typeof ChunkDecoder
+  LazWriter: typeof LazWriter
 }
 
 declare const createLazPerf: EmscriptenModuleFactory<LazPerf>

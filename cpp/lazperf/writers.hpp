@@ -43,7 +43,7 @@ protected:
 public:
     LAZPERF_EXPORT bool open(std::ostream& out, const header12& h, uint32_t chunk_size);
     LAZPERF_EXPORT void writePoint(const char *p);
-    LAZPERF_EXPORT void close();
+    LAZPERF_EXPORT uint64_t close();
     LAZPERF_EXPORT uint64_t newChunk();
     LAZPERF_EXPORT uint64_t firstChunkOffset() const;
     LAZPERF_EXPORT virtual bool compressed() const;
@@ -78,7 +78,7 @@ public:
     LAZPERF_EXPORT named_file(const std::string& filename, const config& c);
     LAZPERF_EXPORT virtual ~named_file();
 
-    LAZPERF_EXPORT void close();
+    LAZPERF_EXPORT uint64_t close();
 
 private:
     std::unique_ptr<Private> p_;
@@ -94,6 +94,22 @@ public:
     LAZPERF_EXPORT std::vector<unsigned char> done();
 
 protected:
+    std::unique_ptr<Private> p_;
+};
+
+class mem_file : public basic_file
+{
+    struct Private;
+
+public:
+    LAZPERF_EXPORT mem_file(
+        char *buf,
+        size_t count,
+        const lazperf::writer::named_file::config& c
+    );
+    LAZPERF_EXPORT ~mem_file();
+
+private:
     std::unique_ptr<Private> p_;
 };
 

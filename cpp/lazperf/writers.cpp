@@ -33,6 +33,7 @@
 #include "streams.hpp"
 #include "vlr.hpp"
 #include "writers.hpp"
+#include "charbuf.hpp"
 
 namespace lazperf
 {
@@ -45,7 +46,7 @@ struct basic_file::Private
         f(nullptr)
     {}
 
-    void close();
+    uint64_t close();
     uint64_t newChunk();
     uint64_t firstChunkOffset() const;
     bool compressed() const;
@@ -181,7 +182,7 @@ void basic_file::Private::writePoint(const char *p)
     updateMinMax(*(reinterpret_cast<const las::point10*>(p)));
 }
 
-void basic_file::Private::close()
+uint64_t basic_file::Private::close()
 {
     if (compressed())
     {
@@ -190,9 +191,14 @@ void basic_file::Private::close()
         chunks.push_back({ chunk_point_num, (uint64_t)f->tellp() });
     }
 
+    uint64_t chunk_table_offset = (uint64_t)f->tellp();
     writeHeader();
+    f->seekp(chunk_table_offset);
+
     if (compressed())
         writeChunkTable();
+
+    return (uint64_t)f->tellp();
 }
 
 void basic_file::Private::writeHeader()
@@ -262,9 +268,6 @@ void basic_file::Private::writeHeader()
 
 void basic_file::Private::writeChunkTable()
 {
-    // move to the end of the file to start emitting our compresed table
-    f->seekp(0, std::ios::end);
-
     // take note of where we're writing the chunk table, we need this later
     int64_t chunk_table_offset = static_cast<int64_t>(f->tellp());
 
@@ -288,9 +291,13 @@ void basic_file::Private::writeChunkTable()
     OutCbStream outStream(w.cb());
 
     compress_chunk_table(w.cb(), chunks, chunk_size == VariableChunkSize);
+
+    int64_t eof = f->tellp();
     // go back to where we're supposed to write chunk table offset
     f->seekp(head12.point_offset);
     f->write(reinterpret_cast<char*>(&chunk_table_offset), sizeof(chunk_table_offset));
+    // go back to the end of the file
+    f->seekp(eof);
 }
 
 
@@ -326,9 +333,9 @@ uint64_t basic_file::newChunk()
     return p_->newChunk();
 }
 
-void basic_file::close()
+uint64_t basic_file::close()
 {
-    p_->close();
+    return p_->close();
 }
 
 // named_file
@@ -394,11 +401,12 @@ named_file::named_file(const std::string& filename, const named_file::config& c)
 named_file::~named_file()
 {}
 
-void named_file::close()
+uint64_t named_file::close()
 {
-    basic_file::close();
+    uint64_t byte_size = basic_file::close();
     if (p_->file.is_open())
         p_->file.close();
+    return byte_size;
 }
 
 // Chunk compressor
@@ -426,6 +434,30 @@ std::vector<unsigned char> chunk_compressor::done()
 {
     p_->pcompressor->done();
     return p_->stream.buffer();
+}
+
+// writer::mem_file
+
+struct mem_file::Private
+{
+    Private(char *buf, size_t count) : sbuf(buf, count), f(&sbuf)
+    {}
+    charbuf sbuf;
+    std::ostream f;
+};
+
+mem_file::mem_file(
+    char *buf,
+    size_t count,
+    const lazperf::writer::named_file::config& c
+) : p_(new Private(buf, count))
+{
+    if (!open(p_->f, c.to_header(), c.chunk_size))
+        throw error("Couldn't open mem_file as LAS/LAZ");
+}
+
+mem_file::~mem_file()
+{
 }
 
 } // namespace writer
