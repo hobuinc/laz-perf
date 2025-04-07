@@ -4,6 +4,7 @@ project(LAZPERF VERSION 3.4.0)
 
 set(ROOT_DIR ${PROJECT_SOURCE_DIR})
 include(${ROOT_DIR}/cmake/common.cmake NO_POLICY_SCOPE)
+include(${ROOT_DIR}/cmake/gtest.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

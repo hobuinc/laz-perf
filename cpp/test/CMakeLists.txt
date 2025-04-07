@@ -1,10 +1,8 @@
-set(GTEST_DIR gtest/gtest-10-06-21)
-
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
 macro(LAZPERF_ADD_TEST _name)
   add_executable(${_name} ${_name}.cpp)
-  target_link_libraries(${_name} gtest ${LAZPERF_STATIC_LIB})
+  target_link_libraries(${_name}  GTest::gtest
+            GTest::gtest_main  ${LAZPERF_STATIC_LIB})
   target_include_directories(${_name} PRIVATE ${GTEST_DIR}/include)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -14,7 +12,6 @@ macro(LAZPERF_ADD_TEST _name)
 endmacro(LAZPERF_ADD_TEST)
 
 configure_file(test_main.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/test_main.hpp)
-add_subdirectory(${GTEST_DIR})
 
 LAZPERF_ADD_TEST(io_tests)
 LAZPERF_ADD_TEST(lazperf_tests)
