@@ -176,8 +176,8 @@ void basic_file::Private::writePoint(const char *p)
         // now write the point
         pcompressor->compress(p);
         chunk_point_num++;
-        head14.point_count_14++;
     }
+    head14.point_count_14++;
     updateMinMax(*(reinterpret_cast<const las::point10*>(p)));
 }
 
