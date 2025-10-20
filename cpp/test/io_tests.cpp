@@ -443,7 +443,8 @@ TEST(io_tests, variable_chunks)
     checkExists(testFile("autzen_trim.las"));
     {
 
-        writer::named_file::config c({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0}, VariableChunkSize);
+        writer::named_file::config c({0.01, 0.01, 0.01}, {0.0, 0.0, 0.0},
+            laz_vlr::VariableChunkSize);
         c.pdrf = 3;
         writer::named_file f(fname, c);
 
