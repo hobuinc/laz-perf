@@ -42,7 +42,7 @@ namespace lazperf
 
 struct OutCbStream
 {
-    OutCbStream(OutputCb outCb) : outCb_(outCb)
+    OutCbStream(OutputCb outCb) : outCb_(std::move(outCb))
     {}
 
     void putBytes(const unsigned char *b, size_t len)
@@ -60,7 +60,7 @@ struct OutCbStream
 
 struct InCbStream
 {
-    InCbStream(InputCb inCb) : inCb_(inCb)
+    InCbStream(InputCb inCb) : inCb_(std::move(inCb))
     {}
 
     unsigned char getByte()

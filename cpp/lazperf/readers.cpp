@@ -471,7 +471,7 @@ chunk_decompressor::chunk_decompressor(int format, int ebCount, const char *srcb
 
     p_->buf = reinterpret_cast<const unsigned char *>(srcbuf);
     InputCb cb = std::bind(&Private::getBytes, p_.get(), _1, _2);
-    p_->pdecompressor = build_las_decompressor(cb, format, ebCount);
+    p_->pdecompressor = build_las_decompressor(std::move(cb), format, ebCount);
 }
 
 chunk_decompressor::~chunk_decompressor()

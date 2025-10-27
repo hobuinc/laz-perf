@@ -376,7 +376,7 @@ void eb_vlr::fill(const char *buf, size_t size)
         for (int i = 0; i < 3; ++i)
             s >> field.offset[i];
         s.get(field.description, 32);
-        items.push_back(field);
+        items.emplace_back(std::move(field));
     }
 }
 
@@ -417,7 +417,7 @@ void eb_vlr::addField()
     ebfield field;
 
     field.name = "FIELD_" + std::to_string(items.size());
-    items.push_back(field);
+    items.emplace_back(std::move(field));
 }
 
 void eb_vlr::addField(const eb_vlr::ebfield& field)
