@@ -56,14 +56,14 @@ struct basic_file::Private
     void writeChunks();
     void writeChunkTable();
 
-    uint32_t chunk_point_num;
-    uint32_t chunk_size;
+    uint32_t chunk_point_num {0};
+    uint32_t chunk_size {0};
     std::vector<chunk> chunks;
-    las_compressor::ptr pcompressor;
+    las_compressor::ptr pcompressor {nullptr};
     header12& head12;
     header13& head13;
     header14 head14;
-    std::ostream *f;  // Pointer because we don't have a reference target at construction.
+    std::ostream *f {nullptr};  // Pointer because we don't have a reference target at construction.
     std::unique_ptr<OutFileStream> stream;
 };
 

@@ -82,7 +82,7 @@ public:
 
 private:
     InCbStream& stream_;
-    uint32_t rgb_cnt_;
+    uint32_t rgb_cnt_ {0};
     decoders::arithmetic<MemoryStream> rgb_dec_;
     utils::Summer sumRgb;
 };

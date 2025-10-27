@@ -60,17 +60,17 @@ struct basic_file::Private
     void parseChunkTable();
     void validateHeader();
 
-    std::istream *f;
+    std::istream *f {nullptr};
     std::unique_ptr<InFileStream> stream;
     header12& head12;
     header13& head13;
     header14 head14;
-    bool compressed;
+    bool compressed {false};
     las_decompressor::ptr pdecompressor;
     laz_vlr laz;
     eb_vlr eb;
-    chunk *current_chunk;
-    uint32_t chunk_point_num;
+    chunk *current_chunk {nullptr};
+    uint32_t chunk_point_num {0};
     std::vector<chunk> chunks;
     std::vector<vlr_index_rec> vlr_index;
 };

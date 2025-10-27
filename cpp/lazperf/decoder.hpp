@@ -349,10 +349,10 @@ private:
         } while ((length <<= 8) < AC__MinLength);        // length multiplied by 256
     }
 
-    uint32_t value;
-    uint32_t length;
+    uint32_t value {0};
+    uint32_t length {0};
 
-    bool hasData;
+    bool hasData { false };
     std::unique_ptr<TInputStream> pIn;
     TInputStream& instream;
 };

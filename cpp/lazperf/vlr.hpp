@@ -103,15 +103,15 @@ public:
         uint16_t version;
     };
 
-    uint16_t compressor;
-    uint16_t coder;
-    uint8_t ver_major;
-    uint8_t ver_minor;
-    uint16_t revision;
-    uint32_t options;
-    uint32_t chunk_size;
-    uint64_t num_points;    // This is *not* the number of points. It's garbage.
-    uint64_t num_bytes;     // This is *not* the number of bytes. It's garbage.
+    uint16_t compressor {0};
+    uint16_t coder {0};
+    uint8_t ver_major {0};
+    uint8_t ver_minor {0};
+    uint16_t revision {0};
+    uint32_t options {0};
+    uint32_t chunk_size {0};
+    uint64_t num_points {0};    // This is *not* the number of points. It's garbage.
+    uint64_t num_bytes {0};     // This is *not* the number of bytes. It's garbage.
     std::vector<laz_item> items;
 
     laz_vlr();
@@ -191,15 +191,15 @@ public:
 struct LAZPERF_EXPORT copc_info_vlr : public vlr
 {
 public:
-    double center_x;
-    double center_y;
-    double center_z;
-    double halfsize;
-    double spacing;
-    uint64_t root_hier_offset;
-    uint64_t root_hier_size;
-    double gpstime_minimum;
-    double gpstime_maximum;
+    double center_x {0};
+    double center_y {0};
+    double center_z {0};
+    double halfsize {0};
+    double spacing {0};
+    uint64_t root_hier_offset {0};
+    uint64_t root_hier_size {0};
+    double gpstime_minimum {0};
+    double gpstime_maximum {0};
     uint64_t reserved[11] {0};
 
     copc_info_vlr();

@@ -47,10 +47,10 @@ namespace las
 #pragma pack(push, 1)
 struct point10
 {
-    int x;
-    int y;
-    int z;
-    unsigned short intensity;
+    int x {0};
+    int y {0};
+    int z {0};
+    unsigned short intensity {0};
     unsigned char return_number : 3;
     unsigned char number_of_returns_of_given_pulse : 3;
     unsigned char scan_direction_flag : 1;
@@ -218,17 +218,17 @@ struct extrabytes : public std::vector<uint8_t>
 
 struct point14
 {
-    int32_t x_;
-    int32_t y_;
-    int32_t z_;
-    uint16_t intensity_;
-    uint8_t returns_;
-    uint8_t flags_;
-    uint8_t classification_;
-    uint8_t user_data_;
-    int16_t scan_angle_;
-    uint16_t point_source_ID_;
-    double gpstime_;
+    int32_t x_ {0};
+    int32_t y_ {0};
+    int32_t z_ {0};
+    uint16_t intensity_ {0};
+    uint8_t returns_ {0};
+    uint8_t flags_ {0};
+    uint8_t classification_ {0};
+    uint8_t user_data_ {0};
+    int16_t scan_angle_ {0};
+    uint16_t point_source_ID_ {0};
+    double gpstime_ {0};
 
     point14()
     {}

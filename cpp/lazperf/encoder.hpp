@@ -403,12 +403,14 @@ void manage_outbuffer()
 arithmetic<TOutStream>& operator = (const arithmetic<TOutStream>&) = delete;
 
 private:
-    uint8_t* outbuffer;
-    uint8_t* endbuffer;
-    uint8_t* outbyte;
-    uint8_t* endbyte;
-    uint32_t base, value, length;
-    bool valid;
+    uint8_t* outbuffer {nullptr};
+    uint8_t* endbuffer {nullptr};
+    uint8_t* outbyte {nullptr};
+    uint8_t* endbyte {nullptr};
+    uint32_t base {0};
+    uint32_t value {0};
+    uint32_t length {0};
+    bool valid {false};
 
     std::unique_ptr<TOutStream> pOut;
     TOutStream& outstream;

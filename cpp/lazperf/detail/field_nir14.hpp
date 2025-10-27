@@ -80,7 +80,7 @@ public:
 
 private:
     InCbStream& stream_;
-    uint32_t nir_cnt_;
+    uint32_t nir_cnt_ {0};
     decoders::arithmetic<MemoryStream> nir_dec_;
     utils::Summer sumNir;
 };
