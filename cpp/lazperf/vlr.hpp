@@ -103,6 +103,8 @@ public:
         uint16_t version;
     };
 
+    static constexpr uint32_t VariableChunkSize = (std::numeric_limits<uint32_t>::max)();
+
     uint16_t compressor {0};
     uint16_t coder {0};
     uint8_t ver_major {0};
