@@ -1,10 +1,10 @@
 /*
 ===============================================================================
 
-  FILE:  io.cpp
+  FILE:  readers.cpp
 
   CONTENTS:
-    LAZ io
+    LAZ reader
 
   PROGRAMMERS:
 
@@ -88,6 +88,13 @@ struct named_file::Private
 {
     Private(const std::string& filename) : f(filename, std::ios::binary)
     {}
+
+    ~Private()
+    { close(); }
+
+
+    void close()
+    { f.close(); }
 
     std::ifstream f;
 };
@@ -337,7 +344,7 @@ void basic_file::Private::parseChunkTable()
     {
         uint32_t count;
 
-        if (laz.chunk_size == VariableChunkSize)
+        if (laz.variableChunks())
         {
             count = decomp.decompress(decoder, prev_count, 0);
             prev_count = count;
@@ -450,6 +457,11 @@ named_file::named_file(const std::string& filename) : p_(new Private(filename))
 named_file::~named_file()
 {}
 
+void named_file::close()
+{
+    p_->close();
+}
+
 // Chunk decompressor
 
 struct chunk_decompressor::Private
@@ -471,7 +483,7 @@ chunk_decompressor::chunk_decompressor(int format, int ebCount, const char *srcb
 
     p_->buf = reinterpret_cast<const unsigned char *>(srcbuf);
     InputCb cb = std::bind(&Private::getBytes, p_.get(), _1, _2);
-    p_->pdecompressor = build_las_decompressor(cb, format, ebCount);
+    p_->pdecompressor = build_las_decompressor(std::move(cb), format, ebCount);
 }
 
 chunk_decompressor::~chunk_decompressor()

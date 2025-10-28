@@ -50,7 +50,7 @@ las_compressor::~las_compressor()
 
 struct point_compressor_base_1_2::Private
 {
-    Private(OutputCb cb, size_t ebCount) : stream_(cb), encoder_(stream_), point_(encoder_),
+    Private(OutputCb cb, size_t ebCount) : stream_(std::move(cb)), encoder_(stream_), point_(encoder_),
         gpstime_(encoder_), rgb_(encoder_), byte_(encoder_, ebCount)
     {}
 
@@ -63,7 +63,7 @@ struct point_compressor_base_1_2::Private
 };
 
 point_compressor_base_1_2::point_compressor_base_1_2(OutputCb cb, size_t ebCount) :
-    p_(new Private(cb, ebCount))
+    p_(new Private(std::move(cb), ebCount))
 {}
 
 point_compressor_base_1_2::~point_compressor_base_1_2()
@@ -80,7 +80,7 @@ point_compressor_0::~point_compressor_0()
 {}
 
 point_compressor_0::point_compressor_0(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_2(cb, ebCount)
+    point_compressor_base_1_2(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_0::compress(const char *in)
@@ -96,7 +96,7 @@ point_compressor_1::~point_compressor_1()
 {}
 
 point_compressor_1::point_compressor_1(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_2(cb, ebCount)
+    point_compressor_base_1_2(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_1::compress(const char *in)
@@ -113,7 +113,7 @@ point_compressor_2::~point_compressor_2()
 {}
 
 point_compressor_2::point_compressor_2(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_2(cb, ebCount)
+    point_compressor_base_1_2(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_2::compress(const char *in)
@@ -130,7 +130,7 @@ point_compressor_3::~point_compressor_3()
 {}
 
 point_compressor_3::point_compressor_3(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_2(cb, ebCount)
+    point_compressor_base_1_2(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_3::compress(const char *in)
@@ -146,7 +146,7 @@ const char *point_compressor_3::compress(const char *in)
 
 struct point_compressor_base_1_4::Private
 {
-    Private(OutputCb cb, size_t ebCount) : stream_(cb), chunk_count_(0), point_(stream_),
+    Private(OutputCb cb, size_t ebCount) : stream_(std::move(cb)), chunk_count_(0), point_(stream_),
         rgb_(stream_), nir_(stream_), byte_(stream_, ebCount)
     {}
 
@@ -159,7 +159,7 @@ struct point_compressor_base_1_4::Private
 };
 
 point_compressor_base_1_4::point_compressor_base_1_4(OutputCb cb, size_t ebCount) :
-    p_(new Private(cb, ebCount))
+    p_(new Private(std::move(cb), ebCount))
 {}
 
 // COMPRESOR 6
@@ -168,7 +168,7 @@ point_compressor_6::~point_compressor_6()
 {}
 
 point_compressor_6::point_compressor_6(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_4(cb, ebCount)
+    point_compressor_base_1_4(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_6::compress(const char *in)
@@ -200,7 +200,7 @@ point_compressor_7::~point_compressor_7()
 {}
 
 point_compressor_7::point_compressor_7(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_4(cb, ebCount)
+    point_compressor_base_1_4(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_7::compress(const char *in)
@@ -235,7 +235,7 @@ point_compressor_8::~point_compressor_8()
 {}
 
 point_compressor_8::point_compressor_8(OutputCb cb, size_t ebCount) :
-    point_compressor_base_1_4(cb, ebCount)
+    point_compressor_base_1_4(std::move(cb), ebCount)
 {}
 
 const char *point_compressor_8::compress(const char *in)
@@ -276,7 +276,7 @@ las_decompressor::~las_decompressor()
 
 struct point_decompressor_base_1_2::Private
 {
-    Private(InputCb cb, size_t ebCount) : stream_(cb), decoder_(stream_), point_(decoder_),
+    Private(InputCb cb, size_t ebCount) : stream_(std::move(cb)), decoder_(stream_), point_(decoder_),
         gpstime_(decoder_), rgb_(decoder_), byte_(decoder_, ebCount), first_(true)
     {}
 
@@ -290,7 +290,7 @@ struct point_decompressor_base_1_2::Private
 };
 
 point_decompressor_base_1_2::point_decompressor_base_1_2(InputCb cb, size_t ebCount) :
-    p_(new Private(cb, ebCount))
+    p_(new Private(std::move(cb), ebCount))
 {}
 
 point_decompressor_base_1_2::~point_decompressor_base_1_2()
@@ -311,7 +311,7 @@ point_decompressor_0::~point_decompressor_0()
 {}
 
 point_decompressor_0::point_decompressor_0(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_2(cb, ebCount)
+    point_decompressor_base_1_2(std::move(cb), ebCount)
 {}
 
 char *point_decompressor_0::decompress(char *in)
@@ -328,7 +328,7 @@ point_decompressor_1::~point_decompressor_1()
 {}
 
 point_decompressor_1::point_decompressor_1(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_2(cb, ebCount)
+    point_decompressor_base_1_2(std::move(cb), ebCount)
 {}
 
 char *point_decompressor_1::decompress(char *in)
@@ -346,7 +346,7 @@ point_decompressor_2::~point_decompressor_2()
 {}
 
 point_decompressor_2::point_decompressor_2(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_2(cb, ebCount)
+    point_decompressor_base_1_2(std::move(cb), ebCount)
 {}
 
 char *point_decompressor_2::decompress(char *in)
@@ -364,7 +364,7 @@ point_decompressor_3::~point_decompressor_3()
 {}
 
 point_decompressor_3::point_decompressor_3(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_2(cb, ebCount)
+    point_decompressor_base_1_2(std::move(cb), ebCount)
 {}
 
 char *point_decompressor_3::decompress(char *in)
@@ -382,7 +382,7 @@ char *point_decompressor_3::decompress(char *in)
 struct point_decompressor_base_1_4::Private
 {
 public:
-    Private(InputCb cb, size_t ebCount) : cbStream_(cb), point_(cbStream_), rgb_(cbStream_),
+    Private(InputCb cb, size_t ebCount) : cbStream_(std::move(cb)), point_(cbStream_), rgb_(cbStream_),
         nir_(cbStream_), byte_(cbStream_, ebCount), chunk_count_(0), first_(true)
     {}
 
@@ -396,13 +396,13 @@ public:
 };
 
 point_decompressor_base_1_4::point_decompressor_base_1_4(InputCb cb, size_t ebCount) :
-    p_(new Private(cb, ebCount))
+    p_(new Private(std::move(cb), ebCount))
 {}
     
 // DECOMPRESSOR 6
 
 point_decompressor_6::point_decompressor_6(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_4(cb, ebCount)
+    point_decompressor_base_1_4(std::move(cb), ebCount)
 {}
 
 point_decompressor_6::~point_decompressor_6()
@@ -442,7 +442,7 @@ char *point_decompressor_6::decompress(char *out)
 // DECOMPRESSOR 7
 
 point_decompressor_7::point_decompressor_7(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_4(cb, ebCount)
+    point_decompressor_base_1_4(std::move(cb), ebCount)
 {}
 
 point_decompressor_7::~point_decompressor_7()
@@ -486,7 +486,7 @@ char *point_decompressor_7::decompress(char *out)
 // DECOMPRESSOR 8
 
 point_decompressor_8::point_decompressor_8(InputCb cb, size_t ebCount) :
-    point_decompressor_base_1_4(cb, ebCount)
+    point_decompressor_base_1_4(std::move(cb), ebCount)
 {}
 
 point_decompressor_8::~point_decompressor_8()
@@ -540,25 +540,25 @@ las_compressor::ptr build_las_compressor(OutputCb cb, int format, size_t ebCount
     switch (format)
     {
     case 0:
-        compressor.reset(new point_compressor_0(cb, ebCount));
+        compressor.reset(new point_compressor_0(std::move(cb), ebCount));
         break;
     case 1:
-        compressor.reset(new point_compressor_1(cb, ebCount));
+        compressor.reset(new point_compressor_1(std::move(cb), ebCount));
         break;
     case 2:
-        compressor.reset(new point_compressor_2(cb, ebCount));
+        compressor.reset(new point_compressor_2(std::move(cb), ebCount));
         break;
     case 3:
-        compressor.reset(new point_compressor_3(cb, ebCount));
+        compressor.reset(new point_compressor_3(std::move(cb), ebCount));
         break;
     case 6:
-        compressor.reset(new point_compressor_6(cb, ebCount));
+        compressor.reset(new point_compressor_6(std::move(cb), ebCount));
         break;
     case 7:
-        compressor.reset(new point_compressor_7(cb, ebCount));
+        compressor.reset(new point_compressor_7(std::move(cb), ebCount));
         break;
     case 8:
-        compressor.reset(new point_compressor_8(cb, ebCount));
+        compressor.reset(new point_compressor_8(std::move(cb), ebCount));
         break;
     }
     return compressor;
@@ -571,25 +571,25 @@ las_decompressor::ptr build_las_decompressor(InputCb cb, int format, size_t ebCo
     switch (format)
     {
     case 0:
-        decompressor.reset(new point_decompressor_0(cb, ebCount));
+        decompressor.reset(new point_decompressor_0(std::move(cb), ebCount));
         break;
     case 1:
-        decompressor.reset(new point_decompressor_1(cb, ebCount));
+        decompressor.reset(new point_decompressor_1(std::move(cb), ebCount));
         break;
     case 2:
-        decompressor.reset(new point_decompressor_2(cb, ebCount));
+        decompressor.reset(new point_decompressor_2(std::move(cb), ebCount));
         break;
     case 3:
-        decompressor.reset(new point_decompressor_3(cb, ebCount));
+        decompressor.reset(new point_decompressor_3(std::move(cb), ebCount));
         break;
     case 6:
-        decompressor.reset(new point_decompressor_6(cb, ebCount));
+        decompressor.reset(new point_decompressor_6(std::move(cb), ebCount));
         break;
     case 7:
-        decompressor.reset(new point_decompressor_7(cb, ebCount));
+        decompressor.reset(new point_decompressor_7(std::move(cb), ebCount));
         break;
     case 8:
-        decompressor.reset(new point_decompressor_8(cb, ebCount));
+        decompressor.reset(new point_decompressor_8(std::move(cb), ebCount));
         break;
     }
     return decompressor;
@@ -600,7 +600,7 @@ las_decompressor::ptr build_las_decompressor(InputCb cb, int format, size_t ebCo
 // NOTE: Only works with fixed-sized chunks.
 void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks)
 {
-    OutCbStream stream(cb);
+    OutCbStream stream(std::move(cb));
     encoders::arithmetic<OutCbStream> encoder(stream);
     compressors::integer compressor(32, 2);
     uint32_t predictor = 0;
@@ -617,7 +617,7 @@ void compress_chunk_table(OutputCb cb, const std::vector<uint32_t>& chunks)
 
 void compress_chunk_table(OutputCb cb, const std::vector<chunk>& chunks, bool variable)
 {
-    OutCbStream stream(cb);
+    OutCbStream stream(std::move(cb));
     encoders::arithmetic<OutCbStream> encoder(stream);
     compressors::integer compressor(32, 2);
 
@@ -645,7 +645,7 @@ std::vector<chunk> decompress_chunk_table(InputCb cb, size_t numChunks, bool var
 {
     std::vector<chunk> chunks;
 
-    InCbStream stream(cb);
+    InCbStream stream(std::move(cb));
     decoders::arithmetic<InCbStream> decoder(stream);
     decompressors::integer decomp(32, 2);
 
@@ -674,7 +674,7 @@ std::vector<chunk> decompress_chunk_table(InputCb cb, size_t numChunks, bool var
 // Deprecated
 std::vector<uint32_t> decompress_chunk_table(InputCb cb, size_t numChunks)
 {
-    std::vector<chunk> chunks = decompress_chunk_table(cb, numChunks, false);
+    std::vector<chunk> chunks = decompress_chunk_table(std::move(cb), numChunks, false);
 
     std::vector<uint32_t> sizes;
     for (chunk& c : chunks)

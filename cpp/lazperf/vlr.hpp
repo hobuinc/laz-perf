@@ -127,6 +127,8 @@ public:
     virtual uint64_t size() const;
     virtual vlr_header header() const;
     virtual evlr_header eheader() const;
+    bool variableChunks() const;
+    static bool variableChunks(uint32_t chunk_size);
 
     laz_vlr(const char *vlrdata);
 };
