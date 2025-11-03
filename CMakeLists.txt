@@ -22,6 +22,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 # Choose package components
 set(WITH_TESTS TRUE CACHE BOOL "Choose if LAZPERF unit tests should be built")
 
+# Choose package components
+set(BUILD_SHARED_LIBS TRUE CACHE BOOL "Switch between static and dynamic builds.")
+
 if (EMSCRIPTEN)
     set(WITH_TESTS NO)
 else()
