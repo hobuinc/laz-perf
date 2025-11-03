@@ -41,17 +41,24 @@ jobs:
               export CC=cl.exe
               export CXX=cl.exe
             fi
-            mkdir build
-            cd build
-            cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON
-      - name: Build
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON -DBUILD_SHARED_LIBS=OFF
+            cmake -S . -B build-shared -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON -DBUILD_SHARED_LIBS=ON
+      - name: Build static
         shell: bash -l {0}
         run: |
-            cd build
-            ninja
-      - name: Test
+            cmake --build build
+      - name: Build shared
+        shell: bash -l {0}
+        run: |
+            cmake --build build-shared
+      - name: Test static
         shell: bash -l {0}
         run: |
             cd build
             ctest
+      - name: Test shared
+        shell: bash -l {0}
+        run: |
+            cd build
+            ctest build-shared
 
