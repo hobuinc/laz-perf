@@ -25,9 +25,9 @@ install(
     FILE
         lazperf-targets.cmake
     NAMESPACE
-        LAZPERF::
+        lazperf::
     DESTINATION
-        lib/cmake/LAZPERF
+        lib/cmake/lazperf
 )
 
 #

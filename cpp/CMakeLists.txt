@@ -4,9 +4,8 @@ file(GLOB SRCS
     lazperf/detail/*.cpp
 )
 
-set (LAZPERF_LIB lazperf)
-
-lazperf_add_library(${LAZPERF_LIB} ${SRCS})
+lazperf_add_library(lazperf ${SRCS})
+add_library(lazperf::lazperf ALIAS lazperf)
 
 install(
     FILES

@@ -37,7 +37,7 @@ endif()
 message("FLAGS: ${CMAKE_CXX_FLAGS}")
 
 add_executable(laz-perf laz-perf.cpp)
-target_link_libraries(laz-perf ${LAZPERF_LIB})
+target_link_libraries(laz-perf lazperf::lazperf)
 
 if (WASM)
   SET_TARGET_PROPERTIES(laz-perf PROPERTIES SUFFIX .js)
