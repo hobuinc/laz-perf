@@ -2,7 +2,7 @@
 macro(LAZPERF_ADD_TEST _name)
   add_executable(${_name} ${_name}.cpp)
   target_link_libraries(${_name}  GTest::gtest
-            GTest::gtest_main  ${LAZPERF_STATIC_LIB})
+            GTest::gtest_main  ${LAZPERF_LIB})
   target_include_directories(${_name} PRIVATE ${GTEST_DIR}/include)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
   target_include_directories(${_name} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

@@ -4,13 +4,9 @@ file(GLOB SRCS
     lazperf/detail/*.cpp
 )
 
-set (LAZPERF_SHARED_LIB lazperf)
-set (LAZPERF_STATIC_LIB lazperf_s)
+set (LAZPERF_LIB lazperf)
 
-if (NOT EMSCRIPTEN)
-    lazperf_add_library(${LAZPERF_SHARED_LIB} SHARED ${SRCS})
-endif()
-lazperf_add_library(${LAZPERF_STATIC_LIB} STATIC ${SRCS})
+lazperf_add_library(${LAZPERF_LIB} ${SRCS})
 
 install(
     FILES
