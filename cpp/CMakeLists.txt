@@ -4,7 +4,11 @@ file(GLOB SRCS
     lazperf/detail/*.cpp
 )
 
-lazperf_add_library(lazperf ${SRCS})
+if (BUILD_SHARED_LIBS)
+    lazperf_add_library(lazperf SHARED ${SRCS})
+else()
+    lazperf_add_library(lazperf STATIC ${SRCS})
+endif()
 add_library(lazperf::lazperf ALIAS lazperf)
 
 install(
