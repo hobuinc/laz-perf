@@ -26,6 +26,7 @@
 #include <memory>
 
 #include "header.hpp"
+#include "vlr.hpp"
 
 namespace lazperf
 {
@@ -41,7 +42,7 @@ protected:
     virtual ~basic_file();
 
 public:
-    LAZPERF_EXPORT bool open(std::ostream& out, const header12& h, uint32_t chunk_size);
+    LAZPERF_EXPORT bool open(std::ostream& out, const header12& h, uint32_t chunk_size, eb_vlr&& user_vlr = {});
     LAZPERF_EXPORT void writePoint(const char *p);
     LAZPERF_EXPORT void close();
     LAZPERF_EXPORT uint64_t newChunk();
@@ -75,7 +76,7 @@ public:
         header12 to_header() const;
     };
 
-    LAZPERF_EXPORT named_file(const std::string& filename, const config& c);
+    LAZPERF_EXPORT named_file(const std::string& filename, const config& c, eb_vlr&& user_vlr = {});
     LAZPERF_EXPORT virtual ~named_file();
 
     LAZPERF_EXPORT void close();
